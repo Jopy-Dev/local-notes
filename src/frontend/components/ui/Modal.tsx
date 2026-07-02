@@ -10,12 +10,13 @@ import { IconButton } from "./IconButton";
 interface ModalProps {
   open: boolean;
   title: string;
+  description?: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
 }
 
-export function Modal({ open, title, onClose, children, footer }: ModalProps) {
+export function Modal({ open, title, description, onClose, children, footer }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -35,9 +36,12 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
       className="w-[min(520px,calc(100vw-48px))] rounded-panel border border-border-strong bg-surface-panel p-0 text-text-primary shadow-popover"
     >
       <div className="flex min-h-12 items-center border-b border-border-subtle py-0 pr-3 pl-4.5">
-        <h2 id={titleId} className="m-0 text-body font-heading">
-          {title}
-        </h2>
+        <div>
+          <h2 id={titleId} className="m-0 text-body font-heading">
+            {title}
+          </h2>
+          {description ? <p className="mt-0.5 mb-0 text-2xs text-text-muted">{description}</p> : null}
+        </div>
         <IconButton label="Close dialog" onClick={onClose} className="ml-auto">
           <CloseIcon size={16} />
         </IconButton>

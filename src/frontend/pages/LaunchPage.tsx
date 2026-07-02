@@ -51,7 +51,7 @@ export function LaunchPage() {
   }
 
   return (
-    <div className="grid min-h-dvh w-screen grid-cols-[244px_minmax(0,1fr)] grid-rows-[42px_minmax(0,1fr)_24px] bg-surface-root [grid-template-areas:'titlebar_titlebar'_'sidebar_main'_'status_status']">
+    <div className="grid h-dvh w-full grid-cols-[244px_minmax(0,1fr)] grid-rows-[42px_minmax(0,1fr)_24px] bg-surface-root [grid-template-areas:'titlebar_titlebar'_'sidebar_main'_'status_status']">
       <NavBar
         windowTitle="No workspace open"
         actions={
