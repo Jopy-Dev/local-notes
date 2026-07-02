@@ -23,7 +23,7 @@ export function IconButton({ label, pressed, children, className, ...rest }: Ico
         "transition-colors duration-(--duration-fast) ease-standard",
         "hover:bg-surface-hover hover:text-text-primary",
         "disabled:cursor-default disabled:text-text-disabled",
-        pressed === true ? "bg-surface-selected text-text-primary" : "",
+        pressed === true ? "border-border-active bg-surface-selected text-accent" : "",
         className,
       ]
         .filter(Boolean)

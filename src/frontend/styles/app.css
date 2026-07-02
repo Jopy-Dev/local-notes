@@ -146,11 +146,21 @@
     color-scheme: dark;
   }
 
+  /* App shell owns scrolling inside panes; page never scrolls at supported
+   * sizes (4.3: zero page-level horizontal scroll). Below the supported
+   * contract the resize-guidance surface may scroll. */
   body {
+    overflow: hidden;
     background-color: var(--color-surface-root);
     color: var(--color-text-secondary);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
+  }
+
+  @media (max-width: 1023px), (max-height: 639px) {
+    body {
+      overflow: auto;
+    }
   }
 
   /* 11: 2px focus ring, 1px offset, never removed */
