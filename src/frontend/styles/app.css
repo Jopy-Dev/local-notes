@@ -113,6 +113,32 @@
   --z-toast: 50;
 }
 
+/* Component layer: token-composed surfaces that need CSS features
+ * (gradients, color-mix, ::backdrop) Tailwind utilities cannot express cleanly.
+ * Tokens only - no raw color literals (Design_System.md 12). */
+@layer components {
+  .launch-grid-bg {
+    background-color: var(--color-surface-root);
+    background-image:
+      linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
+    background-position: -1px -1px;
+    background-size: 32px 32px;
+  }
+
+  .launch-welcome {
+    background: color-mix(in srgb, var(--color-surface-panel) 96%, transparent);
+  }
+
+  .launch-doc-front {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border-strong));
+  }
+
+  dialog::backdrop {
+    background: color-mix(in srgb, var(--color-surface-code) 68%, transparent);
+  }
+}
+
 /* Base layer: Quiet Workbench canvas + focus + reduced motion (2, 7, 11) */
 @layer base {
   html {
