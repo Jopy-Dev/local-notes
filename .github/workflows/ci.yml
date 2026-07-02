@@ -40,6 +40,7 @@ jobs:
           pip install agent-slop-lint
       - run: slop lint --root .
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
       - run: npm run build
       # dependency-review-action removed: unsupported on private repos without GHAS.
