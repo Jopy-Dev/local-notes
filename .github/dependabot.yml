@@ -1,0 +1,36 @@
+# Baseline per arch/security.md 9.9 - npm majors ignored (EOL-isolated upgrades),
+# patch+minor grouped weekly; github-actions all bumps grouped (SHA-pin forces manual review).
+# No docker ecosystem: local npm package, no container deploy (MasterPrompt.md 1.2).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Manila
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels: [dependencies]
+    groups:
+      npm-patch-minor:
+        applies-to: version-updates
+        update-types: [patch, minor]
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Manila
+    open-pull-requests-limit: 5
+    labels: [dependencies, ci]
+    groups:
+      github-actions:
+        applies-to: version-updates
+        update-types: [patch, minor, major]

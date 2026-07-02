@@ -1,0 +1,2407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2323221e'/><path d='M9 7h10l4 4v14H9z' fill='none' stroke='%23d4a24c' stroke-width='2'/><path d='M13 15h6M13 19h6' stroke='%23d4a24c' stroke-width='2' stroke-linecap='round'/></svg>" />
+    <title>Local Notes - Workspace</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --surface-root: #171714;
+        --surface-titlebar: #1a1a16;
+        --surface-sidebar: #1c1c18;
+        --surface-panel: #20201b;
+        --surface-editor: #191916;
+        --surface-raised: #292821;
+        --surface-hover: #302f27;
+        --surface-selected: #383329;
+        --surface-input: #151512;
+        --surface-code: #141411;
+        --border-subtle: #34332b;
+        --border-strong: #4a483b;
+        --border-active: #6b5b3e;
+        --text-primary: #ebe8dc;
+        --text-secondary: #aaa697;
+        --text-muted: #938f80;
+        --text-disabled: #858276;
+        --text-source: #d8d4c7;
+        --text-code: #d6b77d;
+        --accent: #c49a59;
+        --accent-hover: #d0a765;
+        --accent-muted: #725b37;
+        --accent-ink: #211b12;
+        --focus: #e0b875;
+        --success: #83a87a;
+        --success-bg: #202a1f;
+        --warning: #c9a15f;
+        --warning-bg: #2b251a;
+        --danger: #ca7a70;
+        --danger-bg: #2d211f;
+        --info: #8d9ca8;
+        --shadow-popover: 0 18px 50px rgb(8 8 6 / 44%);
+        --font-ui:
+          "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        --font-mono:
+          "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono",
+          monospace;
+        --radius-control: 4px;
+        --radius-panel: 6px;
+        --duration-fast: 120ms;
+        --duration-standard: 180ms;
+        --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--surface-root);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: 14px;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button,
+      select {
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+      }
+
+      ::selection {
+        background: var(--accent-muted);
+        color: var(--text-primary);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .app {
+        display: grid;
+        grid-template:
+          "titlebar titlebar titlebar" 42px
+          "folders notes editor" minmax(0, 1fr)
+          "status status status" 24px /
+          220px 320px minmax(0, 1fr);
+        width: 100vw;
+        min-height: 100dvh;
+        background: var(--surface-root);
+      }
+
+      .app[data-focus-mode="true"] {
+        grid-template:
+          "editor" minmax(0, 1fr)
+          "status" 24px /
+          minmax(0, 1fr);
+      }
+
+      .app[data-focus-mode="true"] .titlebar,
+      .app[data-focus-mode="true"] .folders-pane,
+      .app[data-focus-mode="true"] .notes-pane {
+        display: none;
+      }
+
+      .titlebar {
+        grid-area: titlebar;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+        padding: 0 10px 0 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--surface-titlebar);
+        user-select: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        color: var(--accent);
+      }
+
+      .brand-mark svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .brand-name {
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+      }
+
+      .title-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--border-subtle);
+      }
+
+      .workspace-path {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .title-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+      }
+
+      .command-trigger {
+        display: inline-flex;
+        min-width: 188px;
+        height: 29px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+        color: var(--text-muted);
+        text-align: left;
+      }
+
+      .command-trigger:hover {
+        border-color: var(--border-strong);
+        color: var(--text-secondary);
+      }
+
+      .command-trigger svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .command-trigger kbd {
+        margin-left: auto;
+      }
+
+      kbd {
+        padding: 2px 5px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 3px;
+        background: var(--surface-raised);
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        line-height: 1.2;
+      }
+
+      .icon-button {
+        display: inline-grid;
+        width: 30px;
+        height: 28px;
+        flex: 0 0 auto;
+        place-items: center;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          color var(--duration-fast) var(--ease-standard),
+          border-color var(--duration-fast) var(--ease-standard);
+      }
+
+      .icon-button:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .icon-button[aria-pressed="true"] {
+        border-color: var(--border-active);
+        background: var(--surface-selected);
+        color: var(--accent);
+      }
+
+      .icon-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .pane {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .folders-pane {
+        grid-area: folders;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-subtle);
+        background: var(--surface-sidebar);
+      }
+
+      .pane-heading {
+        display: flex;
+        min-height: 40px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px 0 13px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .heading-actions {
+        display: flex;
+        gap: 2px;
+        margin-left: auto;
+      }
+
+      .folder-scroll {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        padding: 7px;
+        scrollbar-color: var(--border-strong) transparent;
+        scrollbar-width: thin;
+      }
+
+      .nav-section + .nav-section {
+        margin-top: 16px;
+      }
+
+      .nav-section-title {
+        display: flex;
+        align-items: center;
+        padding: 0 7px 5px;
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .tree-item {
+        display: flex;
+        width: 100%;
+        min-height: 31px;
+        align-items: center;
+        gap: 7px;
+        padding: 0 7px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        text-align: left;
+      }
+
+      .tree-item:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .tree-item[aria-current="page"] {
+        border-color: var(--border-active);
+        background: var(--surface-selected);
+        color: var(--text-primary);
+      }
+
+      .tree-item svg {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 auto;
+        color: var(--text-muted);
+      }
+
+      .tree-item[aria-current="page"] svg {
+        color: var(--accent);
+      }
+
+      .tree-label {
+        min-width: 0;
+        overflow: hidden;
+        flex: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tree-count {
+        color: var(--text-muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tree-indent {
+        padding-left: 24px;
+      }
+
+      .workspace-footer {
+        padding: 8px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .workspace-summary {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        padding: 6px;
+        border-radius: var(--radius-control);
+        color: var(--text-secondary);
+      }
+
+      .workspace-summary:hover {
+        background: var(--surface-hover);
+      }
+
+      .workspace-summary svg {
+        width: 16px;
+        height: 16px;
+        color: var(--success);
+      }
+
+      .workspace-summary strong,
+      .workspace-summary span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workspace-summary strong {
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .workspace-summary span {
+        margin-top: 2px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 9px;
+      }
+
+      .notes-pane {
+        grid-area: notes;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-subtle);
+        background: var(--surface-panel);
+      }
+
+      .notes-toolbar {
+        padding: 9px 10px 8px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .search-wrap {
+        position: relative;
+      }
+
+      .search-wrap svg {
+        position: absolute;
+        top: 50%;
+        left: 9px;
+        width: 15px;
+        height: 15px;
+        color: var(--text-muted);
+        pointer-events: none;
+        transform: translateY(-50%);
+      }
+
+      .search-input {
+        width: 100%;
+        height: 33px;
+        padding: 0 31px 0 31px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+        color: var(--text-primary);
+      }
+
+      .search-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .search-shortcut {
+        position: absolute;
+        top: 50%;
+        right: 7px;
+        transform: translateY(-50%);
+      }
+
+      .list-controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 8px;
+      }
+
+      .select {
+        min-width: 0;
+        height: 28px;
+        padding: 0 25px 0 8px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+        color: var(--text-secondary);
+        font-size: 11px;
+      }
+
+      .result-count {
+        margin-right: auto;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .note-list {
+        min-height: 0;
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-color: var(--border-strong) transparent;
+        scrollbar-width: thin;
+      }
+
+      .note-item {
+        display: block;
+        width: 100%;
+        min-height: 94px;
+        padding: 12px 13px 11px;
+        border: 0;
+        border-bottom: 1px solid var(--border-subtle);
+        background: transparent;
+        color: inherit;
+        text-align: left;
+      }
+
+      .note-item:hover {
+        background: var(--surface-hover);
+      }
+
+      .note-item[aria-current="true"] {
+        background: var(--surface-selected);
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      .note-row {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .note-title {
+        min-width: 0;
+        overflow: hidden;
+        flex: 1;
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 620;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .note-time {
+        flex: 0 0 auto;
+        color: var(--text-muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .note-preview {
+        display: -webkit-box;
+        overflow: hidden;
+        margin-top: 6px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.45;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+
+      .note-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        color: var(--text-muted);
+        font-size: 10px;
+      }
+
+      .file-type {
+        padding: 1px 4px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 3px;
+        font-family: var(--font-mono);
+        font-size: 9px;
+      }
+
+      .meta-warning {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--warning);
+      }
+
+      .meta-warning svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      .no-results {
+        display: none;
+        padding: 32px 22px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+
+      .no-results[data-visible="true"] {
+        display: block;
+      }
+
+      .no-results svg {
+        width: 22px;
+        height: 22px;
+        color: var(--text-muted);
+      }
+
+      .no-results strong,
+      .no-results span {
+        display: block;
+      }
+
+      .no-results strong {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      .no-results span {
+        margin-top: 5px;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .editor-pane {
+        grid-area: editor;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        background: var(--surface-editor);
+      }
+
+      .editor-header {
+        display: grid;
+        grid-template:
+          "crumbs actions" auto
+          "title actions" 34px /
+          minmax(0, 1fr) auto;
+        gap: 2px 12px;
+        min-width: 0;
+        padding: 8px 10px 8px 18px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: var(--surface-titlebar);
+      }
+
+      .breadcrumbs {
+        grid-area: crumbs;
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 5px;
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .breadcrumbs span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .breadcrumbs svg {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+      }
+
+      .title-input {
+        grid-area: title;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 19px;
+        font-weight: 650;
+        letter-spacing: -0.012em;
+      }
+
+      .title-input:focus-visible {
+        border-radius: 2px;
+        outline-offset: 3px;
+      }
+
+      .editor-actions {
+        grid-area: actions;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        padding: 2px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+      }
+
+      .segment {
+        min-width: 46px;
+        height: 25px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 3px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .segment:hover {
+        color: var(--text-secondary);
+      }
+
+      .segment[aria-pressed="true"] {
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 1px var(--border-strong);
+      }
+
+      .save-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 3px;
+        color: var(--text-muted);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .save-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .more-wrap {
+        position: relative;
+      }
+
+      .popover {
+        position: absolute;
+        top: 33px;
+        right: 0;
+        z-index: 20;
+        width: 196px;
+        padding: 5px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-panel);
+        background: var(--surface-raised);
+        box-shadow: var(--shadow-popover);
+      }
+
+      .popover[hidden] {
+        display: none;
+      }
+
+      .menu-button {
+        display: flex;
+        width: 100%;
+        min-height: 31px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        text-align: left;
+      }
+
+      .menu-button:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .menu-button svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .menu-button-danger {
+        color: var(--danger);
+      }
+
+      .menu-separator {
+        height: 1px;
+        margin: 4px;
+        background: var(--border-subtle);
+      }
+
+      .conflict-banner {
+        display: none;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 9px 12px 9px 18px;
+        border-bottom: 1px solid var(--border-active);
+        background: var(--warning-bg);
+      }
+
+      .conflict-banner[data-visible="true"] {
+        display: grid;
+      }
+
+      .conflict-banner > svg {
+        width: 18px;
+        height: 18px;
+        color: var(--warning);
+      }
+
+      .conflict-copy strong,
+      .conflict-copy span {
+        display: block;
+      }
+
+      .conflict-copy strong {
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .conflict-copy span {
+        margin-top: 2px;
+        color: var(--text-secondary);
+        font-size: 10px;
+      }
+
+      .conflict-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      .compact-button {
+        min-height: 28px;
+        padding: 0 9px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface-raised);
+        color: var(--text-secondary);
+        font-size: 10px;
+      }
+
+      .compact-button:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .compact-button-primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 650;
+      }
+
+      .compact-button-primary:hover {
+        background: var(--accent-hover);
+        color: var(--accent-ink);
+      }
+
+      .editor-workspace {
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+      }
+
+      .editor-workspace[data-mode="read"] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .editor-workspace[data-mode="edit"] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .source-pane,
+      .preview-pane {
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        scrollbar-color: var(--border-strong) transparent;
+        scrollbar-width: thin;
+      }
+
+      .source-pane {
+        border-right: 1px solid var(--border-subtle);
+        background: var(--surface-code);
+      }
+
+      .editor-workspace[data-mode="read"] .source-pane {
+        display: none;
+      }
+
+      .editor-workspace[data-mode="edit"] .preview-pane {
+        display: none;
+      }
+
+      .editor-workspace[data-mode="edit"] .source-pane {
+        border-right: 0;
+      }
+
+      .source-gutter {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        min-height: 100%;
+        padding: 22px 0 80px;
+      }
+
+      .line-numbers {
+        padding: 0 10px 0 0;
+        color: var(--text-disabled);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.7;
+        text-align: right;
+        user-select: none;
+      }
+
+      .source-content {
+        max-width: 76ch;
+        padding: 0 28px 0 8px;
+        color: var(--text-source);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+
+      .md-heading {
+        color: var(--accent);
+      }
+
+      .md-punctuation {
+        color: var(--text-muted);
+      }
+
+      .md-link {
+        color: var(--info);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .preview-pane {
+        background: var(--surface-editor);
+      }
+
+      .preview-content {
+        width: min(68ch, calc(100% - 64px));
+        margin: 0 auto;
+        padding: 44px 0 100px;
+      }
+
+      .preview-content h1,
+      .preview-content h2 {
+        color: var(--text-primary);
+        letter-spacing: -0.015em;
+      }
+
+      .preview-content h1 {
+        margin: 0 0 26px;
+        font-size: 25px;
+        font-weight: 680;
+        line-height: 1.25;
+      }
+
+      .preview-content h2 {
+        margin: 30px 0 12px;
+        font-size: 17px;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
+      .preview-content p,
+      .preview-content li {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .preview-content p {
+        margin: 0 0 15px;
+      }
+
+      .preview-content ul {
+        margin: 0 0 18px;
+        padding-left: 22px;
+      }
+
+      .preview-content li + li {
+        margin-top: 6px;
+      }
+
+      .preview-content code {
+        padding: 2px 5px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 3px;
+        background: var(--surface-code);
+        color: var(--text-code);
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+      }
+
+      .preview-content a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+      }
+
+      .preview-content blockquote {
+        margin: 20px 0;
+        padding: 11px 14px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-panel);
+        color: var(--text-secondary);
+      }
+
+      .preview-content blockquote p {
+        margin: 0;
+      }
+
+      .statusbar {
+        grid-area: status;
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 14px;
+        padding: 0 9px;
+        border-top: 1px solid var(--border-subtle);
+        background: var(--surface-titlebar);
+        color: var(--text-muted);
+        font-size: 10px;
+        user-select: none;
+      }
+
+      .status-item {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 2px rgb(131 168 122 / 12%);
+      }
+
+      .status-spacer {
+        flex: 1;
+      }
+
+      .status-path {
+        overflow: hidden;
+        font-family: var(--font-mono);
+        text-overflow: ellipsis;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 34px;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 13px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        font-weight: 570;
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          border-color var(--duration-fast) var(--ease-standard),
+          transform var(--duration-fast) var(--ease-standard);
+      }
+
+      .button:hover {
+        background: var(--surface-hover);
+      }
+
+      .button:active {
+        transform: translateY(1px);
+      }
+
+      .button-primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 650;
+      }
+
+      .button-primary:hover {
+        background: var(--accent-hover);
+      }
+
+      .button-danger {
+        border-color: var(--danger);
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+
+      .button svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      dialog {
+        width: min(520px, calc(100vw - 48px));
+        max-height: min(720px, calc(100dvh - 48px));
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-panel);
+        background: var(--surface-panel);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-popover);
+      }
+
+      dialog::backdrop {
+        background: rgb(10 10 8 / 68%);
+      }
+
+      .dialog-header {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        padding: 0 11px 0 17px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .dialog-header h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .dialog-header p {
+        margin: 2px 0 0;
+        color: var(--text-muted);
+        font-size: 10px;
+      }
+
+      .dialog-close {
+        margin-left: auto;
+      }
+
+      .dialog-body {
+        max-height: calc(100dvh - 170px);
+        overflow-y: auto;
+        padding: 18px;
+        scrollbar-color: var(--border-strong) transparent;
+        scrollbar-width: thin;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 13px 18px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .form-field + .form-field {
+        margin-top: 15px;
+      }
+
+      .form-field label,
+      .field-label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .field-help {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      .field-error {
+        display: none;
+        margin: 6px 0 0;
+        color: var(--danger);
+        font-size: 10px;
+      }
+
+      .field-error[data-visible="true"] {
+        display: block;
+      }
+
+      .input,
+      .textarea,
+      .form-select {
+        width: 100%;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+        color: var(--text-primary);
+      }
+
+      .input,
+      .form-select {
+        height: 35px;
+        padding: 0 10px;
+      }
+
+      .textarea {
+        min-height: 74px;
+        padding: 9px 10px;
+        resize: vertical;
+      }
+
+      .input[aria-invalid="true"] {
+        border-color: var(--danger);
+      }
+
+      .settings-section + .settings-section {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .settings-section h3 {
+        margin: 0 0 13px;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 13px;
+      }
+
+      .path-display {
+        overflow: hidden;
+        padding: 9px 10px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-input);
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .switch-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .switch-copy strong,
+      .switch-copy span {
+        display: block;
+      }
+
+      .switch-copy strong {
+        color: var(--text-secondary);
+        font-size: 11px;
+      }
+
+      .switch-copy span {
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 10px;
+      }
+
+      .switch {
+        position: relative;
+        width: 34px;
+        height: 18px;
+        flex: 0 0 auto;
+      }
+
+      .switch input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .switch-track {
+        position: absolute;
+        inset: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: 9px;
+        background: var(--surface-input);
+      }
+
+      .switch-track::after {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        content: "";
+        transition: transform var(--duration-standard) var(--ease-standard);
+      }
+
+      .switch input:checked + .switch-track {
+        border-color: var(--accent);
+        background: var(--accent-muted);
+      }
+
+      .switch input:checked + .switch-track::after {
+        background: var(--text-primary);
+        transform: translateX(16px);
+      }
+
+      .switch input:focus-visible + .switch-track {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .command-dialog {
+        width: min(620px, calc(100vw - 48px));
+        margin-top: 12vh;
+        vertical-align: top;
+      }
+
+      .command-search {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 11px 13px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .command-search svg {
+        width: 17px;
+        height: 17px;
+        color: var(--text-muted);
+      }
+
+      .command-search input {
+        min-width: 0;
+        flex: 1;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 14px;
+      }
+
+      .command-list {
+        max-height: 360px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+
+      .command-group-label {
+        padding: 8px 8px 5px;
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .command-item {
+        display: grid;
+        width: 100%;
+        min-height: 38px;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 0 8px;
+        border: 0;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        text-align: left;
+      }
+
+      .command-item:hover,
+      .command-item:focus-visible {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .command-item svg {
+        width: 15px;
+        height: 15px;
+        color: var(--text-muted);
+      }
+
+      .command-item span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 39px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: 360px;
+        padding: 11px 13px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-popover);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition:
+          opacity var(--duration-standard) var(--ease-standard),
+          transform var(--duration-standard) var(--ease-standard);
+      }
+
+      .toast[data-visible="true"] {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast svg {
+        width: 16px;
+        height: 16px;
+        color: var(--success);
+      }
+
+      .unsupported {
+        display: none;
+      }
+
+      @media (max-width: 1199px) and (min-width: 1024px) {
+        .app {
+          grid-template-columns: 190px 280px minmax(0, 1fr);
+        }
+
+        .command-trigger {
+          min-width: 144px;
+        }
+
+        .preview-content {
+          width: min(66ch, calc(100% - 42px));
+        }
+
+        .editor-workspace {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        .save-state span {
+          display: none;
+        }
+
+        .segment {
+          min-width: 39px;
+          padding: 0 6px;
+        }
+
+        .source-content {
+          padding-right: 18px;
+        }
+      }
+
+      @media (max-width: 1023px), (max-height: 639px) {
+        body {
+          overflow: auto;
+        }
+
+        .app {
+          display: none;
+        }
+
+        .unsupported {
+          display: grid;
+          width: 100%;
+          min-height: 100dvh;
+          place-items: center;
+          padding: 28px;
+          background: var(--surface-root);
+        }
+
+        .unsupported-card {
+          width: min(460px, 100%);
+          padding: 26px;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-panel);
+          background: var(--surface-panel);
+        }
+
+        .unsupported-card svg {
+          width: 24px;
+          height: 24px;
+          color: var(--warning);
+        }
+
+        .unsupported-card h1 {
+          margin: 16px 0 0;
+          font-size: 19px;
+        }
+
+        .unsupported-card p {
+          margin: 9px 0 0;
+          color: var(--text-secondary);
+          line-height: 1.55;
+        }
+
+        .viewport-value {
+          display: inline-block;
+          margin-top: 16px;
+          padding: 5px 7px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 3px;
+          color: var(--text-muted);
+          font-family: var(--font-mono);
+          font-size: 11px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="titlebar">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M6.5 3.5h8l3 3v14h-11z" />
+            <path d="M14.5 3.5v4h3M9 11h6M9 15h6" />
+          </svg>
+        </div>
+        <span class="brand-name">Local Notes</span>
+        <span class="title-divider" aria-hidden="true"></span>
+        <span class="workspace-path">~/.local-notes</span>
+        <div class="title-actions">
+          <button class="command-trigger" id="command-trigger" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            Search or run command
+            <kbd>Ctrl K</kbd>
+          </button>
+          <button class="icon-button" id="settings-trigger" type="button" aria-label="Open settings" title="Settings (Ctrl+,)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <aside class="pane folders-pane" aria-label="Workspace folders">
+        <div class="pane-heading">
+          <span class="eyebrow">Workspace</span>
+          <div class="heading-actions">
+            <button class="icon-button new-note-trigger" type="button" aria-label="Create note" title="New note (Ctrl+N)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M6.5 3.5h8l3 3v14h-11zM14.5 3.5v4h3M12 11v6M9 14h6" />
+              </svg>
+            </button>
+            <button class="icon-button" id="refresh-trigger" type="button" aria-label="Refresh workspace" title="Refresh workspace">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M19 8a7 7 0 1 0 1 6M19 4v4h-4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <nav class="folder-scroll" aria-label="Note navigation">
+          <div class="nav-section">
+            <button class="tree-item" type="button" aria-current="page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M6.5 3.5h8l3 3v14h-11zM14.5 3.5v4h3" />
+              </svg>
+              <span class="tree-label">All notes</span>
+              <span class="tree-count">248</span>
+            </button>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              <span class="tree-label">Recent</span>
+              <span class="tree-count">12</span>
+            </button>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M4 7h16v13H4zM3 4h18v3H3zM9 11h6" />
+              </svg>
+              <span class="tree-label">Archive</span>
+              <span class="tree-count">31</span>
+            </button>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-title">Folders</div>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Daily</span>
+              <span class="tree-count">64</span>
+            </button>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Projects</span>
+              <span class="tree-count">88</span>
+            </button>
+            <button class="tree-item tree-indent" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Local Notes</span>
+              <span class="tree-count">17</span>
+            </button>
+            <button class="tree-item tree-indent" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Website refresh</span>
+              <span class="tree-count">23</span>
+            </button>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Research</span>
+              <span class="tree-count">52</span>
+            </button>
+            <button class="tree-item" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+              </svg>
+              <span class="tree-label">Reference</span>
+              <span class="tree-count">44</span>
+            </button>
+          </div>
+        </nav>
+
+        <div class="workspace-footer">
+          <div class="workspace-summary" title="Active local workspace">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" />
+              <path d="m8.5 12 2.2 2.2L15.8 9" />
+            </svg>
+            <div>
+              <strong>Workspace available</strong>
+              <span>~/.local-notes</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="pane notes-pane" aria-label="Notes">
+        <div class="notes-toolbar">
+          <div class="search-wrap">
+            <label class="sr-only" for="note-search">Search notes</label>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <input class="search-input" id="note-search" type="search" placeholder="Search notes" autocomplete="off" />
+            <kbd class="search-shortcut">Ctrl P</kbd>
+          </div>
+          <div class="list-controls">
+            <span class="result-count" id="result-count">248 notes</span>
+            <label class="sr-only" for="sort-select">Sort notes</label>
+            <select class="select" id="sort-select">
+              <option>Modified</option>
+              <option>Created</option>
+              <option>Title</option>
+            </select>
+            <button class="icon-button" id="sort-direction" type="button" aria-label="Sort descending" aria-pressed="true" title="Sort descending">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M8 6h10M8 11h7M8 16h4M4 5v14M2 17l2 2 2-2" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="note-list" id="note-list">
+          <button class="note-item" type="button" aria-current="true" data-title="Local Notes architecture" data-preview="Single-process runtime, filesystem ownership, search worker, and browser security contract.">
+            <div class="note-row">
+              <span class="note-title">Local Notes architecture</span>
+              <span class="note-time">10:42</span>
+            </div>
+            <span class="note-preview">Single-process runtime, filesystem ownership, search worker, and browser security contract.</span>
+            <span class="note-meta">
+              <span class="file-type">MD</span>
+              <span>Projects / Local Notes</span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Launch checklist" data-preview="Package validation, port ownership, browser launch, and graceful shutdown checks.">
+            <div class="note-row">
+              <span class="note-title">Launch checklist</span>
+              <span class="note-time">09:18</span>
+            </div>
+            <span class="note-preview">Package validation, port ownership, browser launch, and graceful shutdown checks.</span>
+            <span class="note-meta">
+              <span class="file-type">MD</span>
+              <span>Projects / Local Notes</span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Friday review" data-preview="Decisions made, unresolved questions, and tasks to resume next week.">
+            <div class="note-row">
+              <span class="note-title">Friday review</span>
+              <span class="note-time">Yesterday</span>
+            </div>
+            <span class="note-preview">Decisions made, unresolved questions, and tasks to resume next week.</span>
+            <span class="note-meta">
+              <span class="file-type">MD</span>
+              <span>Daily</span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Search benchmark notes" data-preview="Warm-index measurements across ten thousand generated Markdown and text files.">
+            <div class="note-row">
+              <span class="note-title">Search benchmark notes</span>
+              <span class="note-time">Jun 11</span>
+            </div>
+            <span class="note-preview">Warm-index measurements across ten thousand generated Markdown and text files.</span>
+            <span class="note-meta">
+              <span class="file-type">TXT</span>
+              <span>Research</span>
+              <span class="meta-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M12 3 2.8 19h18.4zM12 9v4M12 16.5v.5" />
+                </svg>
+                Metadata only
+              </span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Markdown compatibility" data-preview="Lossless round-trip fixtures for links, tables, task lists, code fences, and underline HTML.">
+            <div class="note-row">
+              <span class="note-title">Markdown compatibility</span>
+              <span class="note-time">Jun 10</span>
+            </div>
+            <span class="note-preview">Lossless round-trip fixtures for links, tables, task lists, code fences, and underline HTML.</span>
+            <span class="note-meta">
+              <span class="file-type">MD</span>
+              <span>Reference</span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Filesystem edge cases" data-preview="Symlinks, junctions, case-insensitive collisions, rename events, and invalid UTF-8 behavior.">
+            <div class="note-row">
+              <span class="note-title">Filesystem edge cases</span>
+              <span class="note-time">Jun 9</span>
+            </div>
+            <span class="note-preview">Symlinks, junctions, case-insensitive collisions, rename events, and invalid UTF-8 behavior.</span>
+            <span class="note-meta">
+              <span class="file-type">MD</span>
+              <span>Research</span>
+            </span>
+          </button>
+
+          <button class="note-item" type="button" data-title="Keyboard map" data-preview="Primary navigation and editing shortcuts, focus return rules, and conflict actions.">
+            <div class="note-row">
+              <span class="note-title">Keyboard map</span>
+              <span class="note-time">Jun 8</span>
+            </div>
+            <span class="note-preview">Primary navigation and editing shortcuts, focus return rules, and conflict actions.</span>
+            <span class="note-meta">
+              <span class="file-type">TXT</span>
+              <span>Reference</span>
+            </span>
+          </button>
+        </div>
+
+        <div class="no-results" id="no-results" data-visible="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m15.5 15.5 4 4M8 9h5M8 12h3" />
+          </svg>
+          <strong>No matching notes</strong>
+          <span>Try a filename, phrase, or nearby spelling.</span>
+        </div>
+      </section>
+
+      <main class="pane editor-pane">
+        <header class="editor-header">
+          <div class="breadcrumbs" aria-label="Current note path">
+            <span>Projects</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+            <span>Local Notes</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+            <span>local-notes-architecture.md</span>
+          </div>
+
+          <label class="sr-only" for="note-title">Note title</label>
+          <input class="title-input" id="note-title" value="Local Notes architecture" />
+
+          <div class="editor-actions">
+            <span class="save-state" role="status" aria-live="polite">
+              <span class="save-dot" aria-hidden="true"></span>
+              <span>Saved locally</span>
+            </span>
+            <div class="segmented" aria-label="Editor mode">
+              <button class="segment mode-button" type="button" data-mode="read" aria-pressed="false">Read</button>
+              <button class="segment mode-button" type="button" data-mode="edit" aria-pressed="false">Edit</button>
+              <button class="segment mode-button" type="button" data-mode="split" aria-pressed="true">Split</button>
+            </div>
+            <button class="icon-button" id="focus-mode-trigger" type="button" aria-label="Enter focus mode" aria-pressed="false" title="Focus mode (Ctrl+Shift+F)">
+              <svg class="focus-enter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
+              </svg>
+              <svg class="focus-exit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" hidden>
+                <path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5" />
+              </svg>
+            </button>
+            <div class="more-wrap">
+              <button class="icon-button" id="more-trigger" type="button" aria-label="More note actions" aria-expanded="false" aria-controls="note-actions">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="5" cy="12" r="1.5" />
+                  <circle cx="12" cy="12" r="1.5" />
+                  <circle cx="19" cy="12" r="1.5" />
+                </svg>
+              </button>
+              <div class="popover" id="note-actions" role="menu" hidden>
+                <button class="menu-button" type="button" role="menuitem" id="move-trigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M3.5 6.5h6l2 2h9v10h-17zM9 13h7M13 10l3 3-3 3" />
+                  </svg>
+                  Move note
+                </button>
+                <button class="menu-button" type="button" role="menuitem" id="copy-path-trigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="8" y="8" width="11" height="11" rx="2" />
+                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                  </svg>
+                  Copy local path
+                </button>
+                <button class="menu-button" type="button" role="menuitem" id="conflict-trigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M12 3 2.8 19h18.4zM12 9v4M12 16.5v.5" />
+                  </svg>
+                  Preview conflict state
+                </button>
+                <div class="menu-separator" role="separator"></div>
+                <button class="menu-button menu-button-danger" type="button" role="menuitem" id="archive-trigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M4 7h16v13H4zM3 4h18v3H3zM9 11h6" />
+                  </svg>
+                  Archive note
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section class="conflict-banner" id="conflict-banner" data-visible="false" aria-live="assertive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 3 2.8 19h18.4zM12 9v4M12 16.5v.5" />
+          </svg>
+          <div class="conflict-copy">
+            <strong>This file changed outside Local Notes</strong>
+            <span>Your draft is preserved. Choose which version should continue.</span>
+          </div>
+          <div class="conflict-actions">
+            <button class="compact-button" type="button" id="reload-trigger">Reload disk version</button>
+            <button class="compact-button compact-button-primary" type="button" id="overwrite-trigger">Keep my draft</button>
+          </div>
+        </section>
+
+        <section class="editor-workspace" id="editor-workspace" data-mode="split" aria-label="Note editor">
+          <div class="source-pane" aria-label="Markdown source">
+            <div class="source-gutter">
+              <div class="line-numbers" aria-hidden="true">1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9<br />10<br />11<br />12<br />13<br />14<br />15<br />16</div>
+              <div class="source-content" tabindex="0"><span class="md-heading"># Local Notes architecture</span>
+
+Local Notes runs as one local Node.js process. Fastify serves the React app and a worker thread maintains the search index.
+
+<span class="md-heading">## Runtime contract</span>
+
+<span class="md-punctuation">-</span> Bind only to <span class="md-link">127.0.0.1:8989</span>.
+<span class="md-punctuation">-</span> Keep the filesystem as the source of truth.
+<span class="md-punctuation">-</span> Open the browser after health checks pass.
+<span class="md-punctuation">-</span> Shut down cleanly when the CLI process exits.
+
+<span class="md-heading">## Content safety</span>
+
+Writes use a temporary sibling file, flush, and atomic replacement. External edits pause autosave until the user explicitly reloads or overwrites.
+
+<span class="md-punctuation">&gt;</span> The interface must never hide uncertainty about which version is on disk.</div>
+            </div>
+          </div>
+
+          <article class="preview-pane" aria-label="Rendered note">
+            <div class="preview-content">
+              <h1>Local Notes architecture</h1>
+              <p>
+                Local Notes runs as one local Node.js process. Fastify serves the
+                React app and a worker thread maintains the search index.
+              </p>
+
+              <h2>Runtime contract</h2>
+              <ul>
+                <li>Bind only to <code>127.0.0.1:8989</code>.</li>
+                <li>Keep the filesystem as the source of truth.</li>
+                <li>Open the browser after health checks pass.</li>
+                <li>Shut down cleanly when the CLI process exits.</li>
+              </ul>
+
+              <h2>Content safety</h2>
+              <p>
+                Writes use a temporary sibling file, flush, and atomic replacement.
+                External edits pause autosave until the user explicitly reloads or
+                overwrites.
+              </p>
+              <blockquote>
+                <p>The interface must never hide uncertainty about which version is on disk.</p>
+              </blockquote>
+            </div>
+          </article>
+        </section>
+      </main>
+
+      <footer class="statusbar" aria-label="Application status">
+        <span class="status-item">
+          <span class="status-dot" aria-hidden="true"></span>
+          Saved
+        </span>
+        <span class="status-item status-path">Projects/Local Notes/local-notes-architecture.md</span>
+        <span class="status-spacer"></span>
+        <span class="status-item">Markdown</span>
+        <span class="status-item">UTF-8</span>
+        <span class="status-item">LF</span>
+        <span class="status-item">14 px</span>
+        <span class="status-item">Local only</span>
+      </footer>
+    </div>
+
+    <section class="unsupported" aria-labelledby="unsupported-title">
+      <div class="unsupported-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="13" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </svg>
+        <h1 id="unsupported-title">Desktop viewport required</h1>
+        <p>
+          Local Notes is designed for desktop and laptop browsers. Enlarge this
+          window to at least 1024 × 640.
+        </p>
+        <span class="viewport-value" id="viewport-value"></span>
+      </div>
+    </section>
+
+    <dialog class="command-dialog" id="command-dialog" aria-label="Command palette">
+      <div class="command-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m16 16 4 4" />
+        </svg>
+        <label class="sr-only" for="command-search">Search commands</label>
+        <input id="command-search" placeholder="Type a command or note title" autocomplete="off" />
+        <kbd>Esc</kbd>
+      </div>
+      <div class="command-list">
+        <div class="command-group-label">Actions</div>
+        <button class="command-item new-note-trigger" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M6.5 3.5h8l3 3v14h-11zM14.5 3.5v4h3M12 11v6M9 14h6" />
+          </svg>
+          <span>Create new note</span>
+          <kbd>Ctrl N</kbd>
+        </button>
+        <button class="command-item" type="button" data-command="focus-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
+          <span>Search all notes</span>
+          <kbd>Ctrl P</kbd>
+        </button>
+        <button class="command-item" type="button" data-command="toggle-split">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M12 4v16" />
+          </svg>
+          <span>Toggle split view</span>
+          <kbd>Ctrl \</kbd>
+        </button>
+        <button class="command-item" type="button" data-command="toggle-focus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" />
+          </svg>
+          <span>Toggle focus mode</span>
+          <kbd>Ctrl Shift F</kbd>
+        </button>
+        <button class="command-item" type="button" data-command="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4" />
+          </svg>
+          <span>Open settings</span>
+          <kbd>Ctrl ,</kbd>
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="new-note-dialog" aria-labelledby="new-note-title">
+      <div class="dialog-header">
+        <div>
+          <h2 id="new-note-title">Create note</h2>
+          <p>Creates one file in an existing workspace folder.</p>
+        </div>
+        <button class="icon-button dialog-close" type="button" aria-label="Close create note dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="m7 7 10 10M17 7 7 17" />
+          </svg>
+        </button>
+      </div>
+      <form id="new-note-form" novalidate>
+        <div class="dialog-body">
+          <div class="form-field">
+            <label for="new-note-name">Filename</label>
+            <input class="input" id="new-note-name" name="filename" value="untitled-note.md" aria-describedby="new-note-help new-note-error" />
+            <p class="field-help" id="new-note-help">Maximum 120 characters. Use .md or .txt.</p>
+            <p class="field-error" id="new-note-error" data-visible="false" role="alert">Enter a unique filename ending in .md or .txt.</p>
+          </div>
+          <div class="form-field">
+            <label for="new-note-folder">Folder</label>
+            <select class="form-select" id="new-note-folder" name="folder">
+              <option>Projects / Local Notes</option>
+              <option>Daily</option>
+              <option>Research</option>
+              <option>Reference</option>
+            </select>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="button dialog-close" type="button">Cancel</button>
+          <button class="button button-primary" type="submit">Create and open</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-header">
+        <div>
+          <h2 id="settings-title">Settings</h2>
+          <p>Changes apply locally without restarting.</p>
+        </div>
+        <button class="icon-button dialog-close" type="button" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="m7 7 10 10M17 7 7 17" />
+          </svg>
+        </button>
+      </div>
+      <form id="settings-form">
+        <div class="dialog-body">
+          <section class="settings-section">
+            <h3>Appearance</h3>
+            <div class="settings-grid">
+              <div class="form-field">
+                <label for="theme-setting">Theme</label>
+                <select class="form-select" id="theme-setting">
+                  <option>System</option>
+                  <option>Dark</option>
+                  <option>Light</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="width-setting">Editor width</label>
+                <select class="form-select" id="width-setting">
+                  <option>Narrow</option>
+                  <option selected>Medium</option>
+                  <option>Wide</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="font-setting">Editor font size</label>
+                <select class="form-select" id="font-setting">
+                  <option>13 px</option>
+                  <option selected>14 px</option>
+                  <option>15 px</option>
+                  <option>16 px</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="line-setting">Line height</label>
+                <select class="form-select" id="line-setting">
+                  <option>1.5</option>
+                  <option selected>1.6</option>
+                  <option>1.7</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Editor</h3>
+            <div class="switch-row">
+              <div class="switch-copy">
+                <strong>Autosave</strong>
+                <span>Save after a short pause while editing.</span>
+              </div>
+              <label class="switch">
+                <span class="sr-only">Enable autosave</span>
+                <input type="checkbox" checked />
+                <span class="switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3>Workspace</h3>
+            <span class="field-label">Active path</span>
+            <div class="path-display">~/.local-notes</div>
+            <p class="field-help">Workspace switching is handled from the launch surface.</p>
+          </section>
+        </div>
+        <div class="dialog-actions">
+          <button class="button dialog-close" type="button">Cancel</button>
+          <button class="button button-primary" type="submit">Apply settings</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="m5 12 4 4 10-10" />
+      </svg>
+      <span id="toast-copy">Saved locally</span>
+    </div>
+
+    <script>
+      const commandDialog = document.querySelector("#command-dialog");
+      const newNoteDialog = document.querySelector("#new-note-dialog");
+      const settingsDialog = document.querySelector("#settings-dialog");
+      const app = document.querySelector(".app");
+      const noteSearch = document.querySelector("#note-search");
+      const noteItems = [...document.querySelectorAll(".note-item")];
+      const resultCount = document.querySelector("#result-count");
+      const noResults = document.querySelector("#no-results");
+      const editorWorkspace = document.querySelector("#editor-workspace");
+      const modeButtons = [...document.querySelectorAll(".mode-button")];
+      const focusModeTrigger = document.querySelector("#focus-mode-trigger");
+      const moreTrigger = document.querySelector("#more-trigger");
+      const noteActions = document.querySelector("#note-actions");
+      const conflictBanner = document.querySelector("#conflict-banner");
+      const toast = document.querySelector("#toast");
+      const toastCopy = document.querySelector("#toast-copy");
+      const viewportValue = document.querySelector("#viewport-value");
+      const saveState = document.querySelector(".save-state span:last-child");
+      let toastTimer;
+      let saveTimer;
+
+      function showToast(message) {
+        clearTimeout(toastTimer);
+        toastCopy.textContent = message;
+        toast.dataset.visible = "true";
+        toastTimer = setTimeout(() => {
+          toast.dataset.visible = "false";
+        }, 2200);
+      }
+
+      function openDialog(dialog, focusTarget) {
+        [commandDialog, newNoteDialog, settingsDialog].forEach((candidate) => {
+          if (candidate !== dialog && candidate.open) candidate.close();
+        });
+        if (!dialog.open) dialog.showModal();
+        requestAnimationFrame(() => focusTarget?.focus());
+      }
+
+      function closeDialog(dialog) {
+        if (dialog.open) dialog.close();
+      }
+
+      function setMode(mode) {
+        editorWorkspace.dataset.mode = mode;
+        modeButtons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+        });
+      }
+
+      function setFocusMode(enabled) {
+        app.dataset.focusMode = String(enabled);
+        focusModeTrigger.setAttribute("aria-pressed", String(enabled));
+        focusModeTrigger.setAttribute("aria-label", enabled ? "Exit focus mode" : "Enter focus mode");
+        focusModeTrigger.title = enabled ? "Exit focus mode (Ctrl+Shift+F)" : "Focus mode (Ctrl+Shift+F)";
+        focusModeTrigger.querySelector(".focus-enter-icon").hidden = enabled;
+        focusModeTrigger.querySelector(".focus-exit-icon").hidden = !enabled;
+        noteActions.hidden = true;
+        moreTrigger.setAttribute("aria-expanded", "false");
+      }
+
+      function filterNotes() {
+        const query = noteSearch.value.trim().toLocaleLowerCase();
+        let visible = 0;
+        noteItems.forEach((item) => {
+          const content = `${item.dataset.title} ${item.dataset.preview}`.toLocaleLowerCase();
+          const matches = !query || content.includes(query);
+          item.hidden = !matches;
+          if (matches) visible += 1;
+        });
+        noResults.dataset.visible = String(visible === 0);
+        resultCount.textContent = query ? `${visible} result${visible === 1 ? "" : "s"}` : "248 notes";
+      }
+
+      function simulateSave() {
+        clearTimeout(saveTimer);
+        saveState.textContent = "Unsaved";
+        document.querySelector(".save-dot").style.background = "var(--warning)";
+        saveTimer = setTimeout(() => {
+          saveState.textContent = "Saved locally";
+          document.querySelector(".save-dot").style.background = "var(--success)";
+        }, 900);
+      }
+
+      document.querySelector("#command-trigger").addEventListener("click", () => {
+        openDialog(commandDialog, document.querySelector("#command-search"));
+      });
+
+      document.querySelector("#settings-trigger").addEventListener("click", () => {
+        openDialog(settingsDialog, document.querySelector("#theme-setting"));
+      });
+
+      document.querySelectorAll(".new-note-trigger").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeDialog(commandDialog);
+          openDialog(newNoteDialog, document.querySelector("#new-note-name"));
+        });
+      });
+
+      document.querySelectorAll(".dialog-close").forEach((button) => {
+        button.addEventListener("click", () => closeDialog(button.closest("dialog")));
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.mode));
+      });
+
+      focusModeTrigger.addEventListener("click", () => {
+        setFocusMode(app.dataset.focusMode !== "true");
+      });
+
+      noteSearch.addEventListener("input", filterNotes);
+
+      noteItems.forEach((item) => {
+        item.addEventListener("click", () => {
+          noteItems.forEach((note) => note.removeAttribute("aria-current"));
+          item.setAttribute("aria-current", "true");
+          document.querySelector("#note-title").value = item.dataset.title;
+          showToast(`Opened ${item.dataset.title}`);
+        });
+      });
+
+      document.querySelector("#note-title").addEventListener("input", simulateSave);
+
+      moreTrigger.addEventListener("click", () => {
+        const willOpen = noteActions.hidden;
+        noteActions.hidden = !willOpen;
+        moreTrigger.setAttribute("aria-expanded", String(willOpen));
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".more-wrap")) {
+          noteActions.hidden = true;
+          moreTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      document.querySelector("#conflict-trigger").addEventListener("click", () => {
+        conflictBanner.dataset.visible = "true";
+        noteActions.hidden = true;
+        moreTrigger.setAttribute("aria-expanded", "false");
+      });
+
+      document.querySelector("#reload-trigger").addEventListener("click", () => {
+        conflictBanner.dataset.visible = "false";
+        showToast("Disk version loaded");
+      });
+
+      document.querySelector("#overwrite-trigger").addEventListener("click", () => {
+        conflictBanner.dataset.visible = "false";
+        showToast("Draft saved over disk version");
+      });
+
+      document.querySelector("#move-trigger").addEventListener("click", () => {
+        noteActions.hidden = true;
+        showToast("Move panel belongs to the production flow");
+      });
+
+      document.querySelector("#copy-path-trigger").addEventListener("click", () => {
+        noteActions.hidden = true;
+        showToast("Local path copied");
+      });
+
+      document.querySelector("#archive-trigger").addEventListener("click", () => {
+        noteActions.hidden = true;
+        showToast("Archive confirmation belongs to the production flow");
+      });
+
+      document.querySelector("#refresh-trigger").addEventListener("click", () => {
+        showToast("Workspace refreshed");
+      });
+
+      document.querySelector("#sort-direction").addEventListener("click", (event) => {
+        const button = event.currentTarget;
+        const descending = button.getAttribute("aria-pressed") === "true";
+        button.setAttribute("aria-pressed", String(!descending));
+        button.setAttribute("aria-label", descending ? "Sort ascending" : "Sort descending");
+        button.title = descending ? "Sort ascending" : "Sort descending";
+        showToast(descending ? "Sorted ascending" : "Sorted descending");
+      });
+
+      document.querySelector("#new-note-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const input = document.querySelector("#new-note-name");
+        const error = document.querySelector("#new-note-error");
+        const value = input.value.trim();
+        const valid = value.length <= 120 && /\.(md|txt)$/i.test(value) && !/[\\/:*?"<>|]/.test(value);
+        input.setAttribute("aria-invalid", String(!valid));
+        error.dataset.visible = String(!valid);
+        if (!valid) {
+          input.focus();
+          return;
+        }
+        closeDialog(newNoteDialog);
+        showToast(`${value} created locally`);
+      });
+
+      document.querySelector("#settings-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        closeDialog(settingsDialog);
+        showToast("Settings applied locally");
+      });
+
+      document.querySelectorAll("[data-command]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const command = button.dataset.command;
+          closeDialog(commandDialog);
+          if (command === "focus-search") noteSearch.focus();
+          if (command === "toggle-split") setMode(editorWorkspace.dataset.mode === "split" ? "edit" : "split");
+          if (command === "toggle-focus") setFocusMode(app.dataset.focusMode !== "true");
+          if (command === "settings") openDialog(settingsDialog, document.querySelector("#theme-setting"));
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        const modifier = event.ctrlKey || event.metaKey;
+        if (modifier && event.key.toLocaleLowerCase() === "k") {
+          event.preventDefault();
+          openDialog(commandDialog, document.querySelector("#command-search"));
+        }
+        if (modifier && event.key.toLocaleLowerCase() === "p") {
+          event.preventDefault();
+          noteSearch.focus();
+        }
+        if (modifier && event.key.toLocaleLowerCase() === "n") {
+          event.preventDefault();
+          openDialog(newNoteDialog, document.querySelector("#new-note-name"));
+        }
+        if (modifier && event.key === ",") {
+          event.preventDefault();
+          openDialog(settingsDialog, document.querySelector("#theme-setting"));
+        }
+        if (modifier && event.key === "\\") {
+          event.preventDefault();
+          setMode(editorWorkspace.dataset.mode === "split" ? "edit" : "split");
+        }
+        if (modifier && event.shiftKey && event.key.toLocaleLowerCase() === "f") {
+          event.preventDefault();
+          setFocusMode(app.dataset.focusMode !== "true");
+        }
+        if (event.key === "Escape" && !commandDialog.open && !newNoteDialog.open && !settingsDialog.open) {
+          if (app.dataset.focusMode === "true") setFocusMode(false);
+          noteActions.hidden = true;
+          moreTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      function updateViewportValue() {
+        viewportValue.textContent = `${window.innerWidth} × ${window.innerHeight}`;
+      }
+
+      window.addEventListener("resize", updateViewportValue);
+      updateViewportValue();
+    </script>
+  </body>
+</html>

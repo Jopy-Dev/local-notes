@@ -1,0 +1,36 @@
+# deps
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# test artifacts
+coverage/
+.qa/
+test-results/
+playwright-report/
+blob-report/
+.eslintcache
+
+# env + secrets (arch/security.md 9.6.1) - project has no env surface; defensive only
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# package tarballs - npm pack acceptance artifacts
+*.tgz
+
+# IDE + OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+
+# AI tooling (machine-local)
+CLAUDE.local.md
+.claude/settings.local.json

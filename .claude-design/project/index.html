@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Notes - First Run</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --surface-root: #171714;
+        --surface-sidebar: #1c1c18;
+        --surface-panel: #22221d;
+        --surface-raised: #292821;
+        --surface-hover: #302f27;
+        --border-subtle: #34332b;
+        --border-strong: #4a483b;
+        --text-primary: #ebe8dc;
+        --text-secondary: #aaa697;
+        --text-muted: #777568;
+        --accent: #c49a59;
+        --accent-hover: #d0a765;
+        --accent-ink: #211b12;
+        --focus: #e0b875;
+        --success: #83a87a;
+        --warning: #c9a15f;
+        --danger: #ca7a70;
+        --shadow-popover: 0 18px 50px rgb(8 8 6 / 44%);
+        --font-ui:
+          "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        --font-mono:
+          "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono",
+          monospace;
+        --radius-control: 4px;
+        --radius-panel: 6px;
+        --duration-fast: 120ms;
+        --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--surface-root);
+        color: var(--text-primary);
+        font-family: var(--font-ui);
+        font-size: 14px;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .app {
+        display: grid;
+        grid-template:
+          "titlebar titlebar" 42px
+          "sidebar main" minmax(0, 1fr)
+          "status status" 24px /
+          244px minmax(0, 1fr);
+        width: 100vw;
+        min-height: 100dvh;
+        background: var(--surface-root);
+      }
+
+      .titlebar {
+        grid-area: titlebar;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        padding: 0 10px 0 13px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: #1a1a16;
+        user-select: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border: 1px solid var(--border-strong);
+        border-radius: 4px;
+        color: var(--accent);
+      }
+
+      .brand-mark svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .brand-name {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+
+      .title-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--border-subtle);
+      }
+
+      .window-title {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .title-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+      }
+
+      .icon-button {
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 28px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          color var(--duration-fast) var(--ease-standard);
+      }
+
+      .icon-button:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .icon-button svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .sidebar {
+        grid-area: sidebar;
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        border-right: 1px solid var(--border-subtle);
+        background: var(--surface-sidebar);
+      }
+
+      .sidebar-header {
+        display: flex;
+        align-items: center;
+        min-height: 39px;
+        padding: 0 10px 0 14px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .eyebrow {
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .sidebar-empty {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .sidebar-empty svg {
+        width: 22px;
+        height: 22px;
+        margin-bottom: 12px;
+        color: var(--text-muted);
+      }
+
+      .sidebar-empty strong {
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 560;
+      }
+
+      .sidebar-empty p {
+        max-width: 170px;
+        margin: 7px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .sidebar-footer {
+        padding: 10px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .sidebar-action {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 9px;
+        min-height: 34px;
+        padding: 0 9px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-control);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .sidebar-action:hover {
+        background: var(--surface-hover);
+        color: var(--text-primary);
+      }
+
+      .sidebar-action svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .main {
+        grid-area: main;
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        place-items: center;
+        overflow: auto;
+        padding: 56px;
+        background-color: var(--surface-root);
+        background-image:
+          linear-gradient(var(--border-subtle) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+        background-position: -1px -1px;
+        background-size: 32px 32px;
+      }
+
+      .welcome {
+        width: min(680px, 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-panel);
+        background: color-mix(in srgb, var(--surface-panel) 96%, transparent);
+        box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
+      }
+
+      .welcome-main {
+        display: grid;
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 28px;
+        padding: 38px 40px 34px;
+      }
+
+      .document-stack {
+        position: relative;
+        width: 74px;
+        height: 86px;
+        margin-top: 3px;
+      }
+
+      .document-stack::before,
+      .document-stack::after,
+      .document-front {
+        position: absolute;
+        width: 58px;
+        height: 72px;
+        border: 1px solid var(--border-strong);
+        border-radius: 3px;
+        background: var(--surface-raised);
+        content: "";
+      }
+
+      .document-stack::before {
+        top: 0;
+        left: 0;
+        opacity: 0.45;
+        transform: rotate(-5deg);
+      }
+
+      .document-stack::after {
+        top: 6px;
+        left: 8px;
+        opacity: 0.72;
+        transform: rotate(3deg);
+      }
+
+      .document-front {
+        top: 10px;
+        left: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        padding: 16px 12px;
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong));
+      }
+
+      .document-line {
+        width: 100%;
+        height: 2px;
+        border-radius: 1px;
+        background: var(--text-muted);
+        opacity: 0.58;
+      }
+
+      .document-line:first-child {
+        width: 58%;
+        background: var(--accent);
+        opacity: 0.92;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 23px;
+        font-weight: 630;
+        letter-spacing: -0.018em;
+        line-height: 1.25;
+      }
+
+      .intro {
+        max-width: 50ch;
+        margin: 10px 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        font-weight: 570;
+        cursor: pointer;
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          border-color var(--duration-fast) var(--ease-standard),
+          transform var(--duration-fast) var(--ease-standard);
+      }
+
+      .button:hover {
+        border-color: #5b594a;
+        background: var(--surface-hover);
+      }
+
+      .button:active {
+        transform: translateY(1px);
+      }
+
+      .button-primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+
+      .button-primary:hover {
+        border-color: var(--accent-hover);
+        background: var(--accent-hover);
+      }
+
+      .button svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .shortcut {
+        margin-left: 2px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+
+      .trust-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .trust-item {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 9px;
+        min-width: 0;
+        padding: 16px 18px;
+      }
+
+      .trust-item + .trust-item {
+        border-left: 1px solid var(--border-subtle);
+      }
+
+      .trust-item svg {
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+        color: var(--success);
+      }
+
+      .trust-item strong {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .trust-item span {
+        display: block;
+        margin-top: 3px;
+        color: var(--text-muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .statusbar {
+        grid-area: status;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+        padding: 0 9px;
+        border-top: 1px solid var(--border-subtle);
+        background: #1b1b17;
+        color: var(--text-muted);
+        font-size: 11px;
+        user-select: none;
+      }
+
+      .status-item {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 2px rgb(131 168 122 / 12%);
+      }
+
+      .status-spacer {
+        flex: 1;
+      }
+
+      .status-address {
+        overflow: hidden;
+        font-family: var(--font-mono);
+        text-overflow: ellipsis;
+      }
+
+      dialog {
+        width: min(540px, calc(100vw - 48px));
+        padding: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-panel);
+        background: var(--surface-panel);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-popover);
+      }
+
+      dialog::backdrop {
+        background: rgb(10 10 8 / 68%);
+      }
+
+      .dialog-header {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        padding: 0 12px 0 17px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .dialog-header h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 620;
+      }
+
+      .dialog-close {
+        margin-left: auto;
+      }
+
+      .dialog-body {
+        padding: 18px;
+      }
+
+      .dialog-copy {
+        margin: 0 0 14px;
+        color: var(--text-secondary);
+        line-height: 1.55;
+      }
+
+      .path-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-control);
+        background: var(--surface-root);
+      }
+
+      .path-row svg {
+        width: 17px;
+        height: 17px;
+        flex: 0 0 auto;
+        color: var(--accent);
+      }
+
+      .path-copy {
+        min-width: 0;
+      }
+
+      .path-copy strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .path-copy code {
+        display: block;
+        overflow: hidden;
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 14px 18px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 40px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        max-width: 360px;
+        padding: 11px 13px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-popover);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition:
+          opacity 160ms var(--ease-standard),
+          transform 160ms var(--ease-standard);
+      }
+
+      .toast[data-visible="true"] {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .toast svg {
+        width: 16px;
+        height: 16px;
+        color: var(--success);
+      }
+
+      .unsupported {
+        display: none;
+      }
+
+      @media (max-width: 1023px), (max-height: 639px) {
+        body {
+          overflow: auto;
+        }
+
+        .app {
+          display: none;
+        }
+
+        .unsupported {
+          display: grid;
+          width: 100%;
+          min-height: 100dvh;
+          place-items: center;
+          padding: 28px;
+          background: var(--surface-root);
+        }
+
+        .unsupported-card {
+          width: min(460px, 100%);
+          padding: 26px;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-panel);
+          background: var(--surface-panel);
+        }
+
+        .unsupported-card svg {
+          width: 24px;
+          height: 24px;
+          color: var(--warning);
+        }
+
+        .unsupported-card h1 {
+          margin-top: 16px;
+          font-size: 19px;
+        }
+
+        .unsupported-card p {
+          margin: 9px 0 0;
+          color: var(--text-secondary);
+          line-height: 1.55;
+        }
+
+        .viewport-value {
+          display: inline-block;
+          margin-top: 16px;
+          padding: 5px 7px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 3px;
+          color: var(--text-muted);
+          font-family: var(--font-mono);
+          font-size: 11px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="titlebar">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M6.5 3.5h8l3 3v14h-11z" />
+            <path d="M14.5 3.5v4h3M9 11h6M9 15h6" />
+          </svg>
+        </div>
+        <span class="brand-name">Local Notes</span>
+        <span class="title-divider" aria-hidden="true"></span>
+        <span class="window-title">No workspace open</span>
+        <div class="title-actions">
+          <button class="icon-button" type="button" aria-label="Open settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <aside class="sidebar" aria-label="Workspace navigation">
+        <div class="sidebar-header">
+          <span class="eyebrow">Workspace</span>
+        </div>
+        <div class="sidebar-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M3.5 6.5h6l2 2h9v10h-17z" />
+          </svg>
+          <strong>No folder selected</strong>
+          <p>Choose a local folder to reveal notes and subfolders here.</p>
+        </div>
+        <div class="sidebar-footer">
+          <button class="sidebar-action choose-trigger" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M4 7h6l2 2h8v9H4zM12 12v5M9.5 14.5h5" />
+            </svg>
+            Choose workspace
+          </button>
+        </div>
+      </aside>
+
+      <main class="main" id="main-content">
+        <section class="welcome" aria-labelledby="welcome-title">
+          <div class="welcome-main">
+            <div class="document-stack" aria-hidden="true">
+              <div class="document-front">
+                <span class="document-line"></span>
+                <span class="document-line"></span>
+                <span class="document-line"></span>
+                <span class="document-line"></span>
+              </div>
+            </div>
+            <div>
+              <span class="eyebrow">Start local</span>
+              <h1 id="welcome-title">Open your notes folder</h1>
+              <p class="intro">
+                Choose an existing folder or create a new one. Local Notes reads and
+                writes standard Markdown and text files directly on your device.
+              </p>
+              <div class="actions">
+                <button class="button button-primary choose-trigger" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M3.5 7h6l2 2h9v9.5h-17z" />
+                    <path d="M12 11.5v5M9.5 14h5" />
+                  </svg>
+                  Choose folder
+                </button>
+                <button class="button" id="default-trigger" type="button">
+                  Use default workspace
+                </button>
+                <span class="shortcut">Ctrl+O</span>
+              </div>
+            </div>
+          </div>
+          <div class="trust-row" aria-label="Local Notes guarantees">
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="m5 12 4 4 10-10" />
+              </svg>
+              <div>
+                <strong>Files stay local</strong>
+                <span>No account, cloud sync, or telemetry.</span>
+              </div>
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M7 3.5h8l3 3v14H7zM15 3.5v4h3" />
+              </svg>
+              <div>
+                <strong>Open formats</strong>
+                <span>Works directly with .md and .txt files.</span>
+              </div>
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <div>
+                <strong>Offline after install</strong>
+                <span>Runs from your browser on 127.0.0.1.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="statusbar" aria-label="Application status">
+        <span class="status-item">
+          <span class="status-dot" aria-hidden="true"></span>
+          Local server ready
+        </span>
+        <span class="status-item status-address">127.0.0.1:8989</span>
+        <span class="status-spacer"></span>
+        <span class="status-item">UTF-8</span>
+        <span class="status-item">Local only</span>
+      </footer>
+    </div>
+
+    <section class="unsupported" aria-labelledby="unsupported-title">
+      <div class="unsupported-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="13" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </svg>
+        <h1 id="unsupported-title">Desktop viewport required</h1>
+        <p>
+          Local Notes is designed for desktop and laptop browsers. Enlarge this
+          window to at least 1024 × 640.
+        </p>
+        <span class="viewport-value" id="viewport-value"></span>
+      </div>
+    </section>
+
+    <dialog id="workspace-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-header">
+        <h2 id="dialog-title">Choose workspace</h2>
+        <button class="icon-button dialog-close" type="button" aria-label="Close dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="m7 7 10 10M17 7 7 17" />
+          </svg>
+        </button>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-copy">
+          Prototype interaction: the production app opens the native folder picker.
+          Files remain in the selected local directory.
+        </p>
+        <div class="path-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M3.5 7h6l2 2h9v9.5h-17z" />
+          </svg>
+          <div class="path-copy">
+            <strong>Default workspace</strong>
+            <code>~/.local-notes</code>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="button dialog-close" type="button">Cancel</button>
+        <button class="button button-primary" id="confirm-workspace" type="button">
+          Open folder
+        </button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="m5 12 4 4 10-10" />
+      </svg>
+      Workspace selection simulated
+    </div>
+
+    <script>
+      const dialog = document.querySelector("#workspace-dialog");
+      const toast = document.querySelector("#toast");
+      const viewportValue = document.querySelector("#viewport-value");
+      let toastTimer;
+
+      function updateViewportValue() {
+        viewportValue.textContent = `${window.innerWidth} × ${window.innerHeight}`;
+      }
+
+      function openDialog() {
+        if (!dialog.open) dialog.showModal();
+      }
+
+      function closeDialog() {
+        if (dialog.open) dialog.close();
+      }
+
+      function showToast() {
+        clearTimeout(toastTimer);
+        toast.dataset.visible = "true";
+        toastTimer = setTimeout(() => {
+          toast.dataset.visible = "false";
+        }, 2400);
+      }
+
+      document.querySelectorAll(".choose-trigger").forEach((button) => {
+        button.addEventListener("click", openDialog);
+      });
+
+      document.querySelectorAll(".dialog-close").forEach((button) => {
+        button.addEventListener("click", closeDialog);
+      });
+
+      document.querySelector("#default-trigger").addEventListener("click", showToast);
+      document.querySelector("#confirm-workspace").addEventListener("click", () => {
+        closeDialog();
+        showToast();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+          event.preventDefault();
+          openDialog();
+        }
+      });
+
+      window.addEventListener("resize", updateViewportValue);
+      updateViewportValue();
+    </script>
+  </body>
+</html>

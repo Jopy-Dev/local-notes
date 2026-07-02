@@ -1,0 +1,1089 @@
+# Local-Notes — Product Requirements & Software Architecture Specification (v2.0)
+
+## Role & Context
+
+You are acting as a Senior Software Architect, Staff Software Engineer, Product Designer, and Technical Lead.
+
+You are helping design and implement a production-grade application called **Local-Notes**.
+
+All future recommendations, architecture decisions, code generation, folder structures, APIs, components, services, tests, and implementation details must follow this specification unless explicitly overridden.
+
+---
+
+# Project Overview
+
+Local-Notes is a local-first browser-based note management and knowledge workspace.
+
+The application is launched via:
+
+```bash
+npx local-notes
+```
+
+When started:
+
+1. A local Node.js server is launched.
+2. A browser window automatically opens.
+3. The application becomes available at:
+
+```text
+http://127.0.0.1:8989
+```
+
+No internet connection is required.
+
+No cloud services are used.
+
+No user accounts exist.
+
+No telemetry exists.
+
+No analytics collection exists.
+
+No external APIs are required.
+
+The application must function entirely offline.
+
+---
+
+# Product Vision
+
+Local-Notes combines:
+
+* VS Code's workspace experience
+* Notepad++ simplicity
+* Obsidian-style markdown workflows
+
+while maintaining:
+
+* Complete local ownership
+* Maximum performance
+* Zero vendor lock-in
+* Human-readable storage
+* Long-term maintainability
+
+The application should feel like an IDE for personal knowledge.
+
+---
+
+# Core Principles
+
+## Local First
+
+Everything works offline.
+
+## Filesystem First
+
+The filesystem is the database.
+
+## Human Readable
+
+Users own their data.
+
+## Privacy First
+
+No telemetry.
+
+No tracking.
+
+No user analytics.
+
+## Performance First
+
+Designed to support thousands of notes.
+
+## Open Architecture
+
+Future plugin support must be considered from day one.
+
+---
+
+# Supported File Types
+
+Current:
+
+```text
+.md
+.txt
+```
+
+Future:
+
+```text
+.markdown
+.mdx
+```
+
+---
+
+# Workspace Structure
+
+Default location:
+
+```text
+~/.local-notes/
+```
+
+Structure:
+
+```text
+~/.local-notes/
+
+├── save-data/
+│   ├── notes/
+│   ├── archive/
+│   ├── attachments/
+│   └── templates/
+│
+├── backups/
+│
+├── exports/
+│
+├── cache/
+│
+├── logs/
+│
+├── plugins/
+│
+├── config.json
+│
+└── .lock
+```
+
+---
+
+# Configuration
+
+Configuration stored in:
+
+```text
+~/.local-notes/config.json
+```
+
+Example:
+
+```json
+{
+  "version": 1,
+  "theme": "dark",
+  "workspace": "~/.local-notes/save-data",
+  "editorFontSize": 14
+}
+```
+
+Configuration must be versioned to support future migrations.
+
+---
+
+# Workspace Locking
+
+Only one Local-Notes instance may control a workspace at a time.
+
+Lock file:
+
+```text
+~/.local-notes/.lock
+```
+
+If an existing lock is detected:
+
+```text
+Workspace already in use.
+```
+
+must be displayed.
+
+---
+
+# High-Level Architecture
+
+```text
+Browser UI
+      ↓
+React Frontend
+      ↓
+REST API
+      ↓
+Fastify Backend
+      ↓
+Filesystem Services
+      ↓
+Local Files
+```
+
+---
+
+# Technology Stack
+
+## Frontend
+
+```text
+React
+TypeScript
+Vite
+Tailwind CSS
+Zustand
+```
+
+---
+
+## Backend
+
+```text
+Node.js
+Fastify
+```
+
+---
+
+## Validation
+
+```text
+Zod
+```
+
+All requests and configuration objects must be validated.
+
+---
+
+## Editor
+
+Preferred:
+
+```text
+TipTap
+```
+
+Alternative:
+
+```text
+Milkdown
+```
+
+---
+
+## Search Engine
+
+Preferred:
+
+```text
+Orama
+```
+
+Alternative:
+
+```text
+FlexSearch
+```
+
+MVP fallback:
+
+```text
+MiniSearch
+```
+
+---
+
+## File Watching
+
+```text
+chokidar
+```
+
+---
+
+## Logging
+
+```text
+Pino
+```
+
+---
+
+## Testing
+
+```text
+Vitest
+Playwright
+Testing Library
+```
+
+---
+
+## Virtualization
+
+```text
+@tanstack/react-virtual
+```
+
+Required for large note collections.
+
+---
+
+# Primary Application Views
+
+1. Main Dashboard
+2. Notes Content View
+3. Settings & Configuration
+
+---
+
+# Main Dashboard
+
+The Main Dashboard serves as the application's homepage.
+
+Responsibilities:
+
+* Discover notes
+* Search notes
+* Organize notes
+* Bulk actions
+* Workspace analytics
+
+---
+
+# Dashboard Layout
+
+```text
+┌─────────────────────────────────────┐
+│ Top Navigation                      │
+├──────────┬──────────────────────────┤
+│ Sidebar  │ Notes Area               │
+│          │                          │
+└──────────┴──────────────────────────┘
+```
+
+---
+
+# Sidebar Navigation
+
+```text
+Dashboard
+Settings
+Backups
+Imports
+Exports
+Templates
+Archive
+About
+```
+
+---
+
+# Top Navigation
+
+```text
+Search
+List View
+Card View
+Sort
+Create Note
+Bulk Actions
+```
+
+---
+
+# Search System
+
+Search is a first-class feature.
+
+---
+
+## Search Scope
+
+Searches:
+
+* Note titles
+* File names
+* Note content
+
+Supported file types:
+
+```text
+.md
+.txt
+```
+
+---
+
+## Search Features
+
+### Live Search
+
+Results update while typing.
+
+### Full Text Search
+
+Searches all note contents.
+
+### Filename Search
+
+Searches note titles.
+
+### Fuzzy Search
+
+Typo-tolerant matching.
+
+Example:
+
+```text
+strtup
+```
+
+Matches:
+
+```text
+startup
+```
+
+### Search Highlighting
+
+Highlights matching terms.
+
+### Search Ranking
+
+Priority:
+
+```text
+Exact Title Match
+Partial Title Match
+Exact Content Match
+Partial Content Match
+```
+
+### Search Snippets
+
+Results show matching content previews.
+
+### Keyboard Shortcut
+
+```text
+Ctrl + K
+```
+
+or
+
+```text
+Ctrl + P
+```
+
+---
+
+# Notes Discovery
+
+Automatically scans:
+
+```text
+~/.local-notes/save-data/
+```
+
+for:
+
+```text
+*.md
+*.txt
+```
+
+Changes are detected automatically.
+
+---
+
+# Dashboard Views
+
+## List View
+
+Displays:
+
+```text
+Title
+Folder
+Created
+Modified
+Size
+```
+
+---
+
+## Card View
+
+Displays:
+
+```text
+Title
+Preview
+Tags
+Modified Date
+```
+
+---
+
+# Sorting
+
+Sort by:
+
+```text
+Name
+Created Date
+Modified Date
+Size
+```
+
+Ascending and descending supported.
+
+---
+
+# Bulk Operations
+
+Supports multi-select.
+
+Actions:
+
+```text
+Rename
+Duplicate
+Move
+Archive
+Export
+```
+
+---
+
+# Soft Delete Architecture
+
+Permanent deletion is prohibited from the dashboard.
+
+Workflow:
+
+```text
+Note
+ ↓
+Archive
+ ↓
+Permanent Delete
+```
+
+Deleted notes are moved to:
+
+```text
+save-data/archive/
+```
+
+---
+
+# Notes Content View
+
+Opening a note loads the content workspace.
+
+Purpose:
+
+* Read
+* Edit
+* Preview
+* Copy
+
+---
+
+# Notes Toolbar
+
+```text
+Read Mode
+Edit Mode
+Split Mode
+Copy Text
+Copy Markdown
+Archive
+```
+
+---
+
+# Read Mode
+
+Render markdown as HTML.
+
+Supports:
+
+```text
+Headings
+Lists
+Tables
+Task Lists
+Links
+Images
+Code Blocks
+Block Quotes
+```
+
+---
+
+# Edit Mode
+
+WYSIWYG-style Markdown editor.
+
+Features:
+
+```text
+Bold
+Italic
+Underline
+Strike Through
+
+Headings
+
+Bullet Lists
+Numbered Lists
+Task Lists
+
+Links
+
+Tables
+
+Code Blocks
+
+Undo
+Redo
+```
+
+All content is saved as Markdown.
+
+No proprietary formats.
+
+---
+
+# Split Mode
+
+Supported layouts:
+
+```text
+Side-by-Side
+Preview Above
+Preview Below
+```
+
+Preview updates live.
+
+---
+
+# Copy Text
+
+Copies content as plain text.
+
+Markdown syntax removed.
+
+---
+
+# Copy Markdown
+
+Copies original markdown source.
+
+---
+
+# Auto Save
+
+Auto-save required.
+
+Debounce:
+
+```text
+500ms–1000ms
+```
+
+No manual save button required.
+
+---
+
+# Settings
+
+## General
+
+```text
+Theme
+Font Size
+Line Height
+Editor Width
+```
+
+---
+
+## Workspace
+
+```text
+Workspace Location
+Templates Folder
+Attachments Folder
+```
+
+---
+
+## Import
+
+Supported:
+
+```text
+.md
+.txt
+```
+
+Methods:
+
+```text
+Single File
+Multi File
+Folder Import
+```
+
+---
+
+## Export
+
+Supported:
+
+```text
+.md
+.txt
+.zip
+```
+
+---
+
+# Backup System
+
+Location:
+
+```text
+~/.local-notes/backups/
+```
+
+Actions:
+
+```text
+Create Backup
+Restore Backup
+Delete Backup
+```
+
+Each backup must contain:
+
+```json
+{
+  "id": "backup-2026-06-12",
+  "createdAt": "ISO_TIMESTAMP",
+  "noteCount": 1234,
+  "size": "42MB"
+}
+```
+
+---
+
+# Dashboard Analytics
+
+All analytics are computed locally.
+
+Examples:
+
+```text
+Total Notes
+Total Words
+Average Note Length
+Recently Modified Notes
+Folder Activity
+Tag Usage
+Workspace Growth
+Writing Activity
+```
+
+No telemetry involved.
+
+---
+
+# Search Indexing
+
+Search indexes must update incrementally.
+
+Only modified files are re-indexed.
+
+Never re-index the entire workspace unless explicitly requested.
+
+Indexed fields:
+
+```text
+Title
+Content
+Path
+Tags
+Modified Date
+```
+
+---
+
+# Metadata Cache
+
+Location:
+
+```text
+~/.local-notes/cache/
+```
+
+Purpose:
+
+* Faster startup
+* Faster indexing
+* Reduced filesystem scanning
+
+Example:
+
+```json
+{
+  "title": "meeting.md",
+  "modified": 1710000000,
+  "hash": "abc123"
+}
+```
+
+---
+
+# Search Worker
+
+Search indexing must run in a dedicated worker process/thread.
+
+Architecture:
+
+```text
+Browser
+   ↓
+API
+   ↓
+Search Worker
+   ↓
+Search Index
+```
+
+Search operations must never block the UI.
+
+---
+
+# File Watching
+
+Use:
+
+```text
+chokidar
+```
+
+Detect:
+
+```text
+Create
+Update
+Rename
+Delete
+```
+
+Updates automatically refresh:
+
+* Dashboard
+* Search Index
+* Analytics
+
+---
+
+# File Safety
+
+All file writes must be atomic.
+
+Never overwrite files directly.
+
+Required pattern:
+
+```text
+note.md.tmp
+      ↓
+rename()
+      ↓
+note.md
+```
+
+Protects against corruption during crashes.
+
+---
+
+# Security Requirements
+
+Never execute note content.
+
+Never execute embedded JavaScript.
+
+Sanitize all rendered HTML.
+
+Prevent path traversal attacks.
+
+Restrict file access to workspace boundaries.
+
+Validate all API input.
+
+Validate all filesystem operations.
+
+---
+
+# Accessibility Requirements
+
+Support:
+
+```text
+Keyboard Navigation
+Screen Readers
+ARIA Labels
+Focus Indicators
+High Contrast Themes
+```
+
+Target:
+
+```text
+WCAG 2.1 AA
+```
+
+---
+
+# Performance Requirements
+
+Startup:
+
+```text
+< 2 seconds
+```
+
+Search:
+
+```text
+< 100ms
+```
+
+Workspace Capacity:
+
+```text
+10,000+ notes
+```
+
+Large files must be loaded lazily.
+
+Lists must be virtualized.
+
+Memory usage must remain predictable.
+
+---
+
+# Plugin Architecture
+
+Plugin support must be designed from day one.
+
+Plugin directory:
+
+```text
+~/.local-notes/plugins/
+```
+
+Future extension points:
+
+```text
+Dashboard Widgets
+Editor Commands
+Themes
+Importers
+Exporters
+Search Providers
+Analytics Modules
+```
+
+---
+
+# Recommended Project Structure
+
+```text
+src/
+
+├── frontend/
+│   ├── pages/
+│   ├── layouts/
+│   ├── components/
+│   ├── hooks/
+│   ├── stores/
+│   ├── services/
+│   └── utils/
+│
+├── backend/
+│   ├── routes/
+│   ├── services/
+│   ├── filesystem/
+│   ├── search/
+│   ├── backup/
+│   ├── workers/
+│   └── config/
+│
+├── shared/
+│   ├── types/
+│   ├── constants/
+│   ├── schemas/
+│   └── validators/
+│
+└── tests/
+```
+
+---
+
+# Testing Requirements
+
+Required coverage:
+
+* Unit Tests
+* Integration Tests
+* API Tests
+* End-to-End Tests
+
+Tools:
+
+```text
+Vitest
+Playwright
+```
+
+---
+
+# Future Roadmap
+
+## Phase 2
+
+* Templates
+* Tags Explorer
+* Daily Notes
+* Saved Searches
+* Archive Manager
+
+## Phase 3
+
+* Backlinks
+* Wiki Links
+* Knowledge Graph
+* Note Relationships
+
+## Phase 4
+
+* Multi-Workspace Support
+* Plugin Marketplace
+* Advanced Themes
+* Optional Local AI Extensions
+
+---
+
+# Definition of Success
+
+Local-Notes succeeds if a user can:
+
+1. Install with a single command.
+2. Launch in a browser instantly.
+3. Create and manage thousands of notes.
+4. Search note titles and note contents instantly.
+5. Work completely offline.
+6. Maintain complete ownership of their files.
+7. Use Local-Notes as a long-term personal knowledge workspace without depending on any cloud provider.
+
+The filesystem must remain the single source of truth at all times.

@@ -1,0 +1,13 @@
+# Extends the default ruleset + a tight project allowlist (arch/scan-policy.md 26.3).
+# Never broad regex that masks real findings - every entry traces to a verified false positive
+# with a KNOWN_ISSUES.md reference (26.7).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "project-local allowlist - keep tight"
+paths = [
+  '''(.*?)(jpg|jpeg|png|gif|webp|woff2?|ttf|otf|eot|ico)$''',
+  '''node_modules/''',
+  '''dist/''',
+]

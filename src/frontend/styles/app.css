@@ -1,0 +1,146 @@
+/*
+ * Local-Notes theme tokens - ported 1:1 from Design_System.md v1.3 (LOCKED).
+ * Token authority: Design_System.md. Raw color literals are allowed ONLY here (12).
+ * No raw hex/rgb/hsl in component class strings or feature CSS.
+ */
+@import "tailwindcss";
+
+@theme {
+  /* 2.1 Brand */
+  --color-accent: #c49a59;
+  --color-accent-hover: #d0a765;
+  --color-accent-muted: #725b37;
+  --color-accent-ink: #211b12;
+  --color-focus: #e0b875;
+
+  /* 2.2 Neutral - surfaces */
+  --color-surface-root: #171714;
+  --color-surface-titlebar: #1a1a16;
+  --color-surface-sidebar: #1c1c18;
+  --color-surface-panel: #20201b;
+  --color-surface-editor: #191916;
+  --color-surface-code: #141411;
+  --color-surface-input: #151512;
+  --color-surface-raised: #292821;
+  --color-surface-hover: #302f27;
+  --color-surface-selected: #383329;
+
+  /* 2.2 Neutral - borders */
+  --color-border-subtle: #34332b;
+  --color-border-strong: #4a483b;
+  --color-border-active: #6b5b3e;
+
+  /* 2.2 Neutral - text */
+  --color-text-primary: #ebe8dc;
+  --color-text-secondary: #aaa697;
+  --color-text-muted: #938f80;
+  --color-text-disabled: #858276;
+  --color-text-source: #d8d4c7;
+  --color-text-code: #d6b77d;
+
+  /* 2.3 Semantic */
+  --color-success: #83a87a;
+  --color-success-bg: #202a1f;
+  --color-warning: #c9a15f;
+  --color-warning-bg: #2b251a;
+  --color-danger: #ca7a70;
+  --color-danger-bg: #2d211f;
+  --color-info: #8d9ca8;
+
+  /* 3.1 Typography families - local system stacks only (REQ-026) */
+  --font-ui: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  /* 3.2 Type scale */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 1.2;
+  --text-xs: 11px;
+  --text-xs--line-height: 1.35;
+  --text-sm: 12px;
+  --text-sm--line-height: 1.45;
+  --text-ui: 13px;
+  --text-ui--line-height: 1.45;
+  --text-body: 14px;
+  --text-body--line-height: 1.6;
+  --text-h3: 17px;
+  --text-h3--line-height: 1.35;
+  --text-title: 19px;
+  --text-title--line-height: 1.25;
+  --text-display-sm: 23px;
+  --text-display-sm--line-height: 1.25;
+  --text-display: 25px;
+  --text-display--line-height: 1.25;
+
+  /* 3.3 Weights + tracking */
+  --font-weight-heading: 650;
+  --tracking-eyebrow: 0.08em;
+  --tracking-title: -0.012em;
+
+  /* 4.2 Spacing - scale is exact 4px multiples (2..32px = 0.5..8 steps) */
+  --spacing: 4px;
+
+  /* 4.3 Breakpoints */
+  --breakpoint-desktop-min: 1024px;
+  --breakpoint-desktop: 1280px;
+  --breakpoint-desktop-wide: 1440px;
+  --breakpoint-desktop-2xl: 1536px;
+
+  /* 5 Radius */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-control: 4px;
+  --radius-panel: 6px;
+  --radius-switch: 9px;
+  --radius-pill: 9999px;
+
+  /* 6 Elevation */
+  --shadow-selected: inset 2px 0 0 #c49a59;
+  --shadow-control-active: 0 0 0 1px #4a483b;
+  --shadow-status: 0 0 0 2px rgb(131 168 122 / 12%);
+  --shadow-popover: 0 18px 50px rgb(8 8 6 / 44%);
+
+  /* 7 Motion */
+  --duration-fast: 120ms;
+  --duration-standard: 180ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* 4.4 Z-index */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+}
+
+/* Base layer: Quiet Workbench canvas + focus + reduced motion (2, 7, 11) */
+@layer base {
+  html {
+    font-family: var(--font-ui);
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-surface-root);
+    color: var(--color-text-secondary);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  /* 11: 2px focus ring, 1px offset, never removed */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+  }
+
+  /* 7: reduced motion collapses durations; state changes stay immediate */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
