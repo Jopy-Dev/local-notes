@@ -42,4 +42,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      # dependency-review-action removed: unsupported on private repos without GHAS.
+      # Coverage: npm audit gate above + Dependabot alerts. Re-add when repo goes public
+      # at first npm publish (MasterPrompt.md 1.5).
