@@ -23,7 +23,9 @@ export default defineConfig({
     proxy: {
       "/api/v1": {
         target: "http://127.0.0.1:8989",
-        changeOrigin: false,
+        // Backend rejects any Host other than 127.0.0.1:8989 (ADR-003);
+        // the dev proxy must present the target host.
+        changeOrigin: true,
       },
     },
   },

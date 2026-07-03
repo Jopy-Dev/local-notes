@@ -10,29 +10,28 @@ import { WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
 import { initWorkspace } from "../backend/filesystem/workspace-init.js";
 import { acquireWorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import type { WorkspaceLock } from "../backend/filesystem/workspace-lock.js";
-import {
-  LOG_MAX_AGE_DAYS,
-  LOG_MAX_TOTAL_BYTES,
-  sweepLogs,
-} from "../backend/logging/rotation.js";
+import { LOG_MAX_AGE_DAYS, LOG_MAX_TOTAL_BYTES, sweepLogs } from "../backend/logging/rotation.js";
+import { startDiscovery } from "./discovery.js";
+import type { DiscoveryStack } from "./discovery.js";
 import { classifyStartupError, EXIT_CODES } from "./exit-codes.js";
 import { buildLaunchUrl, openBrowser } from "./launch.js";
 
 /*
  * Bootstrap order (MasterPrompt.md 4.1): config root -> workspace -> lock ->
- * logger maintenance -> config -> Fastify -> browser. Search worker + watcher
- * slot in at Waves 2-3. Startup failure closes initialized resources in
- * reverse order.
+ * log maintenance -> config -> discovery (cache/watcher) -> Fastify ->
+ * browser. Search worker joins at Wave 3. Failure closes initialized
+ * resources in reverse order.
  */
 const packagedClientRoot = join(dirname(fileURLToPath(import.meta.url)), "../../client");
 
 async function main(): Promise<void> {
   const workspaceRoot = join(homedir(), ".local-notes");
   let lock: WorkspaceLock | undefined;
+  let discovery: DiscoveryStack | undefined;
 
   try {
     await initWorkspace(workspaceRoot);
-    await WorkspacePathGuard.create(workspaceRoot); // rejects symlink/junction root (2.2)
+    const guard = await WorkspacePathGuard.create(workspaceRoot); // rejects symlink root (2.2)
     lock = await acquireWorkspaceLock({
       rootDir: workspaceRoot,
       appVersion: process.env.npm_package_version ?? "0.1.0",
@@ -48,12 +47,16 @@ async function main(): Promise<void> {
     const { warnings } = await configService.load();
     for (const warning of warnings) console.warn(warning);
 
+    discovery = await startDiscovery(guard, workspaceRoot);
+
     const capability = generateCapability();
     const app = await buildApp({
       capability,
       staticRoot: packagedClientRoot,
       workspaceRoot,
       configService,
+      noteRepository: discovery.repository,
+      eventBus: discovery.bus,
     });
     const url = await startServer(app);
 
@@ -65,8 +68,9 @@ async function main(): Promise<void> {
     console.log(`Local-Notes running at ${url} (Ctrl+C to stop)`);
 
     const shutdown = async () => {
-      // Graceful order (1.5); later waves prepend watcher/worker teardown.
+      // Graceful order (1.5): server -> watcher -> cache flush -> lock.
       await app.close();
+      await discovery?.close();
       await lock?.release();
       process.exit(EXIT_CODES.clean);
     };
@@ -83,6 +87,7 @@ async function main(): Promise<void> {
     } else {
       console.error(message);
     }
+    await discovery?.close();
     await lock?.release();
     process.exitCode = exitCode;
   }

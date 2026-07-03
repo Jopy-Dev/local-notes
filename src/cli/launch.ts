@@ -12,6 +12,9 @@ export function buildLaunchUrl(capability: string): string {
 }
 
 export async function openBrowser(url: string): Promise<boolean> {
+  // Dev/test affordance: suppress auto-open so the one-time URL prints to the
+  // terminal (evidence capture, headless E2E). Not a product configuration.
+  if (process.env.LOCAL_NOTES_NO_BROWSER === "1") return false;
   try {
     await open(url);
     return true;

@@ -11,3 +11,5 @@ All notable changes to this project will be documented in this file. Format foll
 - Quiet Workbench design system tokens ported to Tailwind theme
 - Launch (first-run) screen with workspace chooser dialog and resize guidance
 - Workspace shell screen: folder navigation, note list with search filter, split source/preview editor layout, focus mode, command palette, settings and create-note dialogs (mock data; real filesystem wiring pending)
+- Note discovery: workspace scan with deterministic sort, metadata cache warm restarts, and live file watching that reflects external note changes in the open app within seconds
+- Dashboard shows real workspace data: note list and folder tree with counts populate from disk, list/card view toggle, skeleton loading state, empty-workspace create prompt, and no-match search state
