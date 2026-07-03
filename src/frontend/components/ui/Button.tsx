@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 /*
  * <Button> per Design_System.md 9.1: variant primary|secondary|compact|danger,
@@ -8,6 +8,8 @@ type ButtonVariant = "primary" | "secondary" | "compact" | "danger";
 type ButtonSize = "sm" | "md";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  // React 19 ref-as-prop passthrough (ConfirmationDialog safe-action focus).
+  ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;

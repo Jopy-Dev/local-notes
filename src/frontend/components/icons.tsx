@@ -242,6 +242,15 @@ export function CardViewIcon(props: IconProps) {
   );
 }
 
+export function InfoIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8v.5" />
+    </svg>
+  );
+}
+
 export function SearchEmptyIcon(props: IconProps) {
   return (
     <svg {...baseProps(props)}>

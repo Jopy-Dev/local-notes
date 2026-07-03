@@ -34,3 +34,10 @@ path = "src/backend/app.ts"
 rule = "hotspots"
 reason = "composition root: gains one route registration per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-controller-wmc-2026-07-04"
+path = "src/frontend/editor/editor-controller.ts"
+rule = "structural.class.complexity"
+reason = "cohesive editor state machine (WF-006/007): autosave + conflict + navigation guard; split AutosaveScheduler when Wave 6 editor work touches the file; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"

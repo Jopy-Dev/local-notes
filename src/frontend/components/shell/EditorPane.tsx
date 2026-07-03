@@ -1,24 +1,36 @@
-import type { ChangeEventHandler } from "react";
-import { FocusEnterIcon, FocusExitIcon } from "../icons";
+import { FocusEnterIcon, FocusExitIcon, NoteFileIcon } from "../icons";
+import { Button } from "../ui/Button";
 import { ConflictPanel } from "../ui/ConflictPanel";
 import { EditorHeader } from "../ui/EditorHeader";
 import { EditorModeTabs } from "../ui/EditorModeTabs";
 import type { EditorMode } from "../ui/EditorModeTabs";
 import { IconButton } from "../ui/IconButton";
+import { ReadOnlyBanner } from "../ui/ReadOnlyBanner";
 import { SaveState } from "../ui/SaveState";
 import type { SaveStateKind } from "../ui/SaveState";
 import { EditorContent } from "./EditorContent";
 import { NoteActionsMenu } from "./NoteActionsMenu";
-import { mockBreadcrumbs } from "../../services/mockWorkspace";
+import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
 /*
- * Editor pane composition: header + conflict banner + workspace (SCREEN-002).
- * Focus Mode preserves this pane in full (Design_System.md layout-focus).
+ * Editor pane composition (SCREEN-002, WF-005/006/007): header + read-only /
+ * conflict banners + live CodeMirror workspace. Focus Mode preserves this
+ * pane in full (Design_System.md layout-focus). No note open = explicit
+ * empty state, never a mock document.
  */
 interface EditorPaneProps {
-  title: string;
-  onTitleChange: ChangeEventHandler<HTMLInputElement>;
+  document: NoteDocument | null;
+  draft: string;
   saveState: SaveStateKind;
+  conflict: "changed" | "source-missing" | null;
+  readOnlyReason: "oversized" | "encoding" | null;
+  loadError: string | null;
+  onChangeDraft: (value: string) => void;
+  onRetrySave: () => void;
+  onResolveReload: () => void;
+  onResolveOverwrite: () => void;
+  onSaveAsNew: () => void;
+  onCloseWithoutSaving: () => void;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
   focusMode: boolean;
@@ -27,25 +39,55 @@ interface EditorPaneProps {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onMenuAction: (message: string) => void;
-  noteSelected: boolean;
   onMoveNote: () => void;
   onArchiveNote: () => void;
-  conflictVisible: boolean;
-  onShowConflict: () => void;
-  onResolveConflict: (message: string) => void;
+}
+
+function EmptyEditor({ message }: { message: string }) {
+  return (
+    <main className="grid h-full min-h-0 place-items-center bg-surface-editor p-6">
+      <div className="text-center text-text-secondary">
+        <span className="inline-block text-text-muted">
+          <NoteFileIcon size={24} />
+        </span>
+        <p className="mt-2.5 max-w-sm text-sm leading-relaxed">{message}</p>
+      </div>
+    </main>
+  );
 }
 
 export function EditorPane(props: EditorPaneProps) {
+  const { document } = props;
+  if (props.loadError) return <EmptyEditor message={props.loadError} />;
+  if (!document) {
+    return <EmptyEditor message="Select a note from the list or create a new one to start writing." />;
+  }
+
+  const breadcrumbs = [
+    "Workspace",
+    ...document.folder.split("/").filter(Boolean),
+    document.filename,
+  ];
+  const modes: readonly EditorMode[] =
+    document.extension === ".md" ? ["read", "edit", "split"] : ["edit"];
+
   return (
-    <main className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] bg-surface-editor">
+    <main className="flex h-full min-h-0 flex-col bg-surface-editor">
       <EditorHeader
-        breadcrumbs={mockBreadcrumbs}
-        title={props.title}
-        onTitleChange={props.onTitleChange}
+        breadcrumbs={breadcrumbs}
+        title={document.title}
+        readOnlyTitle
         actions={
           <>
             <SaveState state={props.saveState} compactHideText />
-            <EditorModeTabs mode={props.mode} onChange={props.onModeChange} />
+            {props.saveState === "error" ? (
+              <Button size="sm" onClick={props.onRetrySave}>
+                Retry save
+              </Button>
+            ) : null}
+            {modes.length > 1 ? (
+              <EditorModeTabs mode={props.mode} onChange={props.onModeChange} modes={modes} />
+            ) : null}
             <IconButton
               label={props.focusMode ? "Exit focus mode" : "Enter focus mode"}
               title={props.focusMode ? "Exit focus mode (Ctrl+Shift+F)" : "Focus mode (Ctrl+Shift+F)"}
@@ -56,23 +98,33 @@ export function EditorPane(props: EditorPaneProps) {
             </IconButton>
             <NoteActionsMenu
               open={props.menuOpen}
-              noteSelected={props.noteSelected}
+              noteSelected
               onToggle={props.onToggleMenu}
               onClose={props.onCloseMenu}
               onAction={props.onMenuAction}
               onMoveNote={props.onMoveNote}
               onArchiveNote={props.onArchiveNote}
-              onPreviewConflict={props.onShowConflict}
             />
           </>
         }
       />
+      {props.readOnlyReason ? <ReadOnlyBanner reason={props.readOnlyReason} /> : null}
       <ConflictPanel
-        visible={props.conflictVisible}
-        onReload={() => props.onResolveConflict("Disk version loaded")}
-        onKeepDraft={() => props.onResolveConflict("Draft saved over disk version")}
+        kind={props.conflict}
+        onReload={props.onResolveReload}
+        onKeepDraft={props.onResolveOverwrite}
+        onSaveAsNew={props.onSaveAsNew}
+        onCloseWithoutSaving={props.onCloseWithoutSaving}
       />
-      <EditorContent mode={props.mode} />
+      <div className="grid min-h-0 flex-1">
+        <EditorContent
+          mode={document.extension === ".md" ? props.mode : "edit"}
+          document={document}
+          draft={props.draft}
+          readOnly={props.readOnlyReason !== null || props.conflict !== null}
+          onChangeDraft={props.onChangeDraft}
+        />
+      </div>
     </main>
   );
 }

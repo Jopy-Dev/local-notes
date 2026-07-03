@@ -11,9 +11,8 @@ import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
 /*
- * Workspace shell parity screen (SCREEN-001/002 shell). Visual parity source:
- * .claude-design/project/app-shell.html. Dashboard data is live (Wave 2);
- * editor content stays mock until Waves 5/6.
+ * Workspace shell (SCREEN-001/002): live dashboard + live editor (Wave 5).
+ * Visual parity source: .claude-design/project/app-shell.html.
  */
 function ShellFolders({ shell }: { shell: ShellState }) {
   return (
@@ -58,11 +57,24 @@ function ShellNotes({ shell }: { shell: ShellState }) {
 }
 
 function ShellEditor({ shell }: { shell: ShellState }) {
+  const { editor } = shell;
   return (
     <EditorPane
-      title={shell.title}
-      onTitleChange={(event) => shell.changeTitle(event.target.value)}
-      saveState={shell.saveState}
+      document={editor.document}
+      draft={editor.draft}
+      saveState={editor.saveState}
+      conflict={editor.conflict}
+      readOnlyReason={editor.readOnlyReason}
+      loadError={editor.loadError}
+      onChangeDraft={editor.changeDraft}
+      onRetrySave={editor.retry}
+      onResolveReload={() => shell.setDialog("confirm-reload")}
+      onResolveOverwrite={() => void editor.resolveOverwrite()}
+      onSaveAsNew={() => shell.setDialog("new-note")}
+      onCloseWithoutSaving={() => {
+        editor.discardAndClose();
+        navigate("/");
+      }}
       mode={shell.mode}
       onModeChange={shell.setMode}
       focusMode={shell.focusMode}
@@ -71,22 +83,15 @@ function ShellEditor({ shell }: { shell: ShellState }) {
       onToggleMenu={() => shell.setMenuOpen(!shell.menuOpen)}
       onCloseMenu={() => shell.setMenuOpen(false)}
       onMenuAction={shell.toast.show}
-      noteSelected={shell.findNoteTitle(shell.selectedNote) !== undefined}
       onMoveNote={() => shell.setDialog("move-note")}
       onArchiveNote={() => shell.setDialog("archive-note")}
-      conflictVisible={shell.conflictVisible}
-      onShowConflict={() => shell.setConflictVisible(true)}
-      onResolveConflict={(message) => {
-        shell.setConflictVisible(false);
-        shell.toast.show(message);
-      }}
     />
   );
 }
 
-export function WorkspaceShellPage() {
+export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null }) {
   const supported = useViewportSupported();
-  const shell = useShellState();
+  const shell = useShellState(noteKey);
 
   if (!supported) {
     return <UnsupportedViewport />;
@@ -105,7 +110,7 @@ export function WorkspaceShellPage() {
         folders={<ShellFolders shell={shell} />}
         notes={<ShellNotes shell={shell} />}
         editor={<ShellEditor shell={shell} />}
-        status={<ShellStatusBar />}
+        status={<ShellStatusBar document={shell.editor.document} saveState={shell.editor.saveState} />}
       />
       <ShellDialogs shell={shell} />
     </>
