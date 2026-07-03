@@ -3,6 +3,7 @@ import { SecureRelaunch } from "../components/SecureRelaunch";
 import { LaunchPage } from "../pages/LaunchPage";
 import { ApiRequestError, apiGet } from "../services/api";
 import { getCapability } from "../services/token";
+import { useSearchData } from "../stores/searchData";
 import type { BootstrapResponse } from "../../shared/schemas/bootstrap";
 import { AppRouter } from "./AppRouter";
 
@@ -21,7 +22,10 @@ export function App() {
     let cancelled = false;
     apiGet<BootstrapResponse>("/bootstrap")
       .then((bootstrap) => {
-        if (!cancelled) setState({ phase: "ready", bootstrap });
+        if (cancelled) return;
+        // Seed index state; SSE index.status keeps it live afterwards.
+        useSearchData.getState().setIndexState(bootstrap.indexStatus);
+        setState({ phase: "ready", bootstrap });
       })
       .catch((error: unknown) => {
         if (cancelled) return;

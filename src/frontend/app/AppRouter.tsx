@@ -1,13 +1,13 @@
 import { useEffect, useSyncExternalStore } from "react";
+import { SearchRecoveryPage } from "../pages/SearchRecoveryPage";
 import { WorkspaceShellPage } from "../pages/WorkspaceShellPage";
 import { parseRoute } from "./routes";
 
 /*
  * History-API router (MasterPrompt.md 1.6): exact routes, popstate restore,
- * unknown paths redirect to "/" without a server request. Wave 0: dashboard,
- * note, and settings surfaces all render the workspace shell (mock data);
- * dedicated settings/recovery surfaces arrive Waves 3 and 7. The launch
- * first-run surface wires to real workspace state at Wave 2.
+ * unknown paths redirect to "/" without a server request. Dashboard and note
+ * surfaces render the workspace shell; search recovery landed Wave 3; the
+ * dedicated settings surface arrives Wave 7.
  */
 function subscribe(onChange: () => void): () => void {
   window.addEventListener("popstate", onChange);
@@ -32,7 +32,8 @@ export function AppRouter() {
     case "dashboard":
     case "note":
     case "settings":
-    case "search-recovery":
       return <WorkspaceShellPage />;
+    case "search-recovery":
+      return <SearchRecoveryPage />;
   }
 }

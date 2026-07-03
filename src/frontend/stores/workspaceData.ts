@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { fetchFolders, fetchNotesPage } from "../services/notesApi";
 import { subscribeWorkspaceEvents } from "../services/events";
+import { useSearchData } from "./searchData";
+import { indexStateSchema } from "../../shared/schemas/search.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
 /*
@@ -68,6 +70,9 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
     return subscribeWorkspaceEvents((event) => {
       if (event.type.startsWith("note.")) {
         void get().loadInitial();
+      } else if (event.type === "index.status") {
+        const parsed = indexStateSchema.safeParse(event.payload.status);
+        if (parsed.success) useSearchData.getState().setIndexState(parsed.data);
       }
     });
   },
