@@ -13,3 +13,5 @@ All notable changes to this project will be documented in this file. Format foll
 - Workspace shell screen: folder navigation, note list with search filter, split source/preview editor layout, focus mode, command palette, settings and create-note dialogs (mock data; real filesystem wiring pending)
 - Note discovery: workspace scan with deterministic sort, metadata cache warm restarts, and live file watching that reflects external note changes in the open app within seconds
 - Dashboard shows real workspace data: note list and folder tree with counts populate from disk, list/card view toggle, skeleton loading state, empty-workspace create prompt, and no-match search state
+- Full-text search: typo-tolerant ranked search across titles, filenames, and content with highlighted snippets, 200-result batches, and live index updates when files change outside the app
+- Search recovery screen: a degraded index shows a banner and a dedicated page to rebuild the search index while editing stays available

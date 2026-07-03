@@ -6,6 +6,7 @@ import { ShellStatusBar } from "../components/shell/ShellStatusBar";
 import { ShellTitlebar } from "../components/shell/ShellTitlebar";
 import { AppShell } from "../components/ui/AppShell";
 import { UnsupportedViewport, useViewportSupported } from "../components/ui/UnsupportedViewport";
+import { navigate } from "../services/navigation";
 import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
@@ -45,6 +46,12 @@ function ShellNotes({ shell }: { shell: ShellState }) {
       hasMore={shell.hasMore}
       onLoadMore={shell.loadMore}
       onCreateNote={() => shell.setDialog("new-note")}
+      searchStatus={shell.searchStatus}
+      searchResults={shell.searchResults}
+      searchHasMore={shell.searchHasMore}
+      onLoadMoreResults={shell.loadMoreResults}
+      indexState={shell.indexState}
+      onOpenRecovery={() => navigate("/recovery/search")}
       searchRef={shell.searchRef}
     />
   );

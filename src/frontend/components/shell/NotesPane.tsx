@@ -1,17 +1,21 @@
 import type { RefObject } from "react";
-import { NewNoteIcon, SearchEmptyIcon } from "../icons";
+import { NewNoteIcon, SearchEmptyIcon, WarningIcon } from "../icons";
 import { Button } from "../ui/Button";
 import { DashboardToolbar } from "../ui/DashboardToolbar";
 import { NoteCard } from "../ui/NoteCard";
 import { NoteListItem } from "../ui/NoteListItem";
 import type { NoteListEntry } from "../ui/NoteListItem";
+import { SearchResultItem } from "../ui/SearchResultItem";
 import { NoteListSkeleton } from "../ui/Skeleton";
 import { SORT_OPTIONS } from "../../services/mockWorkspace";
+import type { SearchStatus } from "../../stores/searchData";
+import type { IndexState, SearchResult } from "../../../shared/schemas/search.js";
 
 /*
  * Note list pane (WF-001/002/004): toolbar + list/card views + skeleton +
- * empty/no-result states + load-more batches. Virtualization upgrade rides
- * with the 10k perf pass (REQ-031 evidence at Wave 8).
+ * empty/no-result states + load-more batches. Non-blank queries render
+ * ranked search results (REQ-009); a degraded index links the recovery
+ * surface. Virtualization upgrade rides with the 10k perf pass (REQ-031).
  */
 interface NotesPaneProps {
   notes: readonly NoteListEntry[];
@@ -28,6 +32,12 @@ interface NotesPaneProps {
   hasMore: boolean;
   onLoadMore: () => void;
   onCreateNote: () => void;
+  searchStatus: SearchStatus;
+  searchResults: readonly SearchResult[];
+  searchHasMore: boolean;
+  onLoadMoreResults: () => void;
+  indexState: IndexState;
+  onOpenRecovery: () => void;
   searchRef: RefObject<HTMLInputElement | null>;
 }
 
@@ -59,8 +69,85 @@ function EmptyState({ query, onCreateNote }: { query: string; onCreateNote: () =
   );
 }
 
+function DegradedBanner({ onOpenRecovery }: { onOpenRecovery: () => void }) {
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 border-b border-border-active bg-warning-bg px-3 py-2 text-xs text-text-secondary"
+    >
+      <span className="shrink-0 text-warning">
+        <WarningIcon size={14} />
+      </span>
+      <span className="min-w-0 flex-1">Search index is degraded. Notes stay editable.</span>
+      <Button size="sm" onClick={onOpenRecovery}>
+        Rebuild
+      </Button>
+    </div>
+  );
+}
+
+function SearchResultList(props: NotesPaneProps) {
+  const { searchStatus, searchResults } = props;
+  if (searchStatus === "searching" && searchResults.length === 0) {
+    return <NoteListSkeleton />;
+  }
+  if (searchStatus === "ready" && searchResults.length === 0) {
+    return <EmptyState query={props.query} onCreateNote={props.onCreateNote} />;
+  }
+  return (
+    <>
+      {searchResults.map((result) => (
+        <SearchResultItem
+          key={result.noteKey}
+          result={result}
+          selected={result.noteKey === props.selectedKey}
+          onSelect={props.onSelect}
+        />
+      ))}
+      {props.searchHasMore ? (
+        <div className="p-2">
+          <Button size="sm" className="w-full" onClick={props.onLoadMoreResults}>
+            Load more results
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function NoteList(props: NotesPaneProps) {
+  const { notes, view } = props;
+  if (view === "card") {
+    return (
+      <div className="grid grid-cols-2 gap-2 p-2">
+        {notes.map((note) => (
+          <NoteCard
+            key={note.key}
+            note={note}
+            selected={note.key === props.selectedKey}
+            onSelect={props.onSelect}
+          />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <>
+      {notes.map((note) => (
+        <NoteListItem
+          key={note.key}
+          note={note}
+          selected={note.key === props.selectedKey}
+          onSelect={props.onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
 export function NotesPane(props: NotesPaneProps) {
-  const { notes, loading, view } = props;
+  const { notes, loading } = props;
+  const searching = props.query.trim().length > 0;
 
   return (
     <section
@@ -74,46 +161,33 @@ export function NotesPane(props: NotesPaneProps) {
         sortOptions={SORT_OPTIONS}
         descending={props.descending}
         onToggleDirection={props.onToggleDirection}
-        view={view}
+        view={props.view}
         onViewChange={props.onViewChange}
         searchRef={props.searchRef}
       />
+      {props.indexState === "degraded" ? (
+        <DegradedBanner onOpenRecovery={props.onOpenRecovery} />
+      ) : null}
       <div
         aria-busy={loading || undefined}
         className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
       >
         {loading ? <NoteListSkeleton /> : null}
-        {!loading && view === "list"
-          ? notes.map((note) => (
-              <NoteListItem
-                key={note.key}
-                note={note}
-                selected={note.key === props.selectedKey}
-                onSelect={props.onSelect}
-              />
-            ))
-          : null}
-        {!loading && view === "card" ? (
-          <div className="grid grid-cols-2 gap-2 p-2">
-            {notes.map((note) => (
-              <NoteCard
-                key={note.key}
-                note={note}
-                selected={note.key === props.selectedKey}
-                onSelect={props.onSelect}
-              />
-            ))}
-          </div>
-        ) : null}
-        {!loading && notes.length === 0 ? (
-          <EmptyState query={props.query} onCreateNote={props.onCreateNote} />
-        ) : null}
-        {!loading && props.hasMore ? (
-          <div className="p-2">
-            <Button size="sm" className="w-full" onClick={props.onLoadMore}>
-              Load more
-            </Button>
-          </div>
+        {!loading && searching ? <SearchResultList {...props} /> : null}
+        {!loading && !searching ? (
+          <>
+            <NoteList {...props} />
+            {notes.length === 0 ? (
+              <EmptyState query="" onCreateNote={props.onCreateNote} />
+            ) : null}
+            {props.hasMore ? (
+              <div className="p-2">
+                <Button size="sm" className="w-full" onClick={props.onLoadMore}>
+                  Load more
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
     </section>

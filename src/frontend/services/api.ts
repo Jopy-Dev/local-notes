@@ -16,9 +16,10 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   const token = getCapability();
   const response = await fetch(`/api/v1${path}`, {
+    ...init,
     headers: token ? { "X-Local-Notes-Token": token } : {},
   });
   const body: unknown = await response.json();
@@ -27,4 +28,12 @@ export async function apiGet<T>(path: string): Promise<T> {
     throw new ApiRequestError(response.status, error?.code ?? "INTERNAL", error?.message ?? "Request failed.");
   }
   return (body as { data: T }).data;
+}
+
+export async function apiGet<T>(path: string, options: { signal?: AbortSignal } = {}): Promise<T> {
+  return request<T>(path, { signal: options.signal ?? null });
+}
+
+export async function apiPost<T>(path: string): Promise<T> {
+  return request<T>(path, { method: "POST" });
 }
