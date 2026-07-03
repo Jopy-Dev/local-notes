@@ -20,3 +20,17 @@ path = "src/frontend/pages/useShellState.ts"
 rule = "hotspots"
 reason = "rolling-window recompute re-flags top scorer; file already split twice (CCX 13), untouched in Wave 3; KNOWN_ISSUES.md Suppressions"
 expires = "2026-07-31"
+
+[[waivers]]
+id = "cli-composition-root-2026-07-03"
+path = "src/cli/index.ts"
+rule = "hotspots"
+reason = "composition root: gains one wiring line per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "app-composition-root-2026-07-03"
+path = "src/backend/app.ts"
+rule = "hotspots"
+reason = "composition root: gains one route registration per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
