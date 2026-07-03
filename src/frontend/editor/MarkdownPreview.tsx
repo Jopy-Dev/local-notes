@@ -4,101 +4,28 @@ import { CopyIcon } from "../components/icons";
 import { Button } from "../components/ui/Button";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { IconButton } from "../components/ui/IconButton";
-import { renderMarkdownPreview } from "../services/contentApi";
-import { getCapability } from "../services/token";
 import { navigate } from "../services/navigation";
 import { copyToClipboard } from "./copy-actions";
+import { hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
 
 /*
  * <MarkdownPreview> per Design_System.md 9.2 (REQ-014): renders ONLY the
- * server-sanitized HTML from /markdown/render. Requests debounce 150ms and
- * abort when stale (MasterPrompt 4.6). Links re-classify client-side (7.2):
- * internal -> route navigation, external -> hostname confirmation, anything
- * else stays inert. Guarded images fetch as blobs with the capability
- * header and swap in as object URLs, revoked on replacement/unmount.
+ * server-sanitized HTML from /markdown/render. Debounced render + guarded
+ * image hydration live in preview-support. Links re-classify client-side
+ * (7.2): internal -> route navigation, external -> hostname confirmation,
+ * anything else stays inert.
  */
-const RENDER_DEBOUNCE_MS = 150;
-
 interface MarkdownPreviewProps {
   source: string;
   noteKey: string;
   onToast: (message: string) => void;
 }
 
-/*
- * REQ-036: each sanitized <copy> element gets an inline <IconButton>
- * affordance appended client-side (Design_System.md 9.1) - the sanitized
- * HTML itself never carries button markup. Portal hosts are plain spans
- * inserted after each mark; they vanish with the next innerHTML swap.
- */
-interface CopyMount {
-  holder: HTMLElement;
-  text: string;
-}
-
-type PreviewStatus = "loading" | "ready" | "error";
-
-function useRenderedHtml(source: string, noteKey: string) {
-  const [html, setHtml] = useState<string | null>(null);
-  const [status, setStatus] = useState<PreviewStatus>("loading");
-  const [retryTick, setRetryTick] = useState(0);
-
-  useEffect(() => {
-    const abort = new AbortController();
-    const timer = setTimeout(() => {
-      if (html === null) setStatus("loading");
-      renderMarkdownPreview(source, noteKey, abort.signal)
-        .then((preview) => {
-          setHtml(preview.html);
-          setStatus("ready");
-        })
-        .catch((error: unknown) => {
-          if ((error as { name?: string }).name === "AbortError") return;
-          setStatus("error");
-        });
-    }, RENDER_DEBOUNCE_MS);
-    return () => {
-      clearTimeout(timer);
-      abort.abort();
-    };
-    // html intentionally omitted: it only gates the loading flash on first render.
-  }, [source, noteKey, retryTick]);
-
-  return { html, status, retry: () => setRetryTick((tick) => tick + 1) };
-}
-
-/* Swap guarded asset <img> tags to capability-fetched object URLs (4.6). */
-function hydrateAssetImages(container: HTMLElement): () => void {
-  const objectUrls: string[] = [];
-  const token = getCapability();
-  for (const img of Array.from(container.querySelectorAll<HTMLImageElement>("img"))) {
-    const src = img.getAttribute("src") ?? "";
-    if (!src.startsWith("/api/v1/assets/")) continue;
-    img.removeAttribute("src");
-    fetch(src, { headers: token ? { "X-Local-Notes-Token": token } : {} })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("asset blocked");
-        const url = URL.createObjectURL(await response.blob());
-        objectUrls.push(url);
-        img.src = url;
-      })
-      .catch(() => {
-        const placeholder = document.createElement("span");
-        placeholder.setAttribute("data-blocked", "image");
-        placeholder.textContent = img.alt ? `Blocked image: ${img.alt}` : "Blocked image";
-        img.replaceWith(placeholder);
-      });
-  }
-  return () => {
-    for (const url of objectUrls) URL.revokeObjectURL(url);
-  };
-}
-
 export function MarkdownPreview({ source, noteKey, onToast }: MarkdownPreviewProps) {
   const { html, status, retry } = useRenderedHtml(source, noteKey);
   const articleRef = useRef<HTMLElement | null>(null);
   const [pendingExternal, setPendingExternal] = useState<string | null>(null);
-  const [copyMounts, setCopyMounts] = useState<CopyMount[]>([]);
+  const copyMounts = useCopyMounts(articleRef, html);
 
   useEffect(() => {
     const container = articleRef.current;
@@ -106,20 +33,8 @@ export function MarkdownPreview({ source, noteKey, onToast }: MarkdownPreviewPro
     return hydrateAssetImages(container);
   }, [html]);
 
-  useEffect(() => {
-    const container = articleRef.current;
-    if (!container || html === null) return;
-    const mounts: CopyMount[] = [];
-    for (const mark of Array.from(container.querySelectorAll("copy"))) {
-      const holder = document.createElement("span");
-      holder.setAttribute("data-copy-affordance", "");
-      mark.after(holder);
-      mounts.push({ holder, text: mark.textContent ?? "" });
-    }
-    setCopyMounts(mounts);
-    return () => setCopyMounts([]);
-  }, [html]);
-
+  // REQ-036: sanitized HTML never carries button markup - <IconButton>
+  // portals render into the useCopyMounts holder spans client-side.
   function copyMarkedText(text: string) {
     void copyToClipboard(text).then((copied) =>
       onToast(copied ? "Text copied" : "Copy failed - clipboard unavailable"),
