@@ -15,3 +15,4 @@ All notable changes to this project will be documented in this file. Format foll
 - Dashboard shows real workspace data: note list and folder tree with counts populate from disk, list/card view toggle, skeleton loading state, empty-workspace create prompt, and no-match search state
 - Full-text search: typo-tolerant ranked search across titles, filenames, and content with highlighted snippets, 200-result batches, and live index updates when files change outside the app
 - Search recovery screen: a degraded index shows a banner and a dedicated page to rebuild the search index while editing stays available
+- Create, move, and archive notes: create into any existing folder with collision-safe validation, move a note between folders, and archive with folder structure preserved - a name clash in the archive offers rename-then-archive, and nothing is ever overwritten or deleted
