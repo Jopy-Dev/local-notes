@@ -57,6 +57,7 @@ async function main(): Promise<void> {
       configService,
       noteRepository: discovery.repository,
       eventBus: discovery.bus,
+      searchService: discovery.searchService,
     });
     const url = await startServer(app);
 

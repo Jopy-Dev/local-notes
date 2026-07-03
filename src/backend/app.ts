@@ -9,10 +9,12 @@ import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
 import { registerEventsRoute } from "./routes/events.js";
 import { registerNotesRoutes } from "./routes/notes.js";
+import { registerSearchRoutes } from "./routes/search.js";
 import { registerSystemRoutes } from "./routes/system.js";
 import type { EventBus } from "./events/event-bus.js";
 import { registerBoundary } from "./security/boundary.js";
 import type { NoteRepository } from "./filesystem/note-repository.js";
+import type { SearchService } from "./search/search-service.js";
 
 /*
  * App composer: boundary hook -> error handling -> route modules -> static
@@ -26,6 +28,7 @@ export interface BuildAppOptions {
   configService?: ConfigService;
   noteRepository?: NoteRepository;
   eventBus?: EventBus;
+  searchService?: SearchService;
   logger?: boolean | object;
 }
 
@@ -42,12 +45,22 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   registerBoundary(app, options.capability);
   registerErrorHandling(app);
-  registerSystemRoutes(app, { workspaceRoot, configService: options.configService });
+  registerSystemRoutes(app, {
+    workspaceRoot,
+    configService: options.configService,
+    indexState: options.searchService ? () => options.searchService!.status().state : undefined,
+  });
   if (options.noteRepository) {
     registerNotesRoutes(app, { repository: options.noteRepository });
   }
   if (options.eventBus) {
     registerEventsRoute(app, { bus: options.eventBus });
+  }
+  if (options.searchService && options.noteRepository) {
+    registerSearchRoutes(app, {
+      searchService: options.searchService,
+      repository: options.noteRepository,
+    });
   }
 
   if (options.staticRoot) {

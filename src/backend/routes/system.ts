@@ -12,12 +12,15 @@ import type { ConfigService } from "../config/config-service.js";
 export interface SystemRouteOptions {
   workspaceRoot: string;
   configService?: ConfigService | undefined;
+  indexState?: (() => "unavailable" | "building" | "ready" | "degraded") | undefined;
 }
 
 export function registerSystemRoutes(app: FastifyInstance, options: SystemRouteOptions): void {
+  const indexState = options.indexState ?? (() => "unavailable" as const);
+
   app.get(`${API_PREFIX}/health`, async (request) => {
     return {
-      data: { status: "ok", workspace: "pending", index: "unavailable" },
+      data: { status: "ok", workspace: "pending", index: indexState() },
       requestId: request.id,
     };
   });
@@ -29,7 +32,7 @@ export function registerSystemRoutes(app: FastifyInstance, options: SystemRouteO
     const data: BootstrapResponse = {
       config,
       workspaceDisplayPath: config.workspace.replace(homedir(), "~"),
-      indexStatus: "unavailable",
+      indexStatus: indexState(),
       appVersion: process.env.npm_package_version ?? "0.1.0",
     };
     return { data, requestId: request.id };
