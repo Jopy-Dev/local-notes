@@ -49,20 +49,25 @@ export function Popover({ open, onClose, children }: PopoverProps) {
 interface MenuButtonProps {
   icon: ReactNode;
   danger?: boolean;
+  disabled?: boolean;
   onClick: () => void;
   children: ReactNode;
 }
 
-export function MenuButton({ icon, danger = false, onClick, children }: MenuButtonProps) {
+export function MenuButton({ icon, danger = false, disabled = false, onClick, children }: MenuButtonProps) {
   return (
     <button
       type="button"
       role="menuitem"
+      disabled={disabled}
       onClick={onClick}
       className={[
-        "flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-control border-0 bg-transparent px-2 text-left text-ui",
-        danger ? "text-danger" : "text-text-secondary",
-        "hover:bg-surface-hover hover:text-text-primary",
+        "flex min-h-8 w-full items-center gap-2 rounded-control border-0 bg-transparent px-2 text-left text-ui",
+        disabled
+          ? "cursor-default text-text-disabled"
+          : danger
+            ? "cursor-pointer text-danger hover:bg-surface-hover hover:text-text-primary"
+            : "cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary",
       ].join(" ")}
     >
       <span className="shrink-0">{icon}</span>

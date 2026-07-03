@@ -10,6 +10,8 @@ export function errorBody(error: AppError, requestId: string): ApiError {
       code: error.code,
       message: error.message,
       ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}),
+      // Archive collision advertises the recovery path (REQ-013).
+      ...(error.code === "ARCHIVE_COLLISION" ? { renameAllowed: true } : {}),
     },
     requestId,
   };

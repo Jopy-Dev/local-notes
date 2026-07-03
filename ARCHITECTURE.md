@@ -41,7 +41,7 @@ Single Node.js process + one worker thread. No database, no network beyond loopb
 | Services | `src/frontend/services/` | API client (capability header), SSE reader, mock data (Step 11 only) |
 | Shared | `src/shared/` | Zod request/response schemas, contracts, constants, error codes — imported by both sides |
 
-Status: Waves 0-3 live — Fastify core + capability boundary, filesystem foundations, discovery/watcher/SSE with real dashboard data, and the Orama search stack (`src/backend/search/`: engine + ranking + snippet + budget ledger + service + disposable index cache; `/search`, `/search/rebuild`, `/recovery/search`). Search runs in-process today; the dedicated worker thread rides with the Wave 8 packaged build (compiled worker entry needs the tsc server build). `src/frontend/editor/` and mutation routes land per `Implementation_Plan.md` Waves 4-7.
+Status: Waves 0-4 live — Fastify core + capability boundary, filesystem foundations, discovery/watcher/SSE with real dashboard data, the Orama search stack (`src/backend/search/`; `/search`, `/search/rebuild`, `/recovery/search`), and note mutations (`src/backend/filesystem/note-mutations.ts` + `routes/mutations.ts`: create/move/archive with case-folded collisions; `events/operation-registry.ts` + `watcher/watch-event-pipeline.ts` give self-event suppression via operation IDs). Search runs in-process today; the dedicated worker thread rides with the Wave 8 packaged build. `src/frontend/editor/` and content routes land per `Implementation_Plan.md` Waves 5-7.
 
 ## 3. Data Flow
 

@@ -8,11 +8,14 @@ import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
 import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
 import { registerEventsRoute } from "./routes/events.js";
+import { registerMutationRoutes } from "./routes/mutations.js";
 import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSearchRoutes } from "./routes/search.js";
 import { registerSystemRoutes } from "./routes/system.js";
 import type { EventBus } from "./events/event-bus.js";
+import type { OperationRegistry } from "./events/operation-registry.js";
 import { registerBoundary } from "./security/boundary.js";
+import type { NoteMutationService } from "./filesystem/note-mutations.js";
 import type { NoteRepository } from "./filesystem/note-repository.js";
 import type { SearchService } from "./search/search-service.js";
 
@@ -29,6 +32,8 @@ export interface BuildAppOptions {
   noteRepository?: NoteRepository;
   eventBus?: EventBus;
   searchService?: SearchService;
+  mutationService?: NoteMutationService;
+  operationRegistry?: OperationRegistry;
   logger?: boolean | object;
 }
 
@@ -60,6 +65,13 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     registerSearchRoutes(app, {
       searchService: options.searchService,
       repository: options.noteRepository,
+    });
+  }
+  if (options.mutationService) {
+    registerMutationRoutes(app, {
+      mutationService: options.mutationService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
     });
   }
 

@@ -1,23 +1,26 @@
 import { join } from "node:path";
 import { EventBus } from "../backend/events/event-bus.js";
+import { OperationRegistry } from "../backend/events/operation-registry.js";
 import { MetadataCache } from "../backend/filesystem/metadata-cache.js";
+import { NoteMutationService } from "../backend/filesystem/note-mutations.js";
 import { NoteRepository } from "../backend/filesystem/note-repository.js";
-import { encodeNoteKey } from "../backend/filesystem/path-guard.js";
 import type { WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
 import { createSearchService } from "../backend/search/create-search-service.js";
 import type { SearchService } from "../backend/search/search-service.js";
+import { WatchEventPipeline } from "../backend/watcher/watch-event-pipeline.js";
 import { WorkspaceWatcher } from "../backend/watcher/workspace-watcher.js";
-import type { WatchEvent } from "../backend/watcher/workspace-watcher.js";
 
 /*
- * CLI discovery stack (MasterPrompt.md 2.8 + 4.2 + 4.3): warm scan from the
- * disposable cache, live watching that republishes filesystem changes as SSE
- * events, and the search index fed from the same batch hook.
+ * CLI discovery stack (MasterPrompt.md 2.8 + 4.2 + 4.3 + 4.5): warm scan
+ * from the disposable cache, search index build, then live watching through
+ * the watch-event pipeline (SSE + index updates + self-event suppression).
  */
 export interface DiscoveryStack {
   repository: NoteRepository;
   bus: EventBus;
   searchService: SearchService;
+  mutationService: NoteMutationService;
+  operationRegistry: OperationRegistry;
   flush: () => Promise<void>;
   close: () => Promise<void>;
 }
@@ -29,6 +32,8 @@ export async function startDiscovery(
   const repository = new NoteRepository(guard, "save-data/notes");
   const cache = new MetadataCache(join(workspaceRoot, "cache"));
   const bus = new EventBus();
+  const operationRegistry = new OperationRegistry();
+  const mutationService = new NoteMutationService(guard);
   const searchService = createSearchService({
     guard,
     workspaceRoot,
@@ -36,35 +41,18 @@ export async function startDiscovery(
     bus,
   });
 
-  let snapshot = await repository.scan((await cache.load()) ?? undefined);
+  const snapshot = await repository.scan((await cache.load()) ?? undefined);
   await cache.save(snapshot);
   // Warm index build: cached entries reconcile by versionToken (4.3). Search
   // stays non-blocking for the CLI - failures degrade search, never startup.
   await searchService.initialize(snapshot).catch(() => undefined);
 
-  const publishBatch = async (events: WatchEvent[]) => {
-    snapshot = await repository.scan(snapshot);
-    await cache.save(snapshot);
-    const byPath = new Map(snapshot.map((note) => [note.relativePath, note]));
-    for (const event of events) {
-      const noteKey = encodeNoteKey(event.relPath);
-      const note = byPath.get(event.relPath);
-      const version = note?.versionToken ?? "";
-      if (event.kind === "removed") {
-        await searchService.applyRemove(noteKey).catch(() => undefined);
-        bus.publish({ type: "note.removed", noteKey });
-      } else if (event.kind === "added") {
-        if (note) await searchService.applyUpsert(note).catch(() => undefined);
-        bus.publish({ type: "note.added", noteKey, version });
-      } else {
-        if (note) await searchService.applyUpsert(note).catch(() => undefined);
-        bus.publish({ type: "note.changed", noteKey, version });
-      }
-    }
-  };
-
+  const pipeline = new WatchEventPipeline(
+    { repository, cache, bus, searchService, operationRegistry },
+    snapshot,
+  );
   const watcher = new WorkspaceWatcher(await guard.resolve("save-data/notes"), {
-    onBatch: (events) => void publishBatch(events),
+    onBatch: (events) => void pipeline.handleBatch(events),
   });
   await watcher.ready();
 
@@ -72,12 +60,14 @@ export async function startDiscovery(
     repository,
     bus,
     searchService,
-    flush: () => cache.save(snapshot),
+    mutationService,
+    operationRegistry,
+    flush: () => pipeline.flush(),
     close: async () => {
       // Graceful order (1.5): watcher stops first, then caches flush.
       await watcher.close();
       await searchService.close().catch(() => undefined);
-      await cache.save(snapshot).catch(() => undefined);
+      await pipeline.flush().catch(() => undefined);
     },
   };
 }

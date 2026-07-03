@@ -27,6 +27,9 @@ interface EditorPaneProps {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onMenuAction: (message: string) => void;
+  noteSelected: boolean;
+  onMoveNote: () => void;
+  onArchiveNote: () => void;
   conflictVisible: boolean;
   onShowConflict: () => void;
   onResolveConflict: (message: string) => void;
@@ -53,9 +56,12 @@ export function EditorPane(props: EditorPaneProps) {
             </IconButton>
             <NoteActionsMenu
               open={props.menuOpen}
+              noteSelected={props.noteSelected}
               onToggle={props.onToggleMenu}
               onClose={props.onCloseMenu}
               onAction={props.onMenuAction}
+              onMoveNote={props.onMoveNote}
+              onArchiveNote={props.onArchiveNote}
               onPreviewConflict={props.onShowConflict}
             />
           </>

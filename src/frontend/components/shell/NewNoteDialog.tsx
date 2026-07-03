@@ -1,46 +1,58 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { ApiRequestError } from "../../services/api";
+import { createNote } from "../../services/mutationsApi";
 import { Button } from "../ui/Button";
 import { FormField } from "../ui/FormField";
 import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
 import { Select } from "../ui/Select";
+import type { NoteMetadata } from "../../../shared/schemas/notes.js";
 
 /*
- * Create-note dialog (WF-003 surface). Validation mirrors REQ-011 shape
- * (extension + reserved characters + 120-char cap); real create API at Step 12+.
+ * Create-note dialog (WF-003): existing folders only, collision and
+ * validation errors stay editable, no partial file on failure (REQ-011).
  */
-const FOLDER_OPTIONS = ["Projects / Local Notes", "Daily", "Research", "Reference"] as const;
-const MAX_FILENAME = 120;
-
-function isValidFilename(value: string): boolean {
-  return (
-    value.length > 0 &&
-    value.length <= MAX_FILENAME &&
-    /\.(md|txt)$/i.test(value) &&
-    !/[\\/:*?"<>|]/.test(value)
-  );
-}
+const ROOT_LABEL = "Workspace root";
 
 interface NewNoteDialogProps {
   open: boolean;
+  folders: readonly string[];
   onClose: () => void;
-  onCreate: (filename: string) => void;
+  onCreated: (note: NoteMetadata) => void;
 }
 
-export function NewNoteDialog({ open, onClose, onCreate }: NewNoteDialogProps) {
+export function NewNoteDialog({ open, folders, onClose, onCreated }: NewNoteDialogProps) {
   const [filename, setFilename] = useState("untitled-note.md");
-  const [invalid, setInvalid] = useState(false);
+  const [folder, setFolder] = useState(ROOT_LABEL);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(event: FormEvent) {
+  const folderOptions = [ROOT_LABEL, ...folders];
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const value = filename.trim();
-    if (!isValidFilename(value)) {
-      setInvalid(true);
-      return;
+    const extension = value.toLocaleLowerCase().endsWith(".txt") ? (".txt" as const) : (".md" as const);
+    setSubmitting(true);
+    setError(null);
+    try {
+      const created = await createNote({
+        filename: value,
+        extension,
+        folderKey: folder === ROOT_LABEL ? "" : folder,
+      });
+      setFilename("untitled-note.md");
+      onCreated(created);
+    } catch (cause) {
+      setError(
+        cause instanceof ApiRequestError
+          ? cause.message
+          : "Could not create the note. Check the local server and retry.",
+      );
+    } finally {
+      setSubmitting(false);
     }
-    setInvalid(false);
-    onCreate(value);
   }
 
   return (
@@ -52,26 +64,30 @@ export function NewNoteDialog({ open, onClose, onCreate }: NewNoteDialogProps) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="new-note-form">
+          <Button variant="primary" type="submit" form="new-note-form" loading={submitting}>
             Create and open
           </Button>
         </>
       }
     >
-      <form id="new-note-form" noValidate onSubmit={onSubmit}>
+      <form id="new-note-form" noValidate onSubmit={(event) => void onSubmit(event)}>
         <FormField
           label="Filename"
           helper="Maximum 120 characters. Use .md or .txt."
-          {...(invalid ? { error: "Enter a unique filename ending in .md or .txt." } : {})}
+          {...(error ? { error } : {})}
         >
           <Input
             value={filename}
-            invalid={invalid}
+            invalid={error !== null}
             onChange={(event) => setFilename(event.target.value)}
           />
         </FormField>
         <FormField label="Folder">
-          <Select options={FOLDER_OPTIONS} />
+          <Select
+            options={folderOptions}
+            value={folder}
+            onChange={(event) => setFolder(event.target.value)}
+          />
         </FormField>
       </form>
     </Modal>
