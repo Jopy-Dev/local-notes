@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -118,6 +118,23 @@ describe("buildApp boundary", () => {
     });
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe("NOT_FOUND");
+  });
+
+  it("returns persisted ConfigV1 through /bootstrap when the config service is wired", async () => {
+    const workspaceRoot = mkdtempSync(join(tmpdir(), "local-notes-ws-"));
+    const { ConfigService } = await import("../../src/backend/config/config-service.js");
+    const service = new ConfigService(workspaceRoot);
+    await service.load();
+    await service.update({ theme: "dark" });
+    const wired = await buildApp({ capability, workspaceRoot, configService: service });
+    const res = await wired.inject({
+      method: "GET",
+      url: "/api/v1/bootstrap",
+      headers: validHeaders(capability),
+    });
+    expect(res.json().data.config.theme).toBe("dark");
+    await wired.close();
+    rmSync(workspaceRoot, { recursive: true, force: true });
   });
 
   it("serves the SPA via static registration without a token (script tags cannot set headers)", async () => {
