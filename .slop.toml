@@ -13,3 +13,10 @@ path = "src/frontend/components/icons.tsx"
 rule = "hotspots"
 reason = "icon registry one-time bulk growth; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
+
+[[waivers]]
+id = "use-shell-state-2026-07-03"
+path = "src/frontend/pages/useShellState.ts"
+rule = "hotspots"
+reason = "rolling-window recompute re-flags top scorer; file already split twice (CCX 13), untouched in Wave 3; KNOWN_ISSUES.md Suppressions"
+expires = "2026-07-31"
