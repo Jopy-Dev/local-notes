@@ -259,3 +259,118 @@ export function SearchEmptyIcon(props: IconProps) {
     </svg>
   );
 }
+
+/* Editor toolbar icons (REQ-015, Wave 6). */
+export function BoldIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M8 4.5h5a3.25 3.25 0 0 1 0 6.5H8zM8 11h6a3.25 3.25 0 0 1 0 6.5H8zM8 4.5v13" />
+    </svg>
+  );
+}
+
+export function ItalicIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M10.5 4.5h7M6.5 19.5h7M14 4.5l-4 15" />
+    </svg>
+  );
+}
+
+export function UnderlineIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M7 4.5v7a5 5 0 0 0 10 0v-7M6 19.5h12" />
+    </svg>
+  );
+}
+
+export function StrikethroughIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M6.5 6.8C7.4 5.4 9.3 4.5 12 4.5c3 0 4.8 1.2 5.2 3M6.8 16.5c.5 1.8 2.6 3 5.2 3 2.9 0 4.9-1.2 5.3-3.2M4.5 12h15" />
+    </svg>
+  );
+}
+
+export function BulletListIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M9.5 6h10M9.5 12h10M9.5 18h10" />
+      <circle cx="5.2" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="5.2" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="5.2" cy="18" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function OrderedListIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M10 6h9.5M10 12h9.5M10 18h9.5M4.3 4.5 5.8 4v4M4.3 10.7c.3-.5.9-.8 1.5-.7.8.1 1.2.8.9 1.5L4.3 14h2.9M4.3 16.4h2c.7 0 1.2.5 1.2 1.1 0 .6-.5 1-1.2 1h-.7h.7c.7 0 1.2.5 1.2 1.1 0 .6-.5 1.1-1.2 1.1h-2" />
+    </svg>
+  );
+}
+
+export function TaskListIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <rect x="3.5" y="4" width="6" height="6" rx="1" />
+      <path d="m5 7 1.4 1.4L9 5.8M12.5 7h8M12.5 17h8" />
+      <rect x="3.5" y="14" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
+export function LinkIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7l-1.2 1.2" />
+      <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7l1.2-1.2" />
+    </svg>
+  );
+}
+
+export function TableIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="1" />
+      <path d="M3.5 9.5h17M9.5 9.5v10M15.5 9.5v10" />
+    </svg>
+  );
+}
+
+export function CodeBlockIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="m9 8-4 4 4 4M15 8l4 4-4 4" />
+    </svg>
+  );
+}
+
+export function UndoIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M8 6 4 10l4 4" />
+      <path d="M4 10h10a6 6 0 0 1 0 12h-3" />
+    </svg>
+  );
+}
+
+export function RedoIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="m16 6 4 4-4 4" />
+      <path d="M20 10H10a6 6 0 0 0 0 12h3" />
+    </svg>
+  );
+}
+
+export function CopyMarkIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" />
+      <path d="M15.5 8.5v-3a1.5 1.5 0 0 0-1.5-1.5H5.5A1.5 1.5 0 0 0 4 5.5v8.5A1.5 1.5 0 0 0 5.5 15.5h3" />
+    </svg>
+  );
+}

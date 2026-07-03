@@ -56,3 +56,18 @@ export async function apiPutText<T>(
     { "Content-Type": "text/plain; charset=utf-8", ...headers },
   );
 }
+
+/* Raw text posts (MasterPrompt.md 5.1): markdown render requests travel as
+ * text/plain with the note key in X-Note-Key; stale previews abort. */
+export async function apiPostText<T>(
+  path: string,
+  body: string,
+  headers: Record<string, string>,
+  options: { signal?: AbortSignal | undefined } = {},
+): Promise<T> {
+  return request<T>(
+    path,
+    { method: "POST", body, signal: options.signal ?? null },
+    { "Content-Type": "text/plain; charset=utf-8", ...headers },
+  );
+}

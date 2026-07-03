@@ -34,7 +34,8 @@ describe("read (WF-005)", () => {
     expect(doc.textEncoding).toBe("utf8");
     expect(doc.lineEnding).toBe("lf");
     expect(doc.versionToken).toMatch(/^[a-f0-9]{64}$/);
-    expect(doc.markdownCompatibility).toBe("source-only");
+    // Wave 6: static construct scan verdict - conservative markdown = edit.
+    expect(doc.markdownCompatibility).toBe("edit");
   });
 
   it("normalizes CRLF for the editor but reports the original style", async () => {

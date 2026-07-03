@@ -1,7 +1,7 @@
 import type { CompatibilityScan } from "../../shared/markdown/compatibility-scan.js";
 import { scanSourceOnlyConstructs } from "../../shared/markdown/compatibility-scan.js";
 import type { MarkdownProbe } from "./markdown-extensions.js";
-import { restoreTerminalNewline } from "./markdown-extensions.js";
+import { createMarkdownProbe, restoreTerminalNewline } from "./markdown-extensions.js";
 
 /*
  * MarkdownCompatibilityService (MasterPrompt.md 4.6): conservative gate for
@@ -28,6 +28,12 @@ export class MarkdownCompatibilityService {
     return outcome;
   }
 
+  /* Uncached check for dirty drafts: re-entering visual mode from source
+   * requires fresh round-trip validation (REQ-015). */
+  assess(source: string): CompatibilityScan {
+    return this.evaluate(source);
+  }
+
   private evaluate(source: string): CompatibilityScan {
     // Step 1: normalize line endings in memory only - never written back.
     const normalized = source.replaceAll("\r\n", "\n");
@@ -45,4 +51,13 @@ export class MarkdownCompatibilityService {
       return { compatibility: "source-only", compatibilityReason: PARSE_REASON };
     }
   }
+}
+
+/* Lazy singleton: the probe editor is created on the first .md open, never
+ * at bundle evaluation time. */
+let singleton: MarkdownCompatibilityService | null = null;
+
+export function getCompatibilityService(): MarkdownCompatibilityService {
+  singleton ??= new MarkdownCompatibilityService(createMarkdownProbe());
+  return singleton;
 }

@@ -3,6 +3,8 @@ import { ApiRequestError } from "../services/api";
 import { loadNoteDocument, saveNoteContent } from "../services/contentApi";
 import { DraftUnsettledError, EditorController } from "../editor/editor-controller";
 import type { EditorSnapshot, EditorWorkspaceEvent } from "../editor/editor-controller";
+import { getCompatibilityService } from "../editor/markdown-compat";
+import type { NoteDocument } from "../../shared/schemas/notes.js";
 
 /*
  * React adapter over the EditorController state machine (WF-005/006/007).
@@ -11,6 +13,34 @@ import type { EditorSnapshot, EditorWorkspaceEvent } from "../editor/editor-cont
  * Navigation away from an unsettled draft (save error or open conflict)
  * parks as pendingNavigation until the user answers stay/discard (REQ-017).
  */
+/*
+ * Visual-editing verdict (MasterPrompt 4.6, REQ-015): the backend static
+ * verdict gates the TipTap round-trip check, computed once per loaded
+ * content (versionToken-cached); source-mode edits revalidate on re-entry
+ * to visual mode via revalidateVisual.
+ */
+let lastAssessedContent: string | null = null;
+
+function visualVerdict(document: NoteDocument | null, readOnly: boolean) {
+  if (!document || document.extension !== ".md" || readOnly) {
+    return {
+      visualCompatibility: "source-only" as const,
+      visualCompatibilityReason: document?.compatibilityReason ?? null,
+    };
+  }
+  if (document.markdownCompatibility === "source-only") {
+    return {
+      visualCompatibility: "source-only" as const,
+      visualCompatibilityReason: document.compatibilityReason,
+    };
+  }
+  const scan = getCompatibilityService().check(document.content, document.versionToken);
+  return {
+    visualCompatibility: scan.compatibility,
+    visualCompatibilityReason: scan.compatibilityReason,
+  };
+}
+
 const controller = new EditorController(
   {
     load: (noteKey) => loadNoteDocument(noteKey),
@@ -26,6 +56,16 @@ const controller = new EditorController(
   },
   {
     onChange: (snapshot) => {
+      const content = snapshot.document?.content ?? null;
+      if (content !== lastAssessedContent) {
+        lastAssessedContent = content;
+        useEditorData.setState({
+          ...snapshot,
+          loadError: null,
+          ...visualVerdict(snapshot.document, snapshot.readOnlyReason !== null),
+        });
+        return;
+      }
       useEditorData.setState({ ...snapshot, loadError: null });
     },
   },
@@ -42,11 +82,16 @@ const closedState = {
   readOnlyReason: null,
   loadError: null,
   pendingNavigation: null,
+  visualCompatibility: "source-only" as const,
+  visualCompatibilityReason: null,
 };
 
 interface EditorDataState extends EditorSnapshot {
   loadError: string | null;
   pendingNavigation: PendingNavigation;
+  visualCompatibility: "edit" | "source-only";
+  visualCompatibilityReason: string | null;
+  revalidateVisual: () => void;
   openNote: (noteKey: string) => Promise<void>;
   changeDraft: (text: string) => void;
   retry: () => void;
@@ -84,6 +129,18 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   },
   changeDraft: (text) => controller.changeDraft(text),
   retry: () => controller.retry(),
+
+  // REQ-015: switching back to visual mode revalidates the CURRENT draft -
+  // source-mode edits may have introduced unsupported constructs.
+  revalidateVisual: () => {
+    const { document, draft, readOnlyReason } = get();
+    if (!document || document.extension !== ".md" || readOnlyReason) return;
+    const scan = getCompatibilityService().assess(draft);
+    set({
+      visualCompatibility: scan.compatibility,
+      visualCompatibilityReason: scan.compatibilityReason,
+    });
+  },
   resolveReload: () => controller.resolveReload(),
   resolveOverwrite: () => controller.resolveOverwrite(),
   handleEvent: (event) => controller.handleWorkspaceEvent(event),

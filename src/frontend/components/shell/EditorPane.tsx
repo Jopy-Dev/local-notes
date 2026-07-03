@@ -9,6 +9,7 @@ import { ReadOnlyBanner } from "../ui/ReadOnlyBanner";
 import { SaveState } from "../ui/SaveState";
 import type { SaveStateKind } from "../ui/SaveState";
 import { EditorContent } from "./EditorContent";
+import type { SplitLayout } from "./EditorContent";
 import { NoteActionsMenu } from "./NoteActionsMenu";
 import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
@@ -33,6 +34,10 @@ interface EditorPaneProps {
   onCloseWithoutSaving: () => void;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
+  visualCompatibility: "edit" | "source-only";
+  visualCompatibilityReason: string | null;
+  splitLayout: SplitLayout;
+  onCycleSplitLayout: () => void;
   focusMode: boolean;
   onToggleFocusMode: () => void;
   menuOpen: boolean;
@@ -69,7 +74,12 @@ export function EditorPane(props: EditorPaneProps) {
     document.filename,
   ];
   const modes: readonly EditorMode[] =
-    document.extension === ".md" ? ["read", "edit", "split"] : ["edit"];
+    document.extension === ".md" ? ["read", "edit", "source", "split"] : ["edit"];
+  const splitLayoutLabel: Record<SplitLayout, string> = {
+    side: "Side by side",
+    "preview-top": "Preview above",
+    "preview-bottom": "Preview below",
+  };
 
   return (
     <main className="flex h-full min-h-0 flex-col bg-surface-editor">
@@ -87,6 +97,15 @@ export function EditorPane(props: EditorPaneProps) {
             ) : null}
             {modes.length > 1 ? (
               <EditorModeTabs mode={props.mode} onChange={props.onModeChange} modes={modes} />
+            ) : null}
+            {props.mode === "split" && document.extension === ".md" ? (
+              <Button
+                size="sm"
+                title="Cycle split layout"
+                onClick={props.onCycleSplitLayout}
+              >
+                {splitLayoutLabel[props.splitLayout]}
+              </Button>
             ) : null}
             <IconButton
               label={props.focusMode ? "Exit focus mode" : "Enter focus mode"}
@@ -122,6 +141,9 @@ export function EditorPane(props: EditorPaneProps) {
           document={document}
           draft={props.draft}
           readOnly={props.readOnlyReason !== null || props.conflict !== null}
+          visualCompatibility={props.visualCompatibility}
+          visualCompatibilityReason={props.visualCompatibilityReason}
+          splitLayout={props.splitLayout}
           onChangeDraft={props.onChangeDraft}
         />
       </div>

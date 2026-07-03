@@ -77,6 +77,10 @@ function ShellEditor({ shell }: { shell: ShellState }) {
       }}
       mode={shell.mode}
       onModeChange={shell.setMode}
+      visualCompatibility={editor.visualCompatibility}
+      visualCompatibilityReason={editor.visualCompatibilityReason}
+      splitLayout={shell.splitLayout}
+      onCycleSplitLayout={shell.cycleSplitLayout}
       focusMode={shell.focusMode}
       onToggleFocusMode={shell.toggleFocusMode}
       menuOpen={shell.menuOpen}

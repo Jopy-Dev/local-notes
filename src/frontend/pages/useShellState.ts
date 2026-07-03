@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
 import { navigate } from "../services/navigation";
 import { useEditorData } from "../stores/editorData";
@@ -36,6 +37,8 @@ export interface ShellState extends DashboardData {
   mode: EditorMode;
   setMode: (mode: EditorMode) => void;
   toggleSplit: () => void;
+  splitLayout: SplitLayout;
+  cycleSplitLayout: () => void;
   focusMode: boolean;
   toggleFocusMode: () => void;
   menuOpen: boolean;
@@ -53,7 +56,8 @@ export function useShellState(routeNoteKey: string | null): ShellState {
   const [activeFolder, setActiveFolder] = useState("all");
   const [query, setQuery] = useState("");
   const [descending, setDescending] = useState(true);
-  const [mode, setMode] = useState<EditorMode>("edit");
+  const [mode, setModeState] = useState<EditorMode>("edit");
+  const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
   const [focusMode, setFocusMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -96,8 +100,21 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     setFocusMode((current) => !current);
   }
 
+  // REQ-015: entering visual edit mode revalidates the current draft -
+  // source-mode edits may have made the note source-only.
+  function setMode(next: EditorMode) {
+    if (next === "edit") useEditorData.getState().revalidateVisual();
+    setModeState(next);
+  }
+
   function toggleSplit() {
-    setMode((current) => (current === "split" ? "edit" : "split"));
+    setModeState((current) => (current === "split" ? "edit" : "split"));
+  }
+
+  function cycleSplitLayout() {
+    setSplitLayout((current) =>
+      current === "side" ? "preview-top" : current === "preview-top" ? "preview-bottom" : "side",
+    );
   }
 
   function toggleDirection() {
@@ -133,6 +150,8 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     mode,
     setMode,
     toggleSplit,
+    splitLayout,
+    cycleSplitLayout,
     focusMode,
     toggleFocusMode,
     menuOpen,

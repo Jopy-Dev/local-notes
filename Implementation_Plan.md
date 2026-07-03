@@ -192,5 +192,4 @@ Per `workflow/implementation.md` Wave DoD verbatim: traceability closed, tests g
 |---|---|---|---|---|
 | design | ADR-004 visual-proof debt list | ADR-004 | capture per owning wave (map in ADR-004 Consequences) | no |
 | docs | `REQ-018` clean-rename follow (`note.renamed` in event union, pipeline never emits) | Wave 5 review | implement rename correlation + route/key follow in Wave 6 editor pass; `KNOWN_ISSUES.md` Deferred Edge Cases | no |
-| test | TipTap 3.27 markdown + Orama 3.1 save/load compile spike | `MasterPrompt.md` §10 | run before Wave 6 starts; failure reopens dependency decision | gates Wave 6 |
 | infra | repo public + dependency-review re-add at first publish | Round 8 CI lesson | flip visibility at Step 17-equivalent, restore CI step | no |
