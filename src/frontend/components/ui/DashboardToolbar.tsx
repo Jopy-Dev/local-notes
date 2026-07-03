@@ -1,5 +1,5 @@
 import type { ChangeEventHandler, RefObject } from "react";
-import { SearchIcon, SortIcon } from "../icons";
+import { CardViewIcon, ListViewIcon, SearchIcon, SortIcon } from "../icons";
 import { IconButton } from "./IconButton";
 import { Kbd } from "./Kbd";
 import { Select } from "./Select";
@@ -15,6 +15,8 @@ interface DashboardToolbarProps {
   sortOptions: readonly string[];
   descending: boolean;
   onToggleDirection: () => void;
+  view?: "list" | "card";
+  onViewChange?: (view: "list" | "card") => void;
   searchRef?: RefObject<HTMLInputElement | null>;
 }
 
@@ -25,6 +27,8 @@ export function DashboardToolbar({
   sortOptions,
   descending,
   onToggleDirection,
+  view,
+  onViewChange,
   searchRef,
 }: DashboardToolbarProps) {
   return (
@@ -63,6 +67,16 @@ export function DashboardToolbar({
         >
           <SortIcon size={16} />
         </IconButton>
+        {view && onViewChange ? (
+          <>
+            <IconButton label="List view" pressed={view === "list"} onClick={() => onViewChange("list")}>
+              <ListViewIcon size={16} />
+            </IconButton>
+            <IconButton label="Card view" pressed={view === "card"} onClick={() => onViewChange("card")}>
+              <CardViewIcon size={16} />
+            </IconButton>
+          </>
+        ) : null}
       </div>
     </div>
   );

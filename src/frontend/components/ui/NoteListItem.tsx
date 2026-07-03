@@ -1,19 +1,12 @@
 import { WarningIcon } from "../icons";
+import type { NoteListEntry } from "../../services/noteView";
 
 /*
  * <NoteListItem> per Design_System.md 9.2: one accessible name, selected =
  * surface-selected + shadow-selected accent edge, metadata-only warning is
  * explicit text (never color-only). Preview capped upstream at 240 chars.
  */
-export interface NoteListEntry {
-  key: string;
-  title: string;
-  time: string;
-  preview: string;
-  fileType: "MD" | "TXT";
-  path: string;
-  metadataOnly?: boolean;
-}
+export type { NoteListEntry };
 
 interface NoteListItemProps {
   note: NoteListEntry;

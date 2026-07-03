@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
 import type { SaveStateKind } from "../components/ui/SaveState";
-import { mockNotes } from "../services/mockWorkspace";
 import type { NoteListEntry } from "../components/ui/NoteListItem";
+import { folderCounts, toListEntry } from "../services/noteView";
+import { useWorkspaceData } from "../stores/workspaceData";
+import type { DashboardView } from "../stores/workspaceData";
 import { useShellHotkeys } from "./useShellHotkeys";
 import { useToast } from "./useToast";
 
@@ -17,6 +19,15 @@ export type DialogKind = "command" | "new-note" | "settings" | null;
 export interface ShellState {
   toast: ReturnType<typeof useToast>;
   searchRef: RefObject<HTMLInputElement | null>;
+  dataLoading: boolean;
+  totalLabel: string;
+  hasMore: boolean;
+  loadMore: () => void;
+  view: DashboardView;
+  setView: (view: DashboardView) => void;
+  folders: readonly string[];
+  folderCountMap: ReadonlyMap<string, number>;
+  totalNotes: number;
   activeFolder: string;
   setActiveFolder: (key: string) => void;
   selectedNote: string;
@@ -62,10 +73,22 @@ export function useShellState(): ShellState {
 
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 
-  const filteredNotes = mockNotes.filter((note) => {
+  // Live workspace data (WF-001): initial load + SSE-driven refresh.
+  const data = useWorkspaceData();
+  useEffect(() => {
+    void data.loadInitial();
+    const disconnect = data.connectEvents();
+    return disconnect;
+    // Store actions are referentially stable; run once on mount.
+  }, []);
+
+  // Interim client-side filter over loaded metadata; ranked full-text search
+  // (REQ-009) replaces this at Wave 3.
+  const matching = data.notes.filter((note) => {
     const text = `${note.title} ${note.preview}`.toLocaleLowerCase();
     return !query || text.includes(query.trim().toLocaleLowerCase());
   });
+  const filteredNotes = matching.map((note) => toListEntry(note));
 
   function changeTitle(value: string) {
     setTitle(value);
@@ -76,7 +99,7 @@ export function useShellState(): ShellState {
 
   function selectNote(key: string) {
     setSelectedNote(key);
-    const note = mockNotes.find((candidate) => candidate.key === key);
+    const note = data.notes.find((candidate) => candidate.noteKey === key);
     if (note) {
       setTitle(note.title);
       toast.show(`Opened ${note.title}`);
@@ -119,6 +142,17 @@ export function useShellState(): ShellState {
   return {
     toast,
     searchRef,
+    dataLoading: data.loading && !data.loaded,
+    totalLabel: query
+      ? `${filteredNotes.length} result${filteredNotes.length === 1 ? "" : "s"}`
+      : `${data.total} note${data.total === 1 ? "" : "s"}`,
+    hasMore: data.nextCursor !== null,
+    loadMore: () => void data.loadMore(),
+    view: data.view,
+    setView: data.setView,
+    folders: data.folders,
+    folderCountMap: folderCounts(data.notes),
+    totalNotes: data.total,
     activeFolder,
     setActiveFolder,
     selectedNote,
