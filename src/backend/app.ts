@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { registerSystemRoutes } from "./routes/system.js";
 import Fastify from "fastify";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -13,8 +14,6 @@ import {
 } from "../shared/constants/server.js";
 import { AppError } from "../shared/errors/codes.js";
 import type { ApiError } from "../shared/schemas/envelope.js";
-import { defaultConfig } from "../shared/schemas/config.js";
-import type { BootstrapResponse } from "../shared/schemas/bootstrap.js";
 import { generateNonce, verifyCapability } from "./security/index.js";
 import { buildSecurityHeaders } from "./security/headers.js";
 import type { ConfigService } from "./config/config-service.js";
@@ -85,28 +84,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       .send(errorBody(new AppError("NOT_FOUND", "Route not found."), request.id));
   });
 
-  app.get(`${API_PREFIX}/health`, async (request) => {
-    // Wave 0 slice: workspace/index services land Waves 1-3.
-    return {
-      data: { status: "ok", workspace: "pending", index: "unavailable" },
-      requestId: request.id,
-    };
-  });
-
-  app.get(`${API_PREFIX}/bootstrap`, async (request) => {
-    // Persisted ConfigV1 when the service is wired (CLI path); defaults for
-    // bare test apps. Index status stays a stub until Wave 3.
-    const config = options.configService
-      ? (await options.configService.load()).config
-      : defaultConfig(workspaceRoot);
-    const data: BootstrapResponse = {
-      config,
-      workspaceDisplayPath: config.workspace.replace(homedir(), "~"),
-      indexStatus: "unavailable",
-      appVersion: process.env.npm_package_version ?? "0.1.0",
-    };
-    return { data, requestId: request.id };
-  });
+  registerSystemRoutes(app, { workspaceRoot, configService: options.configService });
 
   if (options.staticRoot) {
     await app.register(fastifyStatic, {

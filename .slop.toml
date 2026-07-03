@@ -6,3 +6,17 @@ paths = ["node_modules", "dist", "*.gen.ts", "__fixtures__", ".qa", ".claude-des
 
 # Suppression = [[waivers]] table ONLY. Inline `# slop:ignore` is a no-op in slop 0.8.0+
 # (arch/security.md 9.7.2). Every waiver pairs with a KNOWN_ISSUES.md entry.
+
+[[waivers]]
+id = "icons-registry-2026-07-03"
+path = "src/frontend/components/icons.tsx"
+rule = "hotspots"
+reason = "icon registry one-time bulk growth; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "api-suite-growth-2026-07-03"
+path = "tests/api/app.spec.ts"
+rule = "hotspots"
+reason = "boundary suite grows per route wave by design; split at Wave 2; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
