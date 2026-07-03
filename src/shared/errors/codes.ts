@@ -7,6 +7,7 @@ export const ErrorCodes = {
   PATH_OUTSIDE_WORKSPACE: { status: 403 },
   NOT_FOUND: { status: 404 },
   NOTE_NOT_FOUND: { status: 404 },
+  FOLDER_NOT_FOUND: { status: 404 },
   NOTE_EXISTS: { status: 409 },
   NOTE_CONFLICT: { status: 409 },
   ARCHIVE_COLLISION: { status: 409 },

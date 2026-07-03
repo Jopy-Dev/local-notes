@@ -58,6 +58,8 @@ async function main(): Promise<void> {
       noteRepository: discovery.repository,
       eventBus: discovery.bus,
       searchService: discovery.searchService,
+      mutationService: discovery.mutationService,
+      operationRegistry: discovery.operationRegistry,
     });
     const url = await startServer(app);
 
