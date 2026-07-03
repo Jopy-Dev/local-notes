@@ -10,6 +10,7 @@ export const ErrorCodes = {
   FOLDER_NOT_FOUND: { status: 404 },
   NOTE_EXISTS: { status: 409 },
   NOTE_CONFLICT: { status: 409 },
+  READ_ONLY_NOTE: { status: 409 },
   ARCHIVE_COLLISION: { status: 409 },
   REBUILD_RUNNING: { status: 409 },
   BODY_TOO_LARGE: { status: 413 },

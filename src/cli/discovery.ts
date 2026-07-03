@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { EventBus } from "../backend/events/event-bus.js";
 import { OperationRegistry } from "../backend/events/operation-registry.js";
 import { MetadataCache } from "../backend/filesystem/metadata-cache.js";
+import { NoteContentService } from "../backend/filesystem/note-content.js";
 import { NoteMutationService } from "../backend/filesystem/note-mutations.js";
 import { NoteRepository } from "../backend/filesystem/note-repository.js";
 import type { WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
@@ -20,6 +21,7 @@ export interface DiscoveryStack {
   bus: EventBus;
   searchService: SearchService;
   mutationService: NoteMutationService;
+  contentService: NoteContentService;
   operationRegistry: OperationRegistry;
   flush: () => Promise<void>;
   close: () => Promise<void>;
@@ -34,6 +36,7 @@ export async function startDiscovery(
   const bus = new EventBus();
   const operationRegistry = new OperationRegistry();
   const mutationService = new NoteMutationService(guard);
+  const contentService = new NoteContentService(guard);
   const searchService = createSearchService({
     guard,
     workspaceRoot,
@@ -61,6 +64,7 @@ export async function startDiscovery(
     bus,
     searchService,
     mutationService,
+    contentService,
     operationRegistry,
     flush: () => pipeline.flush(),
     close: async () => {

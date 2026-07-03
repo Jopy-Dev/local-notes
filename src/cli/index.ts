@@ -59,6 +59,7 @@ async function main(): Promise<void> {
       eventBus: discovery.bus,
       searchService: discovery.searchService,
       mutationService: discovery.mutationService,
+      contentService: discovery.contentService,
       operationRegistry: discovery.operationRegistry,
     });
     const url = await startServer(app);

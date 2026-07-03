@@ -5,8 +5,10 @@ import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
+import { AppError } from "../shared/errors/codes.js";
 import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
+import { registerContentRoutes } from "./routes/content.js";
 import { registerEventsRoute } from "./routes/events.js";
 import { registerMutationRoutes } from "./routes/mutations.js";
 import { registerNotesRoutes } from "./routes/notes.js";
@@ -15,6 +17,7 @@ import { registerSystemRoutes } from "./routes/system.js";
 import type { EventBus } from "./events/event-bus.js";
 import type { OperationRegistry } from "./events/operation-registry.js";
 import { registerBoundary } from "./security/boundary.js";
+import type { NoteContentService } from "./filesystem/note-content.js";
 import type { NoteMutationService } from "./filesystem/note-mutations.js";
 import type { NoteRepository } from "./filesystem/note-repository.js";
 import type { SearchService } from "./search/search-service.js";
@@ -33,6 +36,7 @@ export interface BuildAppOptions {
   eventBus?: EventBus;
   searchService?: SearchService;
   mutationService?: NoteMutationService;
+  contentService?: NoteContentService;
   operationRegistry?: OperationRegistry;
   logger?: boolean | object;
 }
@@ -48,8 +52,39 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     ignoreTrailingSlash: false,
   });
 
+  // Raw note drafts arrive as text/plain (5.1); fatal UTF-8 decode rejects
+  // invalid bytes before any route logic runs.
+  app.addContentTypeParser("text/plain", { parseAs: "buffer" }, (_request, body, done) => {
+    try {
+      done(null, new TextDecoder("utf-8", { fatal: true }).decode(body as Buffer));
+    } catch {
+      done(new AppError("INVALID_QUERY", "Body must be valid UTF-8 text."));
+    }
+  });
+
   registerBoundary(app, options.capability);
   registerErrorHandling(app);
+  registerRouteModules(app, options, workspaceRoot);
+
+  if (options.staticRoot) {
+    await app.register(fastifyStatic, {
+      root: options.staticRoot,
+      index: ["index.html"],
+      dotfiles: "deny",
+      list: false,
+    });
+  }
+
+  return app;
+}
+
+// Route-module wiring: one registration per Step 14 wave, gated on the
+// service each module needs (test builds pass only what they exercise).
+function registerRouteModules(
+  app: FastifyInstance,
+  options: BuildAppOptions,
+  workspaceRoot: string,
+): void {
   registerSystemRoutes(app, {
     workspaceRoot,
     configService: options.configService,
@@ -74,15 +109,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       operationRegistry: options.operationRegistry,
     });
   }
-
-  if (options.staticRoot) {
-    await app.register(fastifyStatic, {
-      root: options.staticRoot,
-      index: ["index.html"],
-      dotfiles: "deny",
-      list: false,
+  if (options.contentService) {
+    registerContentRoutes(app, {
+      contentService: options.contentService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
     });
   }
-
-  return app;
 }
