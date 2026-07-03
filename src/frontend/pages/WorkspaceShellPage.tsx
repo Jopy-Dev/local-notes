@@ -71,6 +71,9 @@ function ShellEditor({ shell }: { shell: ShellState }) {
       onToggleMenu={() => shell.setMenuOpen(!shell.menuOpen)}
       onCloseMenu={() => shell.setMenuOpen(false)}
       onMenuAction={shell.toast.show}
+      noteSelected={shell.findNoteTitle(shell.selectedNote) !== undefined}
+      onMoveNote={() => shell.setDialog("move-note")}
+      onArchiveNote={() => shell.setDialog("archive-note")}
       conflictVisible={shell.conflictVisible}
       onShowConflict={() => shell.setConflictVisible(true)}
       onResolveConflict={(message) => {

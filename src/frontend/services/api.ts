@@ -16,11 +16,11 @@ export class ApiRequestError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit): Promise<T> {
+async function request<T>(path: string, init: RequestInit, extraHeaders: Record<string, string> = {}): Promise<T> {
   const token = getCapability();
   const response = await fetch(`/api/v1${path}`, {
     ...init,
-    headers: token ? { "X-Local-Notes-Token": token } : {},
+    headers: { ...(token ? { "X-Local-Notes-Token": token } : {}), ...extraHeaders },
   });
   const body: unknown = await response.json();
   if (!response.ok) {
@@ -34,6 +34,11 @@ export async function apiGet<T>(path: string, options: { signal?: AbortSignal } 
   return request<T>(path, { signal: options.signal ?? null });
 }
 
-export async function apiPost<T>(path: string): Promise<T> {
-  return request<T>(path, { method: "POST" });
+export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  if (body === undefined) return request<T>(path, { method: "POST" });
+  return request<T>(
+    path,
+    { method: "POST", body: JSON.stringify(body) },
+    { "Content-Type": "application/json" },
+  );
 }

@@ -11,7 +11,7 @@ import { useToast } from "./useToast";
  * Workspace-shell state container composing the dashboard data slice (live,
  * Wave 2) and the editor mock slice (replaced at Waves 5/6).
  */
-export type DialogKind = "command" | "new-note" | "settings" | null;
+export type DialogKind = "command" | "new-note" | "settings" | "move-note" | "archive-note" | null;
 
 export interface ShellState extends DashboardData, Omit<EditorMockState, "setTitle" | "handleEscape"> {
   toast: ReturnType<typeof useToast>;
