@@ -24,3 +24,19 @@ export type NoteMetadata = z.infer<typeof noteMetadataSchema>;
 
 export const OVERSIZED_LIMIT_BYTES = 5 * 1024 * 1024;
 export const PREVIEW_MAX_CHARS = 240;
+
+/*
+ * NoteDocument (MasterPrompt.md 2.3): metadata + editor-facing content.
+ * markdownCompatibility stays "source-only" until the Wave 6 visual-editor
+ * compatibility service lands; unsupported encoding is read-only and never
+ * enters the save pipeline.
+ */
+export const noteDocumentSchema = noteMetadataSchema.extend({
+  content: z.string(),
+  markdownCompatibility: z.enum(["edit", "source-only"]),
+  compatibilityReason: z.string().nullable(),
+  textEncoding: z.enum(["utf8", "utf8-bom", "unsupported"]),
+  lineEnding: z.enum(["lf", "crlf", "none"]),
+});
+
+export type NoteDocument = z.infer<typeof noteDocumentSchema>;

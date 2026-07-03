@@ -1,19 +1,28 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import type { EditorMode } from "../components/ui/EditorModeTabs";
+import { navigate } from "../services/navigation";
+import { useEditorData } from "../stores/editorData";
 import { useDashboardData } from "./useDashboardData";
 import type { DashboardData } from "./useDashboardData";
-import { useEditorMockState } from "./useEditorMockState";
-import type { EditorMockState } from "./useEditorMockState";
 import { useShellHotkeys } from "./useShellHotkeys";
 import { useToast } from "./useToast";
 
 /*
- * Workspace-shell state container composing the dashboard data slice (live,
- * Wave 2) and the editor mock slice (replaced at Waves 5/6).
+ * Workspace-shell state container (SCREEN-001/002): live dashboard data +
+ * the real editor store (Wave 5). Selecting a note navigates to
+ * /notes/:noteKey; the route param drives which document is open.
  */
-export type DialogKind = "command" | "new-note" | "settings" | "move-note" | "archive-note" | null;
+export type DialogKind =
+  | "command"
+  | "new-note"
+  | "settings"
+  | "move-note"
+  | "archive-note"
+  | "confirm-reload"
+  | null;
 
-export interface ShellState extends DashboardData, Omit<EditorMockState, "setTitle" | "handleEscape"> {
+export interface ShellState extends DashboardData {
   toast: ReturnType<typeof useToast>;
   searchRef: RefObject<HTMLInputElement | null>;
   activeFolder: string;
@@ -24,36 +33,71 @@ export interface ShellState extends DashboardData, Omit<EditorMockState, "setTit
   setQuery: (value: string) => void;
   descending: boolean;
   toggleDirection: () => void;
+  mode: EditorMode;
+  setMode: (mode: EditorMode) => void;
+  toggleSplit: () => void;
+  focusMode: boolean;
+  toggleFocusMode: () => void;
+  menuOpen: boolean;
+  setMenuOpen: (open: boolean) => void;
   dialog: DialogKind;
   setDialog: (dialog: DialogKind) => void;
   focusSearch: () => void;
+  editor: ReturnType<typeof useEditorData.getState>;
 }
 
-export function useShellState(): ShellState {
+export function useShellState(routeNoteKey: string | null): ShellState {
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [activeFolder, setActiveFolder] = useState("all");
-  const [selectedNote, setSelectedNote] = useState("architecture");
   const [query, setQuery] = useState("");
   const [descending, setDescending] = useState(true);
+  const [mode, setMode] = useState<EditorMode>("edit");
+  const [focusMode, setFocusMode] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>(null);
 
   const dashboard = useDashboardData(query);
-  const editor = useEditorMockState(() => setDialog(null));
+  const editor = useEditorData();
+
+  // Route param owns which note is open (MasterPrompt.md 1.6). Both paths
+  // settle or park an unsettled draft first (REQ-017).
+  useEffect(() => {
+    if (routeNoteKey) void useEditorData.getState().openNote(routeNoteKey);
+    else void useEditorData.getState().closeNote();
+  }, [routeNoteKey]);
+
+  // REQ-017/018: closing the tab with an unsaved, failed, or conflicted
+  // draft warns first — the draft lives only in memory.
+  useEffect(() => {
+    const dirty = editor.saveState !== "saved";
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [editor.saveState]);
 
   function selectNote(key: string) {
-    setSelectedNote(key);
+    navigate(`/notes/${key}`);
     const noteTitle = dashboard.findNoteTitle(key);
-    if (noteTitle !== undefined) {
-      editor.setTitle(noteTitle);
-      toast.show(`Opened ${noteTitle}`);
-    }
+    if (noteTitle !== undefined) toast.show(`Opened ${noteTitle}`);
   }
 
   function focusSearch() {
     setDialog(null);
+    if (window.location.pathname !== "/") navigate("/");
     requestAnimationFrame(() => searchRef.current?.focus());
+  }
+
+  function toggleFocusMode() {
+    setDialog(null);
+    setMenuOpen(false);
+    setFocusMode((current) => !current);
+  }
+
+  function toggleSplit() {
+    setMode((current) => (current === "split" ? "edit" : "split"));
   }
 
   function toggleDirection() {
@@ -66,26 +110,36 @@ export function useShellState(): ShellState {
     focusSearch,
     openNewNote: () => setDialog("new-note"),
     openSettings: () => setDialog("settings"),
-    toggleSplit: editor.toggleSplit,
-    toggleFocusMode: editor.toggleFocusMode,
-    onEscape: () => editor.handleEscape(dialog !== null),
+    toggleSplit,
+    toggleFocusMode,
+    onEscape: () => {
+      if (dialog === null && focusMode) setFocusMode(false);
+      setMenuOpen(false);
+    },
   });
 
   return {
     ...dashboard,
-    ...editor,
     toast,
     searchRef,
     activeFolder,
     setActiveFolder,
-    selectedNote,
+    selectedNote: routeNoteKey ?? "",
     selectNote,
     query,
     setQuery,
     descending,
     toggleDirection,
+    mode,
+    setMode,
+    toggleSplit,
+    focusMode,
+    toggleFocusMode,
+    menuOpen,
+    setMenuOpen,
     dialog,
     setDialog,
     focusSearch,
+    editor,
   };
 }

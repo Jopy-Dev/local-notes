@@ -1,11 +1,11 @@
-import { ArchiveIcon, CopyIcon, MoreIcon, MoveNoteIcon, WarningIcon } from "../icons";
+import { ArchiveIcon, CopyIcon, MoreIcon, MoveNoteIcon } from "../icons";
 import { IconButton } from "../ui/IconButton";
 import { MenuButton, MenuSeparator, Popover } from "../ui/Popover";
 
 /*
  * More-actions menu on the editor header (WF-008/009): move and archive open
- * their real dialogs for the selected note; conflict preview stays a Step 11
- * mock until Wave 5 wires the real conflict flow.
+ * their real dialogs for the open note. Conflict handling is live via the
+ * editor state machine (Wave 5) - no preview mock remains.
  */
 interface NoteActionsMenuProps {
   open: boolean;
@@ -15,7 +15,6 @@ interface NoteActionsMenuProps {
   onAction: (message: string) => void;
   onMoveNote: () => void;
   onArchiveNote: () => void;
-  onPreviewConflict: () => void;
 }
 
 export function NoteActionsMenu(props: NoteActionsMenuProps) {
@@ -41,12 +40,6 @@ export function NoteActionsMenu(props: NoteActionsMenuProps) {
         </MenuButton>
         <MenuButton icon={<CopyIcon size={14} />} onClick={() => run(() => props.onAction("Local path copied"))}>
           Copy local path
-        </MenuButton>
-        <MenuButton
-          icon={<WarningIcon size={14} />}
-          onClick={() => run(props.onPreviewConflict)}
-        >
-          Preview conflict state
         </MenuButton>
         <MenuSeparator />
         <MenuButton

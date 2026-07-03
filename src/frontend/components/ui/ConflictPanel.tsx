@@ -2,18 +2,23 @@ import { WarningIcon } from "../icons";
 import { Button } from "./Button";
 
 /*
- * <ConflictPanel> (banner form) per Design_System.md 9.2 / SCREEN-006:
- * role=alert region, explicit actions, draft preserved copy (WF-007).
+ * <ConflictPanel> per Design_System.md 9.2 / SCREEN-006 (WF-007, REQ-018):
+ * role=alert, explicit actions, both versions preserved until a choice
+ * succeeds. "changed" offers reload/overwrite; "source-missing" offers
+ * save-as-new-note or close without saving.
  */
 interface ConflictPanelProps {
-  visible: boolean;
+  kind: "changed" | "source-missing" | null;
   onReload: () => void;
   onKeepDraft: () => void;
+  onSaveAsNew: () => void;
+  onCloseWithoutSaving: () => void;
 }
 
-export function ConflictPanel({ visible, onReload, onKeepDraft }: ConflictPanelProps) {
-  if (!visible) return null;
+export function ConflictPanel({ kind, onReload, onKeepDraft, onSaveAsNew, onCloseWithoutSaving }: ConflictPanelProps) {
+  if (kind === null) return null;
 
+  const missing = kind === "source-missing";
   return (
     <section
       role="alert"
@@ -24,19 +29,36 @@ export function ConflictPanel({ visible, onReload, onKeepDraft }: ConflictPanelP
       </span>
       <div>
         <strong className="block text-xs font-heading text-text-primary">
-          This file changed outside Local Notes
+          {missing
+            ? "This file was renamed or deleted outside Local Notes"
+            : "This file changed outside Local Notes"}
         </strong>
         <span className="mt-0.5 block text-2xs text-text-secondary">
-          Your draft is preserved. Choose which version should continue.
+          {missing
+            ? "Your draft is preserved in memory. Save it as a new note or close without saving."
+            : "Your draft is preserved. Choose which version should continue."}
         </span>
       </div>
       <div className="flex gap-1">
-        <Button size="sm" onClick={onReload}>
-          Reload disk version
-        </Button>
-        <Button size="sm" variant="primary" onClick={onKeepDraft}>
-          Keep my draft
-        </Button>
+        {missing ? (
+          <>
+            <Button size="sm" onClick={onCloseWithoutSaving}>
+              Close without saving
+            </Button>
+            <Button size="sm" variant="primary" onClick={onSaveAsNew}>
+              Save as new note
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button size="sm" onClick={onReload}>
+              Reload disk version
+            </Button>
+            <Button size="sm" variant="primary" onClick={onKeepDraft}>
+              Overwrite with draft
+            </Button>
+          </>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { fetchFolders, fetchNotesPage } from "../services/notesApi";
 import { subscribeWorkspaceEvents } from "../services/events";
+import { useEditorData } from "./editorData";
 import { useSearchData } from "./searchData";
 import { indexStateSchema } from "../../shared/schemas/search.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
@@ -70,6 +71,16 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
     return subscribeWorkspaceEvents((event) => {
       if (event.type.startsWith("note.")) {
         void get().loadInitial();
+        // Open-editor conflict detection (WF-007): the controller suppresses
+        // events that carry one of its own operation IDs.
+        useEditorData.getState().handleEvent({
+          type: event.type,
+          ...(typeof event.payload.noteKey === "string" ? { noteKey: event.payload.noteKey } : {}),
+          ...(typeof event.payload.version === "string" ? { version: event.payload.version } : {}),
+          ...(typeof event.payload.operationId === "string"
+            ? { operationId: event.payload.operationId }
+            : {}),
+        });
       } else if (event.type === "index.status") {
         const parsed = indexStateSchema.safeParse(event.payload.status);
         if (parsed.success) useSearchData.getState().setIndexState(parsed.data);

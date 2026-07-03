@@ -29,8 +29,9 @@ export function AppRouter() {
   if (!route) return <WorkspaceShellPage />;
 
   switch (route.name) {
-    case "dashboard":
     case "note":
+      return <WorkspaceShellPage noteKey={route.noteKey} />;
+    case "dashboard":
     case "settings":
       return <WorkspaceShellPage />;
     case "search-recovery":

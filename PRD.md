@@ -275,16 +275,12 @@ Acceptance:
 - Underline serializes as sanitized `<u>` HTML.
 - User may switch from compatible visual mode to source mode; switching back requires round-trip validation.
 - Split mode supports side-by-side, preview above, and preview below.
-- Note workspace provides focus mode that expands note content to full application window, hides titlebar, folder navigation, and note list, and preserves note title, editor modes, note actions, conflict state, and status.
-- Focus mode is available through visible editor-toolbar toggle and `Ctrl+Shift+F`; `Escape` restores full workspace layout.
 - Saved file remains Markdown text without proprietary format.
 
 Acceptance:
 
 - Formatting operation produces equivalent Markdown source.
 - Switching modes does not alter content.
-- Entering and leaving focus mode does not alter draft, selection, scroll position, editor mode, or save state.
-- Focus mode retains all note-specific tools and conflict-resolution actions without page-level horizontal overflow at supported viewports.
 - Given unsupported Markdown construct, visual editor never rewrites source and source editor remains fully editable.
 - Given round-trip mismatch, application blocks visual-mode entry and identifies source-mode fallback.
 - Live preview reflects current draft without executing note content.
@@ -352,6 +348,20 @@ Acceptance:
 Acceptance:
 
 - Copy success and clipboard-denied failure receive clear feedback.
+
+#### `REQ-037` Focus mode
+
+Applies to every supported note type (`.md` and `.txt`); moved from `REQ-015` per ADR-005 finding.
+
+- Note workspace provides focus mode that expands note content to full application window, hides titlebar, folder navigation, and note list, and preserves note title, editor modes, note actions, conflict state, and status.
+- Focus mode is available through visible editor-toolbar toggle and `Ctrl+Shift+F`; `Escape` restores full workspace layout.
+- Focus mode is UI state only: route change or reload restores standard workspace layout (`MasterPrompt.md` §4.5, `Design_System.md` §12).
+
+Acceptance:
+
+- Entering and leaving focus mode does not alter draft, selection, scroll position, editor mode, or save state.
+- Focus mode retains all note-specific tools and conflict-resolution actions without page-level horizontal overflow at supported viewports.
+- Given route change or application reload, workspace returns to standard layout.
 
 ### 4.6 Settings
 
@@ -446,7 +456,7 @@ Acceptance:
 - User may step to next and previous match and close find without altering draft content.
 - Find never triggers a filesystem read, write, or dashboard search request.
 - Find is available in read, edit, source, and split modes; case-insensitive by default.
-- Find remains available in Focus Mode alongside the note tools `REQ-015` already preserves there.
+- Find remains available in Focus Mode alongside the note tools `REQ-037` already preserves there.
 - Match highlighting is capped at `500` matches per note; total match count stays accurate beyond the cap.
 
 Acceptance:
@@ -482,7 +492,7 @@ Acceptance:
 | ID | Surface | Purpose | Related requirements |
 |---|---|---|---|
 | `SCREEN-001` | Dashboard | Discover, search, sort, create, open, move, and archive notes | `REQ-005`-`REQ-013`, `REQ-034` |
-| `SCREEN-002` | Note Workspace | Read, edit, preview, copy, move, and archive one note | `REQ-014`-`REQ-020`, `REQ-034`, `REQ-035`, `REQ-036` |
+| `SCREEN-002` | Note Workspace | Read, edit, preview, copy, move, and archive one note | `REQ-014`-`REQ-020`, `REQ-034`, `REQ-035`, `REQ-036`, `REQ-037` |
 | `SCREEN-003` | Settings | Configure appearance and inspect active workspace | `REQ-021`, `REQ-022` |
 | `SCREEN-004` | Workspace Lock Error | Explain active workspace ownership conflict | `REQ-003` |
 | `SCREEN-005` | Startup Error | Report initialization, configuration, or port failure | `REQ-001`, `REQ-002` |

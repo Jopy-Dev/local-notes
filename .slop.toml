@@ -34,3 +34,17 @@ path = "src/backend/app.ts"
 rule = "hotspots"
 reason = "composition root: gains one route registration per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
+
+[[waivers]]
+id = "shell-dialogs-hotspot-2026-07-04"
+path = "src/frontend/components/shell/ShellDialogs.tsx"
+rule = "structural.hotspots"
+reason = "dialog aggregator gains one dialog set per wave by design; 134 LOC, CCX 14 healthy, top-scorer recompute after Wave 5 confirmations; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-controller-wmc-2026-07-04"
+path = "src/frontend/editor/editor-controller.ts"
+rule = "structural.class.complexity"
+reason = "cohesive editor state machine (WF-006/007): autosave + conflict + navigation guard; split AutosaveScheduler when Wave 6 editor work touches the file; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"

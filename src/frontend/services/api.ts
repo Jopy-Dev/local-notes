@@ -42,3 +42,17 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
     { "Content-Type": "application/json" },
   );
 }
+
+/* Raw text saves (MasterPrompt.md 5.1): note drafts travel as text/plain
+ * with the expected version in If-Match and operation ID for suppression. */
+export async function apiPutText<T>(
+  path: string,
+  body: string,
+  headers: Record<string, string>,
+): Promise<T> {
+  return request<T>(
+    path,
+    { method: "PUT", body },
+    { "Content-Type": "text/plain; charset=utf-8", ...headers },
+  );
+}

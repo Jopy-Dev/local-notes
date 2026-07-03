@@ -404,7 +404,7 @@ interface ConfigV1 {
 - Unsupported encoding returns metadata, empty editable content, `textEncoding="unsupported"`, and read-only reason.
 - Frontend editor store keeps `noteKey`, `loadedVersion`, `draft`, `saveState`, and latest disk metadata.
 - Frontend workspace UI state keeps non-persisted `layout: WorkspaceLayout`; route changes reset to `standard`.
-- Focus layout hides application titlebar, folder navigation, and note list; preserves editor header, title, mode controls, note actions, conflict panel, status bar, draft, selection, scroll, and save state.
+- Focus layout (`REQ-037`, all supported note types) hides application titlebar, folder navigation, and note list; preserves editor header, title, mode controls, note actions, conflict panel, status bar, draft, selection, scroll, and save state.
 - Focus layout toggles through editor toolbar and `Ctrl+Shift+F`; `Escape` restores standard layout when no modal is open.
 - Autosave scheduler waits `750 ms`; only one save request in flight.
 - Edit during save schedules next save after current response.
@@ -597,13 +597,13 @@ interface ApiError {
 
 | ID | Route/surface | Owner | Data source | Required states | Visual source |
 |---|---|---|---|---|---|
-| `SCREEN-001` | `/` | `DashboardPage` | notes/search/folders APIs + SSE | loading, empty, populated, partial error, search no-result | Future `Design_System.md`; `PRODUCT.md` advisory |
-| `SCREEN-002` | `/notes/:noteKey` | `NoteWorkspacePage` | note/render/assets APIs + SSE | loading, read, edit, source, split, focus, oversized, missing, error | Future `Design_System.md` |
-| `SCREEN-003` | `/settings` | `SettingsPage` | settings API | loading, ready, invalid field, persistence error | Future `Design_System.md` |
+| `SCREEN-001` | `/` | `DashboardPage` | notes/search/folders APIs + SSE | loading, empty, populated, partial error, search no-result | `Design_System.md` v1.3 LOCKED; `PRODUCT.md` advisory |
+| `SCREEN-002` | `/notes/:noteKey` | `NoteWorkspacePage` | note/render/assets APIs + SSE | loading, read, edit, source, split, focus, oversized, missing, error | `Design_System.md` v1.3 LOCKED |
+| `SCREEN-003` | `/settings` | `SettingsPage` | settings API | loading, ready, invalid field, persistence error | `Design_System.md` v1.3 LOCKED |
 | `SCREEN-004` | CLI terminal | `WorkspaceLockPresenter` | lock service | active owner, stale recovery failure | CLI copy standard |
 | `SCREEN-005` | CLI terminal | `StartupErrorPresenter` | bootstrap/server errors | config, workspace, port, unexpected | CLI copy standard |
-| `SCREEN-006` | Note workspace conflict panel | `ConflictPanel` | editor store + note API | changed, source missing, resolving, resolution error | Future conflict primitive |
-| `SCREEN-007` | `/recovery/search` | `SearchRecoveryPage` | search status/rebuild + SSE | degraded, rebuilding, ready, failed | Future recovery primitive |
+| `SCREEN-006` | Note workspace conflict panel | `ConflictPanel` | editor store + note API | changed, source missing, resolving, resolution error | `Design_System.md` §9 `<ConflictPanel>` + `<ConfirmationDialog>` |
+| `SCREEN-007` | `/recovery/search` | `SearchRecoveryPage` | search status/rebuild + SSE | degraded, rebuilding, ready, failed | `Design_System.md` §9 `<SearchRecoveryPanel>` |
 
 ### 6.2 Workflow Map
 
@@ -759,6 +759,7 @@ interface ApiError {
 | `REQ-034` | `<PaneDivider>` + AppShell layout state (§4.10) | `ConfigV1` pane fields | settings schema (§2.7) | `REQ-034.panes.e2e` |
 | `REQ-035` | `<FindInNoteBar>` + CodeMirror search / TipTap decoration (§4.11) | editor draft (in-memory, no persisted model) | none (client-only) | `REQ-035.find.e2e` |
 | `REQ-036` | TipTap copyable-text `Mark` + `<IconButton>` affordance (§4.12) | serializes to sanitized `<copy>` HTML in note content | sanitizer allowlist (§4.6) | `REQ-036.copymark.e2e` |
+| `REQ-037` | AppShell focus layout + workspace UI state (§4.5) | `layout: WorkspaceLayout` (UI state only, route reset) | layout state machine | `REQ-037.focus.e2e` |
 
 ### 9.2 Screens
 
