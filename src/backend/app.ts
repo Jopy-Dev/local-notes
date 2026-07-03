@@ -7,8 +7,10 @@ import fastifyStatic from "@fastify/static";
 import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
 import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
+import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSystemRoutes } from "./routes/system.js";
 import { registerBoundary } from "./security/boundary.js";
+import type { NoteRepository } from "./filesystem/note-repository.js";
 
 /*
  * App composer: boundary hook -> error handling -> route modules -> static
@@ -20,6 +22,7 @@ export interface BuildAppOptions {
   staticRoot?: string;
   workspaceRoot?: string;
   configService?: ConfigService;
+  noteRepository?: NoteRepository;
   logger?: boolean | object;
 }
 
@@ -37,6 +40,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerBoundary(app, options.capability);
   registerErrorHandling(app);
   registerSystemRoutes(app, { workspaceRoot, configService: options.configService });
+  if (options.noteRepository) {
+    registerNotesRoutes(app, { repository: options.noteRepository });
+  }
 
   if (options.staticRoot) {
     await app.register(fastifyStatic, {
