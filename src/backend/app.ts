@@ -17,11 +17,13 @@ import { defaultConfig } from "../shared/schemas/config.js";
 import type { BootstrapResponse } from "../shared/schemas/bootstrap.js";
 import { generateNonce, verifyCapability } from "./security/index.js";
 import { buildSecurityHeaders } from "./security/headers.js";
+import type { ConfigService } from "./config/config-service.js";
 
 export interface BuildAppOptions {
   capability: string;
   staticRoot?: string;
   workspaceRoot?: string;
+  configService?: ConfigService;
   logger?: boolean | object;
 }
 
@@ -92,10 +94,14 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   app.get(`${API_PREFIX}/bootstrap`, async (request) => {
-    // Wave 0 slice: defaults only; persisted ConfigV1 read lands Wave 1.
+    // Persisted ConfigV1 when the service is wired (CLI path); defaults for
+    // bare test apps. Index status stays a stub until Wave 3.
+    const config = options.configService
+      ? (await options.configService.load()).config
+      : defaultConfig(workspaceRoot);
     const data: BootstrapResponse = {
-      config: defaultConfig(workspaceRoot),
-      workspaceDisplayPath: workspaceRoot.replace(homedir(), "~"),
+      config,
+      workspaceDisplayPath: config.workspace.replace(homedir(), "~"),
       indexStatus: "unavailable",
       appVersion: process.env.npm_package_version ?? "0.1.0",
     };
