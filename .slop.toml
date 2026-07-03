@@ -13,10 +13,3 @@ path = "src/frontend/components/icons.tsx"
 rule = "hotspots"
 reason = "icon registry one-time bulk growth; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
-
-[[waivers]]
-id = "api-suite-growth-2026-07-03"
-path = "tests/api/app.spec.ts"
-rule = "hotspots"
-reason = "boundary suite grows per route wave by design; split at Wave 2; KNOWN_ISSUES.md Suppressions"
-expires = "2026-08-15"

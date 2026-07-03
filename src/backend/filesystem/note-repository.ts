@@ -74,9 +74,16 @@ async function hashAndPreview(
   return { versionSeed: hash, preview: text.slice(0, PREVIEW_MAX_CHARS) };
 }
 
-async function buildMetadata(task: FileTask): Promise<NoteMetadata | null> {
+async function buildMetadata(
+  task: FileTask,
+  cached?: NoteMetadata,
+): Promise<NoteMetadata | null> {
   try {
     const stats = await lstat(task.absPath);
+    const modifiedAt = new Date(stats.mtimeMs).toISOString();
+    if (cached && cached.sizeBytes === stats.size && cached.modifiedAt === modifiedAt) {
+      return cached;
+    }
     const { versionSeed, preview } = await hashAndPreview(task.absPath);
     versionSeed.update("\n").update(task.relPosix, "utf8");
     const filename = basename(task.relPosix);
@@ -112,15 +119,23 @@ export class NoteRepository {
     return this.guard.resolve(this.notesRelRoot);
   }
 
-  async scan(): Promise<NoteMetadata[]> {
+  /*
+   * Cold scan hashes every file; warm scan (2.8 reconcile) reuses a prior
+   * entry when path + size + mtime match, hashing only changed/new files.
+   * Deleted files drop out naturally (walk only sees the live tree).
+   */
+  async scan(warmFrom?: readonly NoteMetadata[]): Promise<NoteMetadata[]> {
     const rootAbs = await this.notesRootAbs();
     const files: FileTask[] = [];
     await collectFiles(rootAbs, "", files, []);
+    const cached = new Map((warmFrom ?? []).map((entry) => [entry.relativePath, entry]));
 
     const results: NoteMetadata[] = [];
     for (let index = 0; index < files.length; index += SCAN_CONCURRENCY) {
       const batch = files.slice(index, index + SCAN_CONCURRENCY);
-      const settled = await Promise.all(batch.map(buildMetadata));
+      const settled = await Promise.all(
+        batch.map((task) => buildMetadata(task, cached.get(task.relPosix))),
+      );
       for (const entry of settled) if (entry) results.push(entry);
     }
     return results;

@@ -6,8 +6,12 @@ import { buildApp } from "../backend/app.js";
 import { startServer } from "../backend/server.js";
 import { generateCapability } from "../backend/security/index.js";
 import { ConfigService } from "../backend/config/config-service.js";
-import { WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
+import { EventBus } from "../backend/events/event-bus.js";
+import { MetadataCache } from "../backend/filesystem/metadata-cache.js";
+import { NoteRepository } from "../backend/filesystem/note-repository.js";
+import { encodeNoteKey, WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
 import { initWorkspace } from "../backend/filesystem/workspace-init.js";
+import { WorkspaceWatcher } from "../backend/watcher/workspace-watcher.js";
 import { acquireWorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import type { WorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import {
@@ -48,12 +52,42 @@ async function main(): Promise<void> {
     const { warnings } = await configService.load();
     for (const warning of warnings) console.warn(warning);
 
+    // Discovery stack: warm scan from disposable cache, then live watching
+    // (MasterPrompt.md 2.8 + 4.2). Search worker joins at Wave 3.
+    const guard = await WorkspacePathGuard.create(workspaceRoot);
+    const repository = new NoteRepository(guard, "save-data/notes");
+    const cache = new MetadataCache(join(workspaceRoot, "cache"));
+    const bus = new EventBus();
+    let snapshot = await repository.scan((await cache.load()) ?? undefined);
+    await cache.save(snapshot);
+
+    const notesRootAbs = await guard.resolve("save-data/notes");
+    const watcher = new WorkspaceWatcher(notesRootAbs, {
+      onBatch: (events) => {
+        void (async () => {
+          snapshot = await repository.scan(snapshot);
+          await cache.save(snapshot);
+          const byPath = new Map(snapshot.map((note) => [note.relativePath, note]));
+          for (const event of events) {
+            const noteKey = encodeNoteKey(event.relPath);
+            const version = byPath.get(event.relPath)?.versionToken ?? "";
+            if (event.kind === "removed") bus.publish({ type: "note.removed", noteKey });
+            else if (event.kind === "added") bus.publish({ type: "note.added", noteKey, version });
+            else bus.publish({ type: "note.changed", noteKey, version });
+          }
+        })();
+      },
+    });
+    await watcher.ready();
+
     const capability = generateCapability();
     const app = await buildApp({
       capability,
       staticRoot: packagedClientRoot,
       workspaceRoot,
       configService,
+      noteRepository: repository,
+      eventBus: bus,
     });
     const url = await startServer(app);
 
@@ -65,8 +99,10 @@ async function main(): Promise<void> {
     console.log(`Local-Notes running at ${url} (Ctrl+C to stop)`);
 
     const shutdown = async () => {
-      // Graceful order (1.5); later waves prepend watcher/worker teardown.
+      // Graceful order (1.5): server -> watcher -> cache flush -> lock.
       await app.close();
+      await watcher.close();
+      await cache.save(snapshot).catch(() => undefined);
       await lock?.release();
       process.exit(EXIT_CODES.clean);
     };

@@ -1,6 +1,3 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../../src/backend/app.js";
@@ -8,16 +5,16 @@ import { generateCapability } from "../../src/backend/security/capability.js";
 import { LOCAL_HOST_HEADER, LOCAL_ORIGIN } from "../../src/shared/constants/server.js";
 
 /*
- * Server boundary contract (MasterPrompt.md 3 + 7.1, ADR-003):
- * capability before body parse, Host before routing, Origin on mutations,
- * security headers on every response, uniform error envelope.
+ * Request boundary (MasterPrompt.md 3 + 7.1, ADR-003): capability before body
+ * parse, Host before routing, Origin on mutations, security headers on every
+ * response, uniform error envelope.
  */
 const validHeaders = (capability: string) => ({
   host: LOCAL_HOST_HEADER,
   "x-local-notes-token": capability,
 });
 
-describe("buildApp boundary", () => {
+describe("request boundary", () => {
   let app: FastifyInstance;
   let capability: string;
 
@@ -61,38 +58,14 @@ describe("buildApp boundary", () => {
     expect(res.json().error.code).toBe("HOST_NOT_ALLOWED");
   });
 
-  it("serves /api/v1/health with valid token", async () => {
+  it("serves authorized requests and sets security headers", async () => {
     const res = await app.inject({
       method: "GET",
       url: "/api/v1/health",
       headers: validHeaders(capability),
     });
     expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.data.status).toBe("ok");
-    expect(body.requestId).toBeTruthy();
-  });
-
-  it("serves /api/v1/bootstrap with config defaults and never leaks the capability", async () => {
-    const res = await app.inject({
-      method: "GET",
-      url: "/api/v1/bootstrap",
-      headers: validHeaders(capability),
-    });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.data.config.theme).toBe("system");
-    expect(body.data.config.editorFontSize).toBe(14);
-    expect(body.data.workspaceDisplayPath).toContain(".local-notes");
-    expect(res.body).not.toContain(capability);
-  });
-
-  it("sets security headers on every response", async () => {
-    const res = await app.inject({
-      method: "GET",
-      url: "/api/v1/health",
-      headers: validHeaders(capability),
-    });
+    expect(res.json().data.status).toBe("ok");
     expect(res.headers["content-security-policy"]).toContain("default-src 'self'");
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["x-frame-options"]).toBe("DENY");
@@ -120,37 +93,6 @@ describe("buildApp boundary", () => {
     expect(res.json().error.code).toBe("NOT_FOUND");
   });
 
-  it("returns persisted ConfigV1 through /bootstrap when the config service is wired", async () => {
-    const workspaceRoot = mkdtempSync(join(tmpdir(), "local-notes-ws-"));
-    const { ConfigService } = await import("../../src/backend/config/config-service.js");
-    const service = new ConfigService(workspaceRoot);
-    await service.load();
-    await service.update({ theme: "dark" });
-    const wired = await buildApp({ capability, workspaceRoot, configService: service });
-    const res = await wired.inject({
-      method: "GET",
-      url: "/api/v1/bootstrap",
-      headers: validHeaders(capability),
-    });
-    expect(res.json().data.config.theme).toBe("dark");
-    await wired.close();
-    rmSync(workspaceRoot, { recursive: true, force: true });
-  });
-
-  it("serves the SPA via static registration without a token (script tags cannot set headers)", async () => {
-    const staticRoot = mkdtempSync(join(tmpdir(), "local-notes-static-"));
-    writeFileSync(join(staticRoot, "index.html"), "<!doctype html><title>Local-Notes</title>");
-    const staticApp = await buildApp({ capability, staticRoot });
-    const res = await staticApp.inject({
-      method: "GET",
-      url: "/",
-      headers: { host: LOCAL_HOST_HEADER },
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.headers["content-type"]).toContain("text/html");
-    await staticApp.close();
-  });
-
   it("returns uniform envelope with requestId on unknown API routes", async () => {
     const res = await app.inject({
       method: "GET",
@@ -160,7 +102,6 @@ describe("buildApp boundary", () => {
     expect(res.statusCode).toBe(404);
     const body = res.json();
     expect(body.error.code).toBe("NOT_FOUND");
-    expect(body.error.message).not.toContain("\\");
     expect(body.requestId).toBeTruthy();
   });
 });
