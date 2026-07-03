@@ -9,6 +9,7 @@ import { AppError } from "../shared/errors/codes.js";
 import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
 import { registerContentRoutes } from "./routes/content.js";
+import { registerMarkdownRoutes } from "./routes/markdown.js";
 import { registerEventsRoute } from "./routes/events.js";
 import { registerMutationRoutes } from "./routes/mutations.js";
 import { registerNotesRoutes } from "./routes/notes.js";
@@ -18,6 +19,7 @@ import type { EventBus } from "./events/event-bus.js";
 import type { OperationRegistry } from "./events/operation-registry.js";
 import { registerBoundary } from "./security/boundary.js";
 import type { NoteContentService } from "./filesystem/note-content.js";
+import type { MarkdownRenderService } from "./markdown/render-service.js";
 import type { NoteMutationService } from "./filesystem/note-mutations.js";
 import type { NoteRepository } from "./filesystem/note-repository.js";
 import type { SearchService } from "./search/search-service.js";
@@ -37,6 +39,7 @@ export interface BuildAppOptions {
   searchService?: SearchService;
   mutationService?: NoteMutationService;
   contentService?: NoteContentService;
+  markdownService?: MarkdownRenderService;
   operationRegistry?: OperationRegistry;
   logger?: boolean | object;
 }
@@ -108,6 +111,9 @@ function registerRouteModules(
       searchService: options.searchService,
       operationRegistry: options.operationRegistry,
     });
+  }
+  if (options.markdownService) {
+    registerMarkdownRoutes(app, { markdownService: options.markdownService });
   }
   if (options.contentService) {
     registerContentRoutes(app, {

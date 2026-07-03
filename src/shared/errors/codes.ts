@@ -5,6 +5,8 @@ export const ErrorCodes = {
   HOST_NOT_ALLOWED: { status: 403 },
   ORIGIN_NOT_ALLOWED: { status: 403 },
   PATH_OUTSIDE_WORKSPACE: { status: 403 },
+  ASSET_BLOCKED: { status: 403 },
+  ASSET_NOT_FOUND: { status: 404 },
   NOT_FOUND: { status: 404 },
   NOTE_NOT_FOUND: { status: 404 },
   FOLDER_NOT_FOUND: { status: 404 },
