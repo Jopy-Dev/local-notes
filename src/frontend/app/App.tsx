@@ -3,6 +3,7 @@ import { SecureRelaunch } from "../components/SecureRelaunch";
 import { LaunchPage } from "../pages/LaunchPage";
 import { ApiRequestError, apiGet } from "../services/api";
 import { getCapability } from "../services/token";
+import { setWorkspaceDisplayPath } from "../services/workspace";
 import { useSearchData } from "../stores/searchData";
 import type { BootstrapResponse } from "../../shared/schemas/bootstrap";
 import { AppRouter } from "./AppRouter";
@@ -25,6 +26,7 @@ export function App() {
         if (cancelled) return;
         // Seed index state; SSE index.status keeps it live afterwards.
         useSearchData.getState().setIndexState(bootstrap.indexStatus);
+        setWorkspaceDisplayPath(bootstrap.workspaceDisplayPath);
         setState({ phase: "ready", bootstrap });
       })
       .catch((error: unknown) => {

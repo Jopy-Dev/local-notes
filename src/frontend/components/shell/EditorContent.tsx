@@ -22,6 +22,7 @@ interface EditorContentProps {
   visualCompatibilityReason: string | null;
   splitLayout: SplitLayout;
   onChangeDraft: (value: string) => void;
+  onToast: (message: string) => void;
 }
 
 function SourceOnlyNotice({ reason }: { reason: string | null }) {
@@ -58,7 +59,7 @@ export function EditorContent(props: EditorContentProps) {
   if (mode === "read") {
     return (
       <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
-        <MarkdownPreview source={draft} noteKey={document.noteKey} />
+        <MarkdownPreview source={draft} noteKey={document.noteKey} onToast={props.onToast} />
       </section>
     );
   }
@@ -98,7 +99,7 @@ export function EditorContent(props: EditorContentProps) {
     );
   }
 
-  const preview = <MarkdownPreview source={draft} noteKey={document.noteKey} />;
+  const preview = <MarkdownPreview source={draft} noteKey={document.noteKey} onToast={props.onToast} />;
   const editor = (
     <SourceEditor value={draft} language="markdown" readOnly={readOnly} onChange={onChangeDraft} />
   );

@@ -4,6 +4,7 @@ import {
   BoldIcon,
   BulletListIcon,
   CodeBlockIcon,
+  CopyMarkIcon,
   ItalicIcon,
   LinkIcon,
   OrderedListIcon,
@@ -105,6 +106,15 @@ function Toolbar({ editor, readOnly }: ToolbarProps) {
         onClick={() => run().toggleStrike().run()}
       >
         <StrikethroughIcon size={15} />
+      </IconButton>
+      <IconButton
+        label="Copyable text"
+        disabled={readOnly}
+        pressed={editor.isActive("copy")}
+        className={toggleClass(editor.isActive("copy"))}
+        onClick={() => run().toggleMark("copy").run()}
+      >
+        <CopyMarkIcon size={15} />
       </IconButton>
       <span aria-hidden className="mx-1 h-4 w-px bg-border-subtle" />
       {([1, 2, 3] as const).map((level) => (

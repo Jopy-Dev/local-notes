@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
+import { copyPlainText, copyToClipboard } from "../editor/copy-actions";
 import { navigate } from "../services/navigation";
+import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
 import { useDashboardData } from "./useDashboardData";
 import type { DashboardData } from "./useDashboardData";
@@ -43,6 +45,9 @@ export interface ShellState extends DashboardData {
   toggleFocusMode: () => void;
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
+  copyMarkdown: () => void;
+  copyText: () => void;
+  copyLocalPath: () => void;
   dialog: DialogKind;
   setDialog: (dialog: DialogKind) => void;
   focusSearch: () => void;
@@ -117,6 +122,32 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     );
   }
 
+  // REQ-020: copy success and clipboard-denied failure both surface a toast.
+  function copyWithToast(action: Promise<boolean>, successMessage: string) {
+    void action.then((copied) =>
+      toast.show(copied ? successMessage : "Copy failed - clipboard unavailable"),
+    );
+  }
+
+  function copyMarkdown() {
+    if (!editor.document) return;
+    copyWithToast(copyToClipboard(editor.draft), "Markdown copied");
+  }
+
+  function copyText() {
+    const document = editor.document;
+    if (!document) return;
+    copyWithToast(copyPlainText(editor.draft, document.noteKey, document.extension), "Text copied");
+  }
+
+  function copyLocalPath() {
+    const document = editor.document;
+    if (!document) return;
+    const root = getWorkspaceDisplayPath();
+    const path = root ? `${root}/${document.relativePath}` : document.relativePath;
+    copyWithToast(copyToClipboard(path), "Local path copied");
+  }
+
   function toggleDirection() {
     setDescending((current) => !current);
     toast.show(descending ? "Sorted ascending" : "Sorted descending");
@@ -156,6 +187,9 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     toggleFocusMode,
     menuOpen,
     setMenuOpen,
+    copyMarkdown,
+    copyText,
+    copyLocalPath,
     dialog,
     setDialog,
     focusSearch,

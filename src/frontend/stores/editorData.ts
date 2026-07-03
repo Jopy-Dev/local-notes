@@ -3,8 +3,7 @@ import { ApiRequestError } from "../services/api";
 import { loadNoteDocument, saveNoteContent } from "../services/contentApi";
 import { DraftUnsettledError, EditorController } from "../editor/editor-controller";
 import type { EditorSnapshot, EditorWorkspaceEvent } from "../editor/editor-controller";
-import { getCompatibilityService } from "../editor/markdown-compat";
-import type { NoteDocument } from "../../shared/schemas/notes.js";
+import { draftVerdict, visualVerdict } from "../editor/visual-verdict";
 
 /*
  * React adapter over the EditorController state machine (WF-005/006/007).
@@ -12,34 +11,9 @@ import type { NoteDocument } from "../../shared/schemas/notes.js";
  * exposes actions. SSE note events route in via workspaceData.connectEvents.
  * Navigation away from an unsettled draft (save error or open conflict)
  * parks as pendingNavigation until the user answers stay/discard (REQ-017).
- */
-/*
- * Visual-editing verdict (MasterPrompt 4.6, REQ-015): the backend static
- * verdict gates the TipTap round-trip check, computed once per loaded
- * content (versionToken-cached); source-mode edits revalidate on re-entry
- * to visual mode via revalidateVisual.
+ * Visual-editing verdicts live in editor/visual-verdict (REQ-015).
  */
 let lastAssessedContent: string | null = null;
-
-function visualVerdict(document: NoteDocument | null, readOnly: boolean) {
-  if (!document || document.extension !== ".md" || readOnly) {
-    return {
-      visualCompatibility: "source-only" as const,
-      visualCompatibilityReason: document?.compatibilityReason ?? null,
-    };
-  }
-  if (document.markdownCompatibility === "source-only") {
-    return {
-      visualCompatibility: "source-only" as const,
-      visualCompatibilityReason: document.compatibilityReason,
-    };
-  }
-  const scan = getCompatibilityService().check(document.content, document.versionToken);
-  return {
-    visualCompatibility: scan.compatibility,
-    visualCompatibilityReason: scan.compatibilityReason,
-  };
-}
 
 const controller = new EditorController(
   {
@@ -135,11 +109,7 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   revalidateVisual: () => {
     const { document, draft, readOnlyReason } = get();
     if (!document || document.extension !== ".md" || readOnlyReason) return;
-    const scan = getCompatibilityService().assess(draft);
-    set({
-      visualCompatibility: scan.compatibility,
-      visualCompatibilityReason: scan.compatibilityReason,
-    });
+    set({ ...draftVerdict(draft) });
   },
   resolveReload: () => controller.resolveReload(),
   resolveOverwrite: () => controller.resolveOverwrite(),

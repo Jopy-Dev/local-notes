@@ -43,7 +43,10 @@ interface EditorPaneProps {
   menuOpen: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
-  onMenuAction: (message: string) => void;
+  onToast: (message: string) => void;
+  onCopyMarkdown: () => void;
+  onCopyText: () => void;
+  onCopyLocalPath: () => void;
   onMoveNote: () => void;
   onArchiveNote: () => void;
 }
@@ -118,9 +121,12 @@ export function EditorPane(props: EditorPaneProps) {
             <NoteActionsMenu
               open={props.menuOpen}
               noteSelected
+              markdownNote={document.extension === ".md"}
               onToggle={props.onToggleMenu}
               onClose={props.onCloseMenu}
-              onAction={props.onMenuAction}
+              onCopyMarkdown={props.onCopyMarkdown}
+              onCopyText={props.onCopyText}
+              onCopyLocalPath={props.onCopyLocalPath}
               onMoveNote={props.onMoveNote}
               onArchiveNote={props.onArchiveNote}
             />
@@ -145,6 +151,7 @@ export function EditorPane(props: EditorPaneProps) {
           visualCompatibilityReason={props.visualCompatibilityReason}
           splitLayout={props.splitLayout}
           onChangeDraft={props.onChangeDraft}
+          onToast={props.onToast}
         />
       </div>
     </main>

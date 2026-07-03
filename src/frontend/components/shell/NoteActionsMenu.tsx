@@ -10,9 +10,12 @@ import { MenuButton, MenuSeparator, Popover } from "../ui/Popover";
 interface NoteActionsMenuProps {
   open: boolean;
   noteSelected: boolean;
+  markdownNote: boolean;
   onToggle: () => void;
   onClose: () => void;
-  onAction: (message: string) => void;
+  onCopyMarkdown: () => void;
+  onCopyText: () => void;
+  onCopyLocalPath: () => void;
   onMoveNote: () => void;
   onArchiveNote: () => void;
 }
@@ -38,7 +41,27 @@ export function NoteActionsMenu(props: NoteActionsMenuProps) {
         >
           Move note
         </MenuButton>
-        <MenuButton icon={<CopyIcon size={14} />} onClick={() => run(() => props.onAction("Local path copied"))}>
+        {props.markdownNote ? (
+          <MenuButton
+            icon={<CopyIcon size={14} />}
+            disabled={!props.noteSelected}
+            onClick={() => run(props.onCopyMarkdown)}
+          >
+            Copy Markdown
+          </MenuButton>
+        ) : null}
+        <MenuButton
+          icon={<CopyIcon size={14} />}
+          disabled={!props.noteSelected}
+          onClick={() => run(props.onCopyText)}
+        >
+          Copy Text
+        </MenuButton>
+        <MenuButton
+          icon={<CopyIcon size={14} />}
+          disabled={!props.noteSelected}
+          onClick={() => run(props.onCopyLocalPath)}
+        >
           Copy local path
         </MenuButton>
         <MenuSeparator />

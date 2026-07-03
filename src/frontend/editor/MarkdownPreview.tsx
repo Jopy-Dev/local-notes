@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { CopyIcon } from "../components/icons";
 import { Button } from "../components/ui/Button";
 import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
+import { IconButton } from "../components/ui/IconButton";
 import { renderMarkdownPreview } from "../services/contentApi";
 import { getCapability } from "../services/token";
 import { navigate } from "../services/navigation";
+import { copyToClipboard } from "./copy-actions";
 
 /*
  * <MarkdownPreview> per Design_System.md 9.2 (REQ-014): renders ONLY the
@@ -18,6 +22,18 @@ const RENDER_DEBOUNCE_MS = 150;
 interface MarkdownPreviewProps {
   source: string;
   noteKey: string;
+  onToast: (message: string) => void;
+}
+
+/*
+ * REQ-036: each sanitized <copy> element gets an inline <IconButton>
+ * affordance appended client-side (Design_System.md 9.1) - the sanitized
+ * HTML itself never carries button markup. Portal hosts are plain spans
+ * inserted after each mark; they vanish with the next innerHTML swap.
+ */
+interface CopyMount {
+  holder: HTMLElement;
+  text: string;
 }
 
 type PreviewStatus = "loading" | "ready" | "error";
@@ -78,16 +94,37 @@ function hydrateAssetImages(container: HTMLElement): () => void {
   };
 }
 
-export function MarkdownPreview({ source, noteKey }: MarkdownPreviewProps) {
+export function MarkdownPreview({ source, noteKey, onToast }: MarkdownPreviewProps) {
   const { html, status, retry } = useRenderedHtml(source, noteKey);
   const articleRef = useRef<HTMLElement | null>(null);
   const [pendingExternal, setPendingExternal] = useState<string | null>(null);
+  const [copyMounts, setCopyMounts] = useState<CopyMount[]>([]);
 
   useEffect(() => {
     const container = articleRef.current;
     if (!container || html === null) return;
     return hydrateAssetImages(container);
   }, [html]);
+
+  useEffect(() => {
+    const container = articleRef.current;
+    if (!container || html === null) return;
+    const mounts: CopyMount[] = [];
+    for (const mark of Array.from(container.querySelectorAll("copy"))) {
+      const holder = document.createElement("span");
+      holder.setAttribute("data-copy-affordance", "");
+      mark.after(holder);
+      mounts.push({ holder, text: mark.textContent ?? "" });
+    }
+    setCopyMounts(mounts);
+    return () => setCopyMounts([]);
+  }, [html]);
+
+  function copyMarkedText(text: string) {
+    void copyToClipboard(text).then((copied) =>
+      onToast(copied ? "Text copied" : "Copy failed - clipboard unavailable"),
+    );
+  }
 
   function onClick(event: React.MouseEvent<HTMLElement>) {
     const anchor = (event.target as HTMLElement).closest("a");
@@ -150,6 +187,19 @@ export function MarkdownPreview({ source, noteKey }: MarkdownPreviewProps) {
         className="markdown-preview min-h-0 min-w-0 overflow-auto bg-surface-editor px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+      {copyMounts.map((mount, index) =>
+        createPortal(
+          <IconButton
+            label="Copy marked text"
+            className="mx-0.5 align-middle"
+            onClick={() => copyMarkedText(mount.text)}
+          >
+            <CopyIcon size={14} />
+          </IconButton>,
+          mount.holder,
+          `copy-affordance-${index}`,
+        ),
+      )}
       <ConfirmationDialog
         open={pendingExternal !== null && externalHost !== ""}
         title="Open external link?"
