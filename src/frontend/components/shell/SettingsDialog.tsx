@@ -6,7 +6,17 @@ import { Button } from "../ui/Button";
 import { FieldNote, FormField } from "../ui/FormField";
 import { Modal } from "../ui/Modal";
 import { Select } from "../ui/Select";
-import type { ConfigUpdate, ConfigV1 } from "../../../shared/schemas/config.js";
+import {
+  FONT_SIZES,
+  LINE_HEIGHTS,
+  THEMES,
+  WIDTHS,
+  changedFields,
+  draftFrom,
+  themeByLabel,
+  widthByLabel,
+} from "./settings-form-model";
+import type { AppearanceDraft } from "./settings-form-model";
 
 /*
  * Settings form (SCREEN-003 / WF-010, REQ-021/022). Fields mirror the ConfigV1
@@ -14,45 +24,6 @@ import type { ConfigUpdate, ConfigV1 } from "../../../shared/schemas/config.js";
  * optimistically on selection and rolls back on cancel or persistence failure
  * (MasterPrompt 6.2 - optimistic theme only). Workspace path is read-only.
  */
-const THEMES: { value: ConfigV1["theme"]; label: string }[] = [
-  { value: "system", label: "System" },
-  { value: "dark", label: "Dark" },
-  { value: "light", label: "Light" },
-];
-const WIDTHS: { value: ConfigV1["editorWidth"]; label: string }[] = [
-  { value: "narrow", label: "Narrow" },
-  { value: "medium", label: "Medium" },
-  { value: "wide", label: "Wide" },
-];
-// REQ-021 exact ranges: font 12..24 px integer, line height 1.2..2.0.
-const FONT_SIZES = Array.from({ length: 13 }, (_, index) => 12 + index);
-const LINE_HEIGHTS = Array.from({ length: 9 }, (_, index) => (12 + index) / 10);
-
-interface Draft {
-  theme: ConfigV1["theme"];
-  editorFontSize: number;
-  lineHeight: number;
-  editorWidth: ConfigV1["editorWidth"];
-}
-
-function draftFrom(config: ConfigV1): Draft {
-  return {
-    theme: config.theme,
-    editorFontSize: config.editorFontSize,
-    lineHeight: config.lineHeight,
-    editorWidth: config.editorWidth,
-  };
-}
-
-function changedFields(config: ConfigV1, draft: Draft): ConfigUpdate {
-  const partial: ConfigUpdate = {};
-  if (draft.theme !== config.theme) partial.theme = draft.theme;
-  if (draft.editorFontSize !== config.editorFontSize) partial.editorFontSize = draft.editorFontSize;
-  if (draft.lineHeight !== config.lineHeight) partial.lineHeight = draft.lineHeight;
-  if (draft.editorWidth !== config.editorWidth) partial.editorWidth = draft.editorWidth;
-  return partial;
-}
-
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="[&+&]:mt-6 [&+&]:border-t [&+&]:border-border-subtle [&+&]:pt-5">
@@ -70,7 +41,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onClose, onApplied }: SettingsDialogProps) {
   const { config, saving, fieldErrors, apply, setPreviewTheme, clearErrors } = useSettingsData();
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [draft, setDraft] = useState<AppearanceDraft | null>(null);
 
   // Fresh draft per open; discard preview + errors on close (rollback).
   useEffect(() => {
@@ -133,7 +104,7 @@ export function SettingsDialog({ open, onClose, onApplied }: SettingsDialogProps
                 options={THEMES.map((theme) => theme.label)}
                 value={THEMES.find((theme) => theme.value === draft.theme)?.label ?? "System"}
                 onChange={(event) => {
-                  const next = THEMES.find((theme) => theme.label === event.target.value)?.value ?? "system";
+                  const next = themeByLabel(event.target.value);
                   setDraft({ ...draft, theme: next });
                   // Optimistic preview (WF-010); Apply persists, close reverts.
                   setPreviewTheme(next);
@@ -144,10 +115,7 @@ export function SettingsDialog({ open, onClose, onApplied }: SettingsDialogProps
               <Select
                 options={WIDTHS.map((width) => width.label)}
                 value={WIDTHS.find((width) => width.value === draft.editorWidth)?.label ?? "Medium"}
-                onChange={(event) => {
-                  const next = WIDTHS.find((width) => width.label === event.target.value)?.value ?? "medium";
-                  setDraft({ ...draft, editorWidth: next });
-                }}
+                onChange={(event) => setDraft({ ...draft, editorWidth: widthByLabel(event.target.value) })}
               />
             </FormField>
             <FormField label="Editor font size" {...errorProps("editorFontSize")}>

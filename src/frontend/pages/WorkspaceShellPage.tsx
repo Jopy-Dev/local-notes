@@ -1,5 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
-import { ChevronRightIcon } from "../components/icons";
+import { CollapsedRail } from "../components/shell/CollapsedRail";
 import { EditorPane } from "../components/shell/EditorPane";
 import { FoldersPane } from "../components/shell/FoldersPane";
 import { NotesPane } from "../components/shell/NotesPane";
@@ -7,13 +6,13 @@ import { ShellDialogs } from "../components/shell/ShellDialogs";
 import { ShellStatusBar } from "../components/shell/ShellStatusBar";
 import { ShellTitlebar } from "../components/shell/ShellTitlebar";
 import { AppShell } from "../components/ui/AppShell";
-import { IconButton } from "../components/ui/IconButton";
 import { PaneDivider } from "../components/ui/PaneDivider";
 import { UnsupportedViewport, useViewportSupported } from "../components/ui/UnsupportedViewport";
 import { navigate } from "../services/navigation";
-import { useEditorData } from "../stores/editorData";
 import { PANE_BOUNDS, useWorkspaceUi } from "../stores/workspaceUi";
 import type { PaneKind } from "../stores/workspaceUi";
+import { useIsDesktop } from "./useIsDesktop";
+import { useRenameFollow } from "./useRenameFollow";
 import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
@@ -105,54 +104,7 @@ function ShellEditor({ shell }: { shell: ShellState }) {
   );
 }
 
-/*
- * REQ-018: a clean open note renamed outside the app swaps the editor key;
- * the route follows silently. The editor key moving away from the routed key
- * can only be a rename follow - every other transition starts from a route
- * change, so the route is already ahead of the editor in those cases.
- */
-function useRenameFollow(routeNoteKey: string | null) {
-  const editorNoteKey = useEditorData((state) => state.noteKey);
-  const previous = useRef(editorNoteKey);
-  useEffect(() => {
-    const before = previous.current;
-    previous.current = editorNoteKey;
-    if (!before || !editorNoteKey || before === editorNoteKey) return;
-    if (routeNoteKey === before) {
-      window.history.replaceState(null, "", `/notes/${editorNoteKey}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  }, [editorNoteKey, routeNoteKey]);
-}
-
-/* Resize/collapse active only at the desktop breakpoint (REQ-034; DS 4.3). */
-const DESKTOP_QUERY = "(min-width: 1280px)";
 const RAIL_WIDTH_PX = 28;
-
-function useIsDesktop(): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      const media = window.matchMedia(DESKTOP_QUERY);
-      media.addEventListener("change", onChange);
-      return () => media.removeEventListener("change", onChange);
-    },
-    () => window.matchMedia(DESKTOP_QUERY).matches,
-    () => true,
-  );
-}
-
-function CollapsedRail({ pane, onExpand }: { pane: PaneKind; onExpand: () => void }) {
-  return (
-    <div className="flex h-full w-full flex-col items-center border-r border-border-subtle bg-surface-sidebar pt-1.5">
-      <IconButton
-        label={pane === "folder" ? "Expand folder pane" : "Expand note list pane"}
-        onClick={onExpand}
-      >
-        <ChevronRightIcon size={14} />
-      </IconButton>
-    </div>
-  );
-}
 
 export function WorkspaceShellPage({
   noteKey = null,

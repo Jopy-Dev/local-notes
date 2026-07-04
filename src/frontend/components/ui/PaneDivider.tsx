@@ -25,6 +25,22 @@ interface PaneDividerProps {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+/* Keyboard resize map (DS 9.2): arrows step 8px, Home/End snap to bounds. */
+function widthForKey(key: string, width: number, min: number, max: number): number | null {
+  switch (key) {
+    case "ArrowLeft":
+      return clamp(width - KEY_STEP_PX, min, max);
+    case "ArrowRight":
+      return clamp(width + KEY_STEP_PX, min, max);
+    case "Home":
+      return min;
+    case "End":
+      return max;
+    default:
+      return null;
+  }
+}
+
 export function PaneDivider({
   pane,
   width,
@@ -62,11 +78,7 @@ export function PaneDivider({
       onToggleCollapse();
       return;
     }
-    let next: number | null = null;
-    if (event.key === "ArrowLeft") next = clamp(width - KEY_STEP_PX, min, max);
-    if (event.key === "ArrowRight") next = clamp(width + KEY_STEP_PX, min, max);
-    if (event.key === "Home") next = min;
-    if (event.key === "End") next = max;
+    const next = widthForKey(event.key, width, min, max);
     if (next === null || next === width) return;
     event.preventDefault();
     onResize(next);
