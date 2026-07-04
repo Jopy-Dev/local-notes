@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CopyIcon } from "../components/icons";
 import { Button } from "../components/ui/Button";
@@ -32,6 +32,11 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
   const copyMounts = useCopyMounts(articleRef, html);
   const onFindMatchesRef = useRef(props.onFindMatches);
   onFindMatchesRef.current = props.onFindMatches;
+  // React re-applies dangerouslySetInnerHTML whenever the prop OBJECT identity
+  // changes, even for an identical string - that detaches the useCopyMounts
+  // holder spans on every re-render. A stable object keyed on html keeps the
+  // sanitized subtree (and the REQ-036 affordance) intact.
+  const htmlProp = useMemo(() => (html === null ? null : { __html: html }), [html]);
 
   useEffect(() => {
     const container = articleRef.current;
@@ -117,7 +122,7 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
         aria-label="Rendered note"
         onClick={onClick}
         className="markdown-preview min-h-0 min-w-0 overflow-auto bg-surface-editor px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={htmlProp ?? undefined}
       />
       {copyMounts.map((mount, index) =>
         createPortal(
