@@ -94,4 +94,3 @@ export const mockFolders: readonly MockFolderEntry[] = [
 ];
 
 export const mockBreadcrumbs = ["Projects", "Local Notes", "local-notes-architecture.md"] as const;
-export const SORT_OPTIONS = ["Modified", "Created", "Title"] as const;

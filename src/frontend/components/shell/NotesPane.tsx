@@ -7,7 +7,7 @@ import { NoteListItem } from "../ui/NoteListItem";
 import type { NoteListEntry } from "../ui/NoteListItem";
 import { SearchResultItem } from "../ui/SearchResultItem";
 import { NoteListSkeleton } from "../ui/Skeleton";
-import { SORT_OPTIONS } from "../../services/mockWorkspace";
+import type { DashboardSortBy } from "../../stores/workspaceData";
 import type { SearchStatus } from "../../stores/searchData";
 import type { IndexState, SearchResult } from "../../../shared/schemas/search.js";
 
@@ -23,6 +23,8 @@ interface NotesPaneProps {
   onSelect: (key: string) => void;
   query: string;
   onQueryChange: (value: string) => void;
+  sortBy: DashboardSortBy;
+  onSortByChange: (sortBy: DashboardSortBy) => void;
   descending: boolean;
   onToggleDirection: () => void;
   view: "list" | "card";
@@ -40,6 +42,14 @@ interface NotesPaneProps {
   onOpenRecovery: () => void;
   searchRef: RefObject<HTMLInputElement | null>;
 }
+
+/* REQ-008 sort fields; labels match Design_System.md 9.2 toolbar copy. */
+const SORT_CHOICES: ReadonlyArray<{ value: DashboardSortBy; label: string }> = [
+  { value: "modified", label: "Modified" },
+  { value: "created", label: "Created" },
+  { value: "name", label: "Name" },
+  { value: "size", label: "Size" },
+];
 
 function EmptyState({ query, onCreateNote }: { query: string; onCreateNote: () => void }) {
   if (query) {
@@ -158,7 +168,12 @@ export function NotesPane(props: NotesPaneProps) {
         query={props.query}
         onQueryChange={(event) => props.onQueryChange(event.target.value)}
         resultCount={props.totalLabel}
-        sortOptions={SORT_OPTIONS}
+        sortOptions={SORT_CHOICES.map((choice) => choice.label)}
+        sortValue={SORT_CHOICES.find((choice) => choice.value === props.sortBy)?.label ?? "Modified"}
+        onSortChange={(label) => {
+          const choice = SORT_CHOICES.find((candidate) => candidate.label === label);
+          if (choice) props.onSortByChange(choice.value);
+        }}
         descending={props.descending}
         onToggleDirection={props.onToggleDirection}
         view={props.view}

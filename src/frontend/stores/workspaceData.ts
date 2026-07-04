@@ -5,14 +5,17 @@ import { useEditorData } from "./editorData";
 import { useSearchData } from "./searchData";
 import { useSettingsData } from "./settingsData";
 import { indexStateSchema } from "../../shared/schemas/search.js";
+import type { ConfigV1 } from "../../shared/schemas/config.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
 /*
  * Dashboard data store (WF-001/004): appended metadata pages, folder tree,
- * live refresh on SSE note events. The view preference persists through the
- * settings API (REQ-007) optimistically - failure rolls the toggle back.
+ * live refresh on SSE note events. View/sort preferences persist through the
+ * settings API (REQ-007/008) optimistically - failure rolls the change back.
  */
 export type DashboardView = "list" | "card";
+export type DashboardSortBy = ConfigV1["sortBy"];
+export type DashboardSortDirection = ConfigV1["sortDirection"];
 
 interface WorkspaceDataState {
   notes: NoteMetadata[];
@@ -23,10 +26,27 @@ interface WorkspaceDataState {
   loaded: boolean;
   error: string | null;
   view: DashboardView;
+  /* null = not user-changed this session; falls back to persisted config. */
+  sortBy: DashboardSortBy | null;
+  sortDirection: DashboardSortDirection | null;
   setView: (view: DashboardView) => void;
+  setSortBy: (sortBy: DashboardSortBy) => void;
+  setSortDirection: (direction: DashboardSortDirection) => void;
   loadInitial: () => Promise<void>;
   loadMore: () => Promise<void>;
   connectEvents: () => () => void;
+}
+
+/* Effective sort for fetches: session override, else config, else defaults. */
+export function effectiveSort(state: {
+  sortBy: DashboardSortBy | null;
+  sortDirection: DashboardSortDirection | null;
+}): { sort: DashboardSortBy; direction: DashboardSortDirection } {
+  const config = useSettingsData.getState().config;
+  return {
+    sort: state.sortBy ?? config?.sortBy ?? "modified",
+    direction: state.sortDirection ?? config?.sortDirection ?? "desc",
+  };
 }
 
 export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
@@ -38,6 +58,8 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   loaded: false,
   error: null,
   view: "list",
+  sortBy: null,
+  sortDirection: null,
 
   setView: (view) => {
     const previous = get().view;
@@ -50,10 +72,43 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
       });
   },
 
+  setSortBy: (sortBy) => {
+    const previous = get().sortBy;
+    set({ sortBy });
+    void get().loadInitial();
+    void useSettingsData
+      .getState()
+      .apply({ sortBy })
+      .then((persisted) => {
+        if (!persisted) {
+          set({ sortBy: previous });
+          void get().loadInitial();
+        }
+      });
+  },
+
+  setSortDirection: (direction) => {
+    const previous = get().sortDirection;
+    set({ sortDirection: direction });
+    void get().loadInitial();
+    void useSettingsData
+      .getState()
+      .apply({ sortDirection: direction })
+      .then((persisted) => {
+        if (!persisted) {
+          set({ sortDirection: previous });
+          void get().loadInitial();
+        }
+      });
+  },
+
   loadInitial: async () => {
     set({ loading: true, error: null });
     try {
-      const [page, folderData] = await Promise.all([fetchNotesPage({}), fetchFolders()]);
+      const [page, folderData] = await Promise.all([
+        fetchNotesPage(effectiveSort(get())),
+        fetchFolders(),
+      ]);
       set({
         notes: page.notes,
         total: page.total,
@@ -70,7 +125,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   loadMore: async () => {
     const { nextCursor, notes } = get();
     if (!nextCursor) return;
-    const page = await fetchNotesPage({ cursor: nextCursor });
+    const page = await fetchNotesPage({ cursor: nextCursor, ...effectiveSort(get()) });
     // Dedupe by key across appended pages (WF-001 pass condition).
     const seen = new Set(notes.map((note) => note.noteKey));
     const appended = page.notes.filter((note) => !seen.has(note.noteKey));
