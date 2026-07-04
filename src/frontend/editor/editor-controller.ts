@@ -1,12 +1,14 @@
+import { AutosaveScheduler } from "./autosave-scheduler.js";
 import type { NoteDocument, NoteMetadata } from "../../shared/schemas/notes.js";
 
 /*
  * Editor state machine (MasterPrompt.md 4.5, WF-006/007): owns noteKey,
- * loadedVersion, draft, and save state. Autosave waits 750ms after the last
- * edit with one save in flight (latest draft queues). A version conflict or
- * external change while dirty pauses autosave and preserves BOTH versions
- * until the user explicitly reloads or overwrites. SSE events carrying one
- * of our own operation IDs are suppressed (self-event, never a conflict).
+ * loadedVersion, draft, and save state. Autosave timing and save
+ * serialization live in AutosaveScheduler (750ms debounce, one save in
+ * flight, latest draft queues). A version conflict or external change while
+ * dirty pauses autosave and preserves BOTH versions until the user
+ * explicitly reloads or overwrites. SSE events carrying one of our own
+ * operation IDs are suppressed (self-event, never a conflict).
  */
 const AUTOSAVE_MS = 750;
 
@@ -70,15 +72,12 @@ export class EditorController {
 
   private loadedVersion = "";
   private latestDiskVersion = "";
-  private timer: ReturnType<typeof setTimeout> | undefined;
-  private saveInFlight = false;
-  private queuedSave = false;
-  private savePromise: Promise<void> | null = null;
   // Bumped on every open(); a save that started under an older epoch is
   // stale and must not touch state when it settles (reload supersedes it).
   private openEpoch = 0;
+  private lastSaveEpoch = 0;
   private readonly ownOperations = new Set<string>();
-  private readonly autosaveMs: number;
+  private readonly scheduler: AutosaveScheduler;
   private readonly newOperationId: () => string;
   private readonly onChange: ((snapshot: EditorSnapshot) => void) | undefined;
 
@@ -86,9 +85,19 @@ export class EditorController {
     private readonly transport: EditorTransport,
     options: EditorControllerOptions = {},
   ) {
-    this.autosaveMs = options.autosaveMs ?? AUTOSAVE_MS;
     this.newOperationId = options.newOperationId ?? (() => crypto.randomUUID());
     this.onChange = options.onChange;
+    this.scheduler = new AutosaveScheduler(options.autosaveMs ?? AUTOSAVE_MS, {
+      save: () => this.performSave(),
+      onQueuedReady: () => {
+        // A queued draft restarts only when the note is unchanged and the
+        // prior save landed clean (conflict/error pause the pipeline).
+        if (this.lastSaveEpoch === this.openEpoch && this.state.saveState === "saved") {
+          this.update({ ...this.state, saveState: "unsaved" });
+          void this.scheduler.request();
+        }
+      },
+    });
   }
 
   snapshot(): EditorSnapshot {
@@ -101,7 +110,7 @@ export class EditorController {
       await this.flush();
       if (this.state.saveState !== "saved") throw new DraftUnsettledError();
     }
-    this.clearTimer();
+    this.scheduler.cancelTimer();
     this.openEpoch += 1;
     const document = await this.transport.load(noteKey);
     this.loadedVersion = document.versionToken;
@@ -119,20 +128,19 @@ export class EditorController {
   changeDraft(text: string): void {
     if (this.state.readOnlyReason || this.state.conflict) return;
     this.update({ ...this.state, draft: text, saveState: "unsaved" });
-    this.clearTimer();
-    this.timer = setTimeout(() => void this.saveNow(), this.autosaveMs);
+    this.scheduler.schedule();
   }
 
   retry(): void {
     if (this.state.saveState !== "error") return;
-    void this.saveNow();
+    void this.scheduler.request();
   }
 
   async flush(): Promise<void> {
-    this.clearTimer();
+    this.scheduler.cancelTimer();
     // Settle the in-flight save (and any queued follow-up) first.
-    while (this.savePromise) await this.savePromise;
-    if (this.state.saveState === "unsaved") await this.saveNow();
+    await this.scheduler.settle();
+    if (this.state.saveState === "unsaved") await this.scheduler.request();
   }
 
   handleWorkspaceEvent(event: EditorWorkspaceEvent): void {
@@ -155,7 +163,7 @@ export class EditorController {
   }
 
   private enterConflict(kind: Exclude<ConflictKind, null>): void {
-    this.clearTimer();
+    this.scheduler.cancelTimer();
     this.update({ ...this.state, saveState: "conflict", conflict: kind });
   }
 
@@ -170,19 +178,19 @@ export class EditorController {
     if (!this.state.noteKey) return;
     this.loadedVersion = this.latestDiskVersion || this.loadedVersion;
     this.update({ ...this.state, conflict: null, saveState: "unsaved" });
-    await this.saveNow();
+    await this.scheduler.request();
   }
 
   /* Explicit REQ-017 "discard": settle the state without saving so a switch
    * or close can proceed. Only the user's stay/discard choice calls this. */
   discardDraft(): void {
-    this.clearTimer();
-    this.queuedSave = false;
+    this.scheduler.cancelTimer();
+    this.scheduler.dropQueued();
     this.update({ ...this.state, saveState: "saved", conflict: null });
   }
 
   dispose(): void {
-    this.clearTimer();
+    this.scheduler.cancelTimer();
   }
 
   private async reloadFromDisk(): Promise<void> {
@@ -190,24 +198,10 @@ export class EditorController {
     await this.open(this.state.noteKey).catch(() => undefined);
   }
 
-  private saveNow(): Promise<void> {
-    if (!this.state.noteKey || this.state.readOnlyReason) return Promise.resolve();
-    if (this.saveInFlight) {
-      this.queuedSave = true;
-      return this.savePromise ?? Promise.resolve();
-    }
-    const wrapped: Promise<void> = this.performSave().finally(() => {
-      // A queued follow-up may have replaced the reference already.
-      if (this.savePromise === wrapped) this.savePromise = null;
-    });
-    this.savePromise = wrapped;
-    return wrapped;
-  }
-
   private async performSave(): Promise<void> {
-    if (!this.state.noteKey) return;
-    this.saveInFlight = true;
+    if (!this.state.noteKey || this.state.readOnlyReason) return;
     const epoch = this.openEpoch;
+    this.lastSaveEpoch = epoch;
     this.update({ ...this.state, saveState: "saving" });
     const operationId = this.newOperationId();
     this.ownOperations.add(operationId);
@@ -231,21 +225,7 @@ export class EditorController {
       } else {
         this.update({ ...this.state, saveState: "error" });
       }
-    } finally {
-      this.saveInFlight = false;
-      if (this.queuedSave) {
-        this.queuedSave = false;
-        if (epoch === this.openEpoch && this.state.saveState === "saved") {
-          this.update({ ...this.state, saveState: "unsaved" });
-          void this.saveNow();
-        }
-      }
     }
-  }
-
-  private clearTimer(): void {
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = undefined;
   }
 
   private update(next: EditorSnapshot): void {
