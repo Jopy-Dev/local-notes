@@ -57,6 +57,13 @@ reason = "Wave 6 preview surface split twice (preview-support.ts: render hook + 
 expires = "2026-08-15"
 
 [[waivers]]
+id = "source-editor-hotspot-2026-07-04"
+path = "src/frontend/editor/SourceEditor.tsx"
+rule = "structural.hotspots"
+reason = "CM host split twice (cm-theme.ts theme, cm-find.ts find field + sync hook; CCX 21->17 healthy); growth stat is committed Wave 5+6 history in the 14-day window; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "editor-controller-wmc-2026-07-04"
 path = "src/frontend/editor/editor-controller.ts"
 rule = "structural.class.complexity"

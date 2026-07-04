@@ -3,14 +3,15 @@ import { EditorView, basicSetup } from "codemirror";
 import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
-import { cmFind, findField, setFindEffect } from "./cm-find";
+import { cmFind, findField, useCmFind } from "./cm-find";
+import { quietWorkbenchTheme } from "./cm-theme";
 import type { FindRequest } from "./find-decorations";
 
 /*
  * <SourceEditor> per Design_System.md 9.2: CodeMirror 6 source/plain editor.
- * Theme maps Quiet Workbench tokens through CSS variables - no raw colors
- * here (tokens resolve from the Tailwind theme at runtime). External draft
- * replacements (reload/conflict resolution) sync via dispatch, never remount.
+ * Theme lives in cm-theme.ts; find decorations + sync in cm-find.ts.
+ * External draft replacements (reload/conflict resolution) sync via
+ * dispatch, never remount.
  */
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
@@ -18,40 +19,6 @@ const languageCompartment = new Compartment();
 // Marks programmatic value syncs (reload/conflict adoption) so they never
 // echo back through onChange as if the user typed them.
 const externalSync = Annotation.define<boolean>();
-
-const quietWorkbenchTheme = EditorView.theme(
-  {
-    "&": {
-      backgroundColor: "var(--color-surface-code)",
-      color: "var(--color-text-source)",
-      height: "100%",
-      fontSize: "13px",
-    },
-    ".cm-content": {
-      fontFamily: "var(--font-mono)",
-      lineHeight: "1.7",
-      caretColor: "var(--color-focus)",
-      maxWidth: "76ch",
-      paddingBottom: "5rem",
-    },
-    ".cm-gutters": {
-      backgroundColor: "var(--color-surface-code)",
-      color: "var(--color-text-disabled)",
-      border: "none",
-    },
-    "&.cm-focused": { outline: "none" },
-    ".cm-cursor": { borderLeftColor: "var(--color-focus)" },
-    ".cm-activeLine": { backgroundColor: "transparent" },
-    ".cm-activeLineGutter": {
-      backgroundColor: "transparent",
-      color: "var(--color-text-muted)",
-    },
-    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-      backgroundColor: "var(--color-surface-selected)",
-    },
-  },
-  { dark: true },
-);
 
 interface SourceEditorProps {
   value: string;
@@ -129,20 +96,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
     });
   }, [readOnly, language]);
 
-  // REQ-035: push the shared find request into the decoration field, report
-  // the total up, and keep the active match in view.
-  useEffect(() => {
-    const view = viewRef.current;
-    if (!view) return;
-    view.dispatch({ effects: setFindEffect.of(props.find ?? null) });
-    const state = view.state.field(findField);
-    onFindMatchesRef.current?.(state.total);
-    if (state.activeRange) {
-      view.dispatch({
-        effects: EditorView.scrollIntoView(state.activeRange.from, { y: "nearest" }),
-      });
-    }
-  }, [props.find]);
+  useCmFind(viewRef, props.find, props.onFindMatches);
 
   useEffect(() => {
     const view = viewRef.current;

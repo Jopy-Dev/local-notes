@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import { StateEffect, StateField } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";
 import { Decoration, EditorView } from "@codemirror/view";
@@ -62,4 +64,30 @@ export const findField = StateField.define<CmFindValue>({
 
 export function cmFind(): Extension {
   return [findField];
+}
+
+/*
+ * Host-side sync (REQ-035): push the shared find request into the field,
+ * report the total up, and keep the active match in view.
+ */
+export function useCmFind(
+  viewRef: RefObject<EditorView | null>,
+  find: FindRequest | null | undefined,
+  onFindMatches: ((total: number) => void) | undefined,
+): void {
+  const onFindMatchesRef = useRef(onFindMatches);
+  onFindMatchesRef.current = onFindMatches;
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setFindEffect.of(find ?? null) });
+    const state = view.state.field(findField);
+    onFindMatchesRef.current?.(state.total);
+    if (state.activeRange) {
+      view.dispatch({
+        effects: EditorView.scrollIntoView(state.activeRange.from, { y: "nearest" }),
+      });
+    }
+  }, [viewRef, find]);
 }
