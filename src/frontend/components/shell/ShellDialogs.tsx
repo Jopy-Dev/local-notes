@@ -27,7 +27,7 @@ export function ShellDialogs({ shell }: { shell: ShellState }) {
       shell.toggleSplit();
     },
     toggleFocusMode: shell.toggleFocusMode,
-    openSettings: () => shell.setDialog("settings"),
+    openSettings: shell.openSettings,
   });
 
   const openDocument = shell.editor.document;
@@ -99,11 +99,11 @@ export function ShellDialogs({ shell }: { shell: ShellState }) {
         />
       ) : null}
       <SettingsDialog
-        open={shell.dialog === "settings"}
-        onClose={() => shell.setDialog(null)}
-        onApply={() => {
-          shell.setDialog(null);
-          shell.toast.show("Settings applied locally");
+        open={shell.settingsOpen}
+        onClose={shell.closeSettings}
+        onApplied={() => {
+          shell.toast.show("Settings applied");
+          shell.closeSettings();
         }}
       />
       <ConfirmationDialog

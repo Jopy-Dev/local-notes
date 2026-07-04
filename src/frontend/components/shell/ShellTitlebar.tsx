@@ -1,7 +1,7 @@
 import { NoteFileIcon, SearchIcon, SettingsIcon } from "../icons";
 import { IconButton } from "../ui/IconButton";
 import { Kbd } from "../ui/Kbd";
-import { WORKSPACE_PATH } from "../../services/mockWorkspace";
+import { getWorkspaceDisplayPath } from "../../services/workspace";
 
 /*
  * Workspace titlebar: brand, workspace path, command trigger, settings.
@@ -23,7 +23,9 @@ export function ShellTitlebar({ onOpenCommand, onOpenSettings }: ShellTitlebarPr
       </div>
       <span className="text-ui font-heading text-text-primary">Local Notes</span>
       <span aria-hidden="true" className="h-4 w-px bg-border-subtle" />
-      <span className="min-w-0 truncate font-mono text-xs text-text-muted">{WORKSPACE_PATH}</span>
+      <span className="min-w-0 truncate font-mono text-xs text-text-muted">
+        {getWorkspaceDisplayPath() ?? ""}
+      </span>
       <div className="ml-auto flex items-center gap-1">
         <button
           type="button"

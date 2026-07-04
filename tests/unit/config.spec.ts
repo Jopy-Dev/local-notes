@@ -87,7 +87,10 @@ describe("ConfigService.update", () => {
 
   it("rejects workspace redirection (read-only in MVP)", async () => {
     await service.load();
-    await expect(service.update({ workspace: "elsewhere" })).rejects.toMatchObject({
+    // Cast past the ConfigUpdate type: the runtime double-guard must hold even
+    // for callers that bypass the schema-narrowed signature.
+    const bypass = { workspace: "elsewhere" } as unknown as Parameters<typeof service.update>[0];
+    await expect(service.update(bypass)).rejects.toMatchObject({
       code: "INVALID_SETTING",
     });
   });

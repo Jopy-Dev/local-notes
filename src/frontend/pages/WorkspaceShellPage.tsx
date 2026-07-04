@@ -120,9 +120,15 @@ function useRenameFollow(routeNoteKey: string | null) {
   }, [editorNoteKey, routeNoteKey]);
 }
 
-export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null }) {
+export function WorkspaceShellPage({
+  noteKey = null,
+  settingsOpen = false,
+}: {
+  noteKey?: string | null;
+  settingsOpen?: boolean;
+}) {
   const supported = useViewportSupported();
-  const shell = useShellState(noteKey);
+  const shell = useShellState(noteKey, settingsOpen);
   useRenameFollow(noteKey);
 
   if (!supported) {
@@ -136,7 +142,7 @@ export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null
         titlebar={
           <ShellTitlebar
             onOpenCommand={() => shell.setDialog("command")}
-            onOpenSettings={() => shell.setDialog("settings")}
+            onOpenSettings={shell.openSettings}
           />
         }
         folders={<ShellFolders shell={shell} />}

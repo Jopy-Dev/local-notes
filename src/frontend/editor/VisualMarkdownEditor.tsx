@@ -81,7 +81,7 @@ export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: Vi
       <div
         ref={hostRef}
         aria-label="Visual note editor"
-        className="min-h-0 flex-1 overflow-auto px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin] [&_.ProseMirror]:min-h-full [&_.ProseMirror]:max-w-[76ch] [&_.ProseMirror]:outline-none"
+        className="min-h-0 flex-1 overflow-auto px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin] [&_.ProseMirror]:min-h-full [&_.ProseMirror]:max-w-[var(--editor-max-width,76ch)] [&_.ProseMirror]:text-[length:var(--editor-font-size,14px)] [&_.ProseMirror]:leading-[var(--editor-line-height,1.6)] [&_.ProseMirror]:outline-none"
       />
     </div>
   );

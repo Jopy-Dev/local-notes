@@ -1,16 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { getWorkspaceDisplayPath } from "../../services/workspace";
+import { useSettingsData } from "../../stores/settingsData";
 import { Button } from "../ui/Button";
 import { FieldNote, FormField } from "../ui/FormField";
 import { Modal } from "../ui/Modal";
 import { Select } from "../ui/Select";
-import { Switch } from "../ui/Switch";
-import { WORKSPACE_PATH } from "../../services/mockWorkspace";
+import type { ConfigUpdate, ConfigV1 } from "../../../shared/schemas/config.js";
 
 /*
- * Settings dialog (SCREEN-003 / WF-010 surface). Options mirror ConfigV1
- * appearance schema (REQ-021); persistence wires to the settings API at Step 12+.
+ * Settings form (SCREEN-003 / WF-010, REQ-021/022). Fields mirror the ConfigV1
+ * appearance schema; Apply sends only changed fields. Theme previews
+ * optimistically on selection and rolls back on cancel or persistence failure
+ * (MasterPrompt 6.2 - optimistic theme only). Workspace path is read-only.
  */
+const THEMES: { value: ConfigV1["theme"]; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
+];
+const WIDTHS: { value: ConfigV1["editorWidth"]; label: string }[] = [
+  { value: "narrow", label: "Narrow" },
+  { value: "medium", label: "Medium" },
+  { value: "wide", label: "Wide" },
+];
+// REQ-021 exact ranges: font 12..24 px integer, line height 1.2..2.0.
+const FONT_SIZES = Array.from({ length: 13 }, (_, index) => 12 + index);
+const LINE_HEIGHTS = Array.from({ length: 9 }, (_, index) => (12 + index) / 10);
+
+interface Draft {
+  theme: ConfigV1["theme"];
+  editorFontSize: number;
+  lineHeight: number;
+  editorWidth: ConfigV1["editorWidth"];
+}
+
+function draftFrom(config: ConfigV1): Draft {
+  return {
+    theme: config.theme,
+    editorFontSize: config.editorFontSize,
+    lineHeight: config.lineHeight,
+    editorWidth: config.editorWidth,
+  };
+}
+
+function changedFields(config: ConfigV1, draft: Draft): ConfigUpdate {
+  const partial: ConfigUpdate = {};
+  if (draft.theme !== config.theme) partial.theme = draft.theme;
+  if (draft.editorFontSize !== config.editorFontSize) partial.editorFontSize = draft.editorFontSize;
+  if (draft.lineHeight !== config.lineHeight) partial.lineHeight = draft.lineHeight;
+  if (draft.editorWidth !== config.editorWidth) partial.editorWidth = draft.editorWidth;
+  return partial;
+}
+
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="[&+&]:mt-6 [&+&]:border-t [&+&]:border-border-subtle [&+&]:pt-5">
@@ -20,74 +62,52 @@ function SettingsSection({ title, children }: { title: string; children: ReactNo
   );
 }
 
-function AppearanceSection() {
-  return (
-    <SettingsSection title="Appearance">
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="Theme">
-          <Select options={["System", "Dark", "Light"]} />
-        </FormField>
-        <FormField label="Editor width">
-          <Select options={["Narrow", "Medium", "Wide"]} defaultValue="Medium" />
-        </FormField>
-        <FormField label="Editor font size">
-          <Select options={["13 px", "14 px", "15 px", "16 px"]} defaultValue="14 px" />
-        </FormField>
-        <FormField label="Line height">
-          <Select options={["1.5", "1.6", "1.7"]} defaultValue="1.6" />
-        </FormField>
-      </div>
-    </SettingsSection>
-  );
-}
-
-function EditorSection() {
-  const [autosave, setAutosave] = useState(true);
-
-  return (
-    <SettingsSection title="Editor">
-      <div className="flex items-center justify-between gap-5">
-        <div>
-          <strong className="block text-xs text-text-secondary">Autosave</strong>
-          <span className="mt-0.5 block text-2xs text-text-muted">
-            Save after a short pause while editing.
-          </span>
-        </div>
-        <Switch
-          label="Enable autosave"
-          checked={autosave}
-          onChange={(event) => setAutosave(event.target.checked)}
-        />
-      </div>
-    </SettingsSection>
-  );
-}
-
-function WorkspaceSection() {
-  return (
-    <SettingsSection title="Workspace">
-      <FieldNote label="Active path">
-        <div className="truncate rounded-control border border-border-subtle bg-surface-input px-2.5 py-2 font-mono text-2xs text-text-muted">
-          {WORKSPACE_PATH}
-        </div>
-      </FieldNote>
-      <p className="mt-1.5 text-2xs leading-snug text-text-muted">
-        Workspace switching is handled from the launch surface.
-      </p>
-    </SettingsSection>
-  );
-}
-
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
-  onApply: () => void;
+  onApplied: () => void;
 }
 
-export function SettingsDialog({ open, onClose, onApply }: SettingsDialogProps) {
-  function onSubmit(event: FormEvent) {
+export function SettingsDialog({ open, onClose, onApplied }: SettingsDialogProps) {
+  const { config, saving, fieldErrors, apply, setPreviewTheme, clearErrors } = useSettingsData();
+  const [draft, setDraft] = useState<Draft | null>(null);
+
+  // Fresh draft per open; discard preview + errors on close (rollback).
+  useEffect(() => {
+    if (open && config) setDraft(draftFrom(config));
+    if (!open) {
+      setDraft(null);
+      setPreviewTheme(null);
+      clearErrors();
+    }
+    // Store actions are referentially stable.
+  }, [open, config]);
+
+  if (!config || !draft) {
+    return (
+      <Modal open={open} title="Settings" description="Loading current settings." onClose={onClose}>
+        <p aria-busy="true" className="py-6 text-sm text-text-muted">
+          Loading settings from the local server.
+        </p>
+      </Modal>
+    );
+  }
+
+  const errorProps = (field: string): { error: string } | Record<string, never> => {
+    const message = fieldErrors?.[field]?.[0];
+    return message === undefined ? {} : { error: message };
+  };
+  const formError = fieldErrors?.["settings"]?.[0];
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    onApply();
+    if (!config || !draft) return;
+    const partial = changedFields(config, draft);
+    if (Object.keys(partial).length === 0) {
+      onClose();
+      return;
+    }
+    if (await apply(partial)) onApplied();
   }
 
   return (
@@ -99,16 +119,70 @@ export function SettingsDialog({ open, onClose, onApply }: SettingsDialogProps) 
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="settings-form">
+          <Button variant="primary" type="submit" form="settings-form" loading={saving}>
             Apply settings
           </Button>
         </>
       }
     >
-      <form id="settings-form" onSubmit={onSubmit}>
-        <AppearanceSection />
-        <EditorSection />
-        <WorkspaceSection />
+      <form id="settings-form" noValidate onSubmit={(event) => void onSubmit(event)}>
+        <SettingsSection title="Appearance">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Theme" {...errorProps("theme")}>
+              <Select
+                options={THEMES.map((theme) => theme.label)}
+                value={THEMES.find((theme) => theme.value === draft.theme)?.label ?? "System"}
+                onChange={(event) => {
+                  const next = THEMES.find((theme) => theme.label === event.target.value)?.value ?? "system";
+                  setDraft({ ...draft, theme: next });
+                  // Optimistic preview (WF-010); Apply persists, close reverts.
+                  setPreviewTheme(next);
+                }}
+              />
+            </FormField>
+            <FormField label="Editor width" {...errorProps("editorWidth")}>
+              <Select
+                options={WIDTHS.map((width) => width.label)}
+                value={WIDTHS.find((width) => width.value === draft.editorWidth)?.label ?? "Medium"}
+                onChange={(event) => {
+                  const next = WIDTHS.find((width) => width.label === event.target.value)?.value ?? "medium";
+                  setDraft({ ...draft, editorWidth: next });
+                }}
+              />
+            </FormField>
+            <FormField label="Editor font size" {...errorProps("editorFontSize")}>
+              <Select
+                options={FONT_SIZES.map((size) => `${size} px`)}
+                value={`${draft.editorFontSize} px`}
+                onChange={(event) =>
+                  setDraft({ ...draft, editorFontSize: Number.parseInt(event.target.value, 10) })
+                }
+              />
+            </FormField>
+            <FormField label="Line height" {...errorProps("lineHeight")}>
+              <Select
+                options={LINE_HEIGHTS.map((height) => height.toFixed(1))}
+                value={draft.lineHeight.toFixed(1)}
+                onChange={(event) => setDraft({ ...draft, lineHeight: Number.parseFloat(event.target.value) })}
+              />
+            </FormField>
+          </div>
+          {formError ? (
+            <p role="alert" className="mt-3 text-sm text-danger">
+              {formError}
+            </p>
+          ) : null}
+        </SettingsSection>
+        <SettingsSection title="Workspace">
+          <FieldNote label="Active path">
+            <div className="truncate rounded-control border border-border-subtle bg-surface-input px-2.5 py-2 font-mono text-2xs text-text-muted">
+              {getWorkspaceDisplayPath() ?? config.workspace}
+            </div>
+          </FieldNote>
+          <p className="mt-1.5 text-2xs leading-snug text-text-muted">
+            Workspace switching is handled from the launch surface.
+          </p>
+        </SettingsSection>
       </form>
     </Modal>
   );

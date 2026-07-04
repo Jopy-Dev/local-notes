@@ -23,6 +23,18 @@ export const configV1Schema = z.object({
 
 export type ConfigV1 = z.infer<typeof configV1Schema>;
 
+/*
+ * PUT /settings body (MasterPrompt.md 5.2): partial appearance/view/sort/pane
+ * fields; workspace and version are never client-writable. strict() so an
+ * unknown or read-only key is a 422, not a silent drop.
+ */
+export const configUpdateSchema = configV1Schema
+  .omit({ version: true, workspace: true })
+  .partial()
+  .strict();
+
+export type ConfigUpdate = z.infer<typeof configUpdateSchema>;
+
 export function defaultConfig(workspace: string): ConfigV1 {
   return {
     version: 1,

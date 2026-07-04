@@ -11,13 +11,14 @@ export const quietWorkbenchTheme = EditorView.theme(
       backgroundColor: "var(--color-surface-code)",
       color: "var(--color-text-source)",
       height: "100%",
-      fontSize: "13px",
+      // REQ-021 editor appearance settings; fallbacks match pre-settings look.
+      fontSize: "var(--editor-font-size, 13px)",
     },
     ".cm-content": {
       fontFamily: "var(--font-mono)",
-      lineHeight: "1.7",
+      lineHeight: "var(--editor-line-height, 1.7)",
       caretColor: "var(--color-focus)",
-      maxWidth: "76ch",
+      maxWidth: "var(--editor-max-width, 76ch)",
       paddingBottom: "5rem",
     },
     ".cm-gutters": {

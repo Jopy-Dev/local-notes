@@ -23,6 +23,7 @@ export const ErrorCodes = {
   RATE_LIMITED: { status: 429 },
   SEARCH_DEGRADED: { status: 503 },
   NOT_READY: { status: 503 },
+  CONFIG_READ_FAILED: { status: 500 },
   INTERNAL: { status: 500 },
 } as const;
 
