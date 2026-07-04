@@ -72,6 +72,9 @@ interface EditorDataState extends EditorSnapshot {
   resolveReload: () => Promise<void>;
   resolveOverwrite: () => Promise<void>;
   handleEvent: (event: EditorWorkspaceEvent) => void;
+  /* Settle a pending draft (WF-009 pre-archive flush); resolves even on
+   * failure - callers re-check saveState. */
+  flushDraft: () => Promise<void>;
   discardDraft: () => void;
   confirmPendingNavigation: () => Promise<void>;
   cancelPendingNavigation: () => void;
@@ -114,6 +117,7 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   resolveReload: () => controller.resolveReload(),
   resolveOverwrite: () => controller.resolveOverwrite(),
   handleEvent: (event) => controller.handleWorkspaceEvent(event),
+  flushDraft: () => controller.flush(),
   discardDraft: () => controller.discardDraft(),
 
   confirmPendingNavigation: async () => {

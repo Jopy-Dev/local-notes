@@ -23,10 +23,10 @@ Deliberately deferred items + suppression records. Entries pair with `.slop.toml
 
 | Area | Behavior deferred | Rationale | Revisit |
 |---|---|---|---|
-| Archive while draft dirty (`WF-009` x `REQ-017`) | Archiving the open note discards an unsaved draft without a flush; the archive dialog is an explicit user action on the note | Archive moves the file; flushing into a path being archived races the move. Draft loss window is the 750ms debounce | Wave 7 settings/pane pass, or first user report |
 | Rename correlation split across watch batches (`REQ-018` edge) | Unlink and add landing in different 100ms coalesce windows surface as removed+added, not `note.renamed`; a clean open editor then parks as source-missing instead of following | Pairing is per-batch by design; cross-batch correlation needs a held-back removal buffer with timeout. Recovery path (save-as-new / close) loses no data | Wave 8 packaged-build pass, or first user report |
 
 Resolved: `api-suite-growth-2026-07-03` - `tests/api/app.spec.ts` split into `boundary.spec.ts` + `system-routes.spec.ts` (Wave 2, 2026-07-03); waiver removed.
 Resolved: External delete while editor clean (`REQ-018` edge) - clean open note removed outside the app now parks as source-missing with save-as-new / close (Wave 6, 2026-07-04); app-originated removals (operation-tagged) stay silent, archive flow owns navigation.
 Resolved: External rename while editor clean (`REQ-018` acceptance PARTIAL) - watch pipeline pairs unlink+add per batch (size + mtime match) and emits `note.renamed {oldKey,noteKey,version}`; clean open editor follows the new key and the route updates silently; dirty drafts park as source-missing (Wave 6, 2026-07-04).
+Resolved: Archive while draft dirty (`WF-009` x `REQ-017`) - the archive dialog now flushes an open dirty draft BEFORE the move (strictly sequential, no write/move race); an unsettleable draft aborts the archive with a recoverable error (Wave 7, 2026-07-04).
 Resolved: `launch-page-2026-07-03` - LaunchPage no longer in the hotspot rolling window after the Wave 2 frontend pass; kept as dev/pre-bootstrap fallback per locked decision (empty workspace shows the dashboard EmptyState instead of a LaunchPage rework); waiver removed (2026-07-03).

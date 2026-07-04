@@ -27,3 +27,11 @@ All notable changes to this project will be documented in this file. Format foll
 - Find in note: Ctrl+F opens an in-note find bar in every mode (read, edit, source, split) with live match highlighting, current position and total count, next/previous stepping, an optional match-case toggle, and Escape to close - all without touching the file or the dashboard search
 - Rename tracking: a note renamed or moved outside the app while open with no unsaved changes now follows the new name automatically - the editor and address bar update silently and no content is lost; with unsaved changes the existing conflict panel preserves the draft
 - Deleted-file notice: a note deleted outside the app while open now shows the conflict panel immediately (with "Save as new note" recovery) instead of silently keeping stale content until the next save
+- Settings: theme (system/light/dark), editor font size, line height, and editor width apply instantly and persist across restarts; the settings dialog opens at /settings from the gear button, Ctrl+, or the command palette, shows the active workspace path, and identifies any invalid value without losing your other changes
+- Dashboard preferences persist: list/card view and sort direction now survive a restart
+- Resizable panes: drag the dividers to resize the folder and note-list panes (or focus a divider and use arrow keys; Home/End snap to the limits), collapse either pane to a slim rail and restore it at its prior width - all remembered across restarts
+- Safer archiving: archiving a note you are editing now saves the pending draft first; if the draft cannot be saved, the archive stops with a clear error instead of losing the last edits
+
+### Changed
+
+- Light theme groundwork: choosing Light is remembered and follows the OS in System mode; the light color palette itself ships once the design tokens are approved
