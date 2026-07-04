@@ -106,6 +106,13 @@ reason = "Wave 8 WF-004 sort wiring; optimistic-persist + effectiveSort extracte
 expires = "2026-08-15"
 
 [[waivers]]
+id = "search-index-hotspot-2026-07-05"
+path = "src/backend/search/search-index.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework + METRIC-003 two-phase retrieval growth in the 14-day window; ranking/snippet/engine helpers already live in sibling modules; CCX 39 is the budget-ledger + retrieval branching, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "search-worker-spec-hotspot-2026-07-05"
 path = "tests/integration/search-worker.spec.ts"
 rule = "structural.hotspots"
