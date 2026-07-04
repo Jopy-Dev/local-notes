@@ -4,6 +4,7 @@ import { subscribeWorkspaceEvents } from "../services/events";
 import { useEditorData } from "./editorData";
 import { useSearchData } from "./searchData";
 import { useSettingsData } from "./settingsData";
+import { effectiveSort, persistPreference } from "./workspace-preferences";
 import { indexStateSchema } from "../../shared/schemas/search.js";
 import type { ConfigV1 } from "../../shared/schemas/config.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
@@ -37,18 +38,6 @@ interface WorkspaceDataState {
   connectEvents: () => () => void;
 }
 
-/* Effective sort for fetches: session override, else config, else defaults. */
-export function effectiveSort(state: {
-  sortBy: DashboardSortBy | null;
-  sortDirection: DashboardSortDirection | null;
-}): { sort: DashboardSortBy; direction: DashboardSortDirection } {
-  const config = useSettingsData.getState().config;
-  return {
-    sort: state.sortBy ?? config?.sortBy ?? "modified",
-    direction: state.sortDirection ?? config?.sortDirection ?? "desc",
-  };
-}
-
 export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   notes: [],
   total: 0,
@@ -63,43 +52,31 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
 
   setView: (view) => {
     const previous = get().view;
-    set({ view });
-    void useSettingsData
-      .getState()
-      .apply({ dashboardView: view })
-      .then((persisted) => {
-        if (!persisted) set({ view: previous });
-      });
+    persistPreference({
+      update: { dashboardView: view },
+      apply: () => set({ view }),
+      rollback: () => set({ view: previous }),
+    });
   },
 
   setSortBy: (sortBy) => {
     const previous = get().sortBy;
-    set({ sortBy });
-    void get().loadInitial();
-    void useSettingsData
-      .getState()
-      .apply({ sortBy })
-      .then((persisted) => {
-        if (!persisted) {
-          set({ sortBy: previous });
-          void get().loadInitial();
-        }
-      });
+    persistPreference({
+      update: { sortBy },
+      apply: () => set({ sortBy }),
+      rollback: () => set({ sortBy: previous }),
+      refetch: () => void get().loadInitial(),
+    });
   },
 
   setSortDirection: (direction) => {
     const previous = get().sortDirection;
-    set({ sortDirection: direction });
-    void get().loadInitial();
-    void useSettingsData
-      .getState()
-      .apply({ sortDirection: direction })
-      .then((persisted) => {
-        if (!persisted) {
-          set({ sortDirection: previous });
-          void get().loadInitial();
-        }
-      });
+    persistPreference({
+      update: { sortDirection: direction },
+      apply: () => set({ sortDirection: direction }),
+      rollback: () => set({ sortDirection: previous }),
+      refetch: () => void get().loadInitial(),
+    });
   },
 
   loadInitial: async () => {
