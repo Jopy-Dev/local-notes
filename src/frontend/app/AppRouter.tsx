@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { SearchRecoveryPage } from "../pages/SearchRecoveryPage";
 import { WorkspaceShellPage } from "../pages/WorkspaceShellPage";
+import { settingsReturnNoteKey } from "../services/navigation";
 import { parseRoute } from "./routes";
 
 /*
@@ -34,8 +35,10 @@ export function AppRouter() {
     case "dashboard":
       return <WorkspaceShellPage />;
     case "settings":
-      // SCREEN-003: the settings form opens as a route-driven dialog over the shell.
-      return <WorkspaceShellPage settingsOpen />;
+      // SCREEN-003: the settings form opens as a route-driven dialog over the
+      // shell. The note it opened over stays mounted - unmounting would close
+      // the editor (draft flush + visual-verdict reset) for a dialog visit.
+      return <WorkspaceShellPage settingsOpen noteKey={settingsReturnNoteKey()} />;
     case "search-recovery":
       return <SearchRecoveryPage />;
   }

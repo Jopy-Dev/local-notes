@@ -70,7 +70,11 @@ export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: Vi
   }, [value]);
 
   useEffect(() => {
-    bindingRef.current?.editor.setEditable(!readOnly);
+    const editor = bindingRef.current?.editor;
+    // Skip the no-op call: TipTap emits an update event from setEditable
+    // even when nothing changes (REQ-015 no-write-without-edit).
+    if (!editor || editor.isEditable === !readOnly) return;
+    editor.setEditable(!readOnly);
   }, [readOnly]);
 
   const editor = bindingRef.current?.editor ?? null;

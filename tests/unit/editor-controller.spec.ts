@@ -40,6 +40,16 @@ describe("open (WF-005)", () => {
 });
 
 describe("autosave (WF-006, REQ-017)", () => {
+  it("an edit identical to the current draft never schedules a save (REQ-015 no-write-without-edit)", async () => {
+    const { controller, saves } = harness();
+    await controller.open("bm90ZS5tZA");
+    controller.changeDraft("disk content");
+    expect(controller.snapshot().saveState).toBe("saved");
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.runOnlyPendingTimersAsync();
+    expect(saves).toHaveLength(0);
+  });
+
   it("saves 750ms after the last edit with the loaded version", async () => {
     const { controller, saves } = harness();
     await controller.open("bm90ZS5tZA");

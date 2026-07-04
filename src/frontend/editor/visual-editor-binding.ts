@@ -33,10 +33,16 @@ export function createVisualEditorBinding(options: VisualEditorBindingOptions): 
     extensions: markdownEditorExtensions(),
     editable: options.editable ?? true,
     content: "",
-    onUpdate({ editor: updated }) {
+    onUpdate({ editor: updated, transaction }) {
       if (applyingExternal) return;
+      // TipTap fires update on setEditable and other doc-neutral events
+      // (REQ-015 no-write-without-edit): only real document changes may
+      // become drafts, and an echo serializing back to the current source
+      // is not an edit.
+      if (!transaction.docChanged) return;
       const manager = updated.storage.markdown.manager;
       const draft = restoreTerminalNewline(manager.serialize(updated.getJSON()), currentSource);
+      if (draft === currentSource) return;
       currentSource = draft;
       options.onDraft(draft);
     },
