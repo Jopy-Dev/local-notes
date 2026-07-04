@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -23,7 +24,13 @@ import { buildLaunchUrl, openBrowser } from "./launch.js";
  * browser. Search worker joins at Wave 3. Failure closes initialized
  * resources in reverse order.
  */
-const packagedClientRoot = join(dirname(fileURLToPath(import.meta.url)), "../../client");
+/*
+ * Packaged layout: dist/cli/index.js -> dist/client (tsconfig.build.json
+ * emits src/* to dist/*; Vite emits the SPA to dist/client). Under vite-node
+ * (dev) the directory does not exist - the Vite dev server owns the SPA and
+ * the API runs without a static root.
+ */
+const packagedClientRoot = join(dirname(fileURLToPath(import.meta.url)), "../client");
 
 async function main(): Promise<void> {
   const workspaceRoot = join(homedir(), ".local-notes");
@@ -51,9 +58,13 @@ async function main(): Promise<void> {
     discovery = await startDiscovery(guard, workspaceRoot);
 
     const capability = generateCapability();
+    const packagedClient = existsSync(join(packagedClientRoot, "index.html"));
+    if (!packagedClient) {
+      console.warn("Packaged SPA not found - serving API only (dev mode uses the Vite server).");
+    }
     const app = await buildApp({
       capability,
-      staticRoot: packagedClientRoot,
+      ...(packagedClient ? { staticRoot: packagedClientRoot } : {}),
       workspaceRoot,
       configService,
       noteRepository: discovery.repository,

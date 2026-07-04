@@ -33,6 +33,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
+      # Lifecycle-script allowlist gate (MasterPrompt.md 1.5, Wave 8)
+      - run: node scripts/check-lifecycle-scripts.mjs
       - name: Install slop + fd/rg binaries (slop file discovery + content search)
         run: |
           sudo apt-get update -q && sudo apt-get install -y -q fd-find ripgrep
