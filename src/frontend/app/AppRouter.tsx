@@ -32,8 +32,10 @@ export function AppRouter() {
     case "note":
       return <WorkspaceShellPage noteKey={route.noteKey} />;
     case "dashboard":
-    case "settings":
       return <WorkspaceShellPage />;
+    case "settings":
+      // SCREEN-003: the settings form opens as a route-driven dialog over the shell.
+      return <WorkspaceShellPage settingsOpen />;
     case "search-recovery":
       return <SearchRecoveryPage />;
   }

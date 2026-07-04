@@ -11,15 +11,31 @@ import { Modal } from "../ui/Modal";
  * offers rename-then-archive with REQ-011 validation server-side. The
  * active note never changes until the archive fully succeeds.
  */
+export class DraftUnsettledForArchiveError extends Error {
+  constructor() {
+    super("The unsaved draft could not be saved. Resolve the save error before archiving.");
+    this.name = "DraftUnsettledForArchiveError";
+  }
+}
 interface ArchiveDialogProps {
   open: boolean;
   noteKey: string;
   noteTitle: string;
   onClose: () => void;
   onArchived: (archivedRelativePath: string) => void;
+  /* Settles a pending draft BEFORE the file moves (REQ-017 x WF-009): throws
+   * to abort the archive when the draft cannot be saved. */
+  onBeforeArchive?: () => Promise<void>;
 }
 
-export function ArchiveDialog({ open, noteKey, noteTitle, onClose, onArchived }: ArchiveDialogProps) {
+export function ArchiveDialog({
+  open,
+  noteKey,
+  noteTitle,
+  onClose,
+  onArchived,
+  onBeforeArchive,
+}: ArchiveDialogProps) {
   const [collision, setCollision] = useState(false);
   const [replacement, setReplacement] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,12 +45,17 @@ export function ArchiveDialog({ open, noteKey, noteTitle, onClose, onArchived }:
     setSubmitting(true);
     setError(null);
     try {
+      // Flush an open dirty draft first - the archive move happens strictly
+      // after the save settles, so no write races the move.
+      await onBeforeArchive?.();
       const result = await archiveNote(noteKey, collision ? replacement.trim() : undefined);
       setCollision(false);
       setReplacement("");
       onArchived(result.archivedRelativePath);
     } catch (cause) {
-      if (cause instanceof ApiRequestError && cause.code === "ARCHIVE_COLLISION") {
+      if (cause instanceof DraftUnsettledForArchiveError) {
+        setError(cause.message);
+      } else if (cause instanceof ApiRequestError && cause.code === "ARCHIVE_COLLISION") {
         setCollision(true);
         setError("An archived note already has this name. Rename to archive.");
       } else {

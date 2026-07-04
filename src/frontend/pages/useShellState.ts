@@ -4,9 +4,10 @@ import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
 import type { FindController } from "../components/ui/FindInNoteBar";
 import { copyPlainText, copyToClipboard } from "../editor/copy-actions";
-import { navigate } from "../services/navigation";
+import { closeSettingsRoute, navigate, openSettingsRoute } from "../services/navigation";
 import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
+import { useSettingsData } from "../stores/settingsData";
 import { useDashboardData } from "./useDashboardData";
 import type { DashboardData } from "./useDashboardData";
 import { useShellHotkeys } from "./useShellHotkeys";
@@ -20,7 +21,6 @@ import { useToast } from "./useToast";
 export type DialogKind =
   | "command"
   | "new-note"
-  | "settings"
   | "move-note"
   | "archive-note"
   | "confirm-reload"
@@ -29,6 +29,9 @@ export type DialogKind =
 export interface ShellState extends DashboardData {
   toast: ReturnType<typeof useToast>;
   searchRef: RefObject<HTMLInputElement | null>;
+  settingsOpen: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
   activeFolder: string;
   setActiveFolder: (key: string) => void;
   selectedNote: string;
@@ -57,13 +60,16 @@ export interface ShellState extends DashboardData {
   editor: ReturnType<typeof useEditorData.getState>;
 }
 
-export function useShellState(routeNoteKey: string | null): ShellState {
+export function useShellState(routeNoteKey: string | null, settingsOpen = false): ShellState {
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [activeFolder, setActiveFolder] = useState("all");
   const [query, setQuery] = useState("");
-  const [descending, setDescending] = useState(true);
+  // Persisted sort direction restores across restarts (REQ-008).
+  const [descending, setDescending] = useState(
+    () => useSettingsData.getState().config?.sortDirection !== "asc",
+  );
   const [mode, setModeState] = useState<EditorMode>("edit");
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
   const [focusMode, setFocusMode] = useState(false);
@@ -213,15 +219,23 @@ export function useShellState(routeNoteKey: string | null): ShellState {
   }
 
   function toggleDirection() {
-    setDescending((current) => !current);
-    toast.show(descending ? "Sorted ascending" : "Sorted descending");
+    const next = !descending;
+    setDescending(next);
+    toast.show(next ? "Sorted descending" : "Sorted ascending");
+    // Persist optimistically; rollback on failure (WF-004).
+    void useSettingsData
+      .getState()
+      .apply({ sortDirection: next ? "desc" : "asc" })
+      .then((persisted) => {
+        if (!persisted) setDescending(!next);
+      });
   }
 
   useShellHotkeys({
     openCommand: () => setDialog("command"),
     focusSearch,
     openNewNote: () => setDialog("new-note"),
-    openSettings: () => setDialog("settings"),
+    openSettings: openSettingsRoute,
     toggleSplit,
     toggleFocusMode,
     openFind,
@@ -241,6 +255,9 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     ...dashboard,
     toast,
     searchRef,
+    settingsOpen,
+    openSettings: openSettingsRoute,
+    closeSettings: closeSettingsRoute,
     activeFolder,
     setActiveFolder,
     selectedNote: routeNoteKey ?? "",

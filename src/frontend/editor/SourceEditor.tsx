@@ -4,7 +4,7 @@ import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { cmFind, findField, useCmFind } from "./cm-find";
-import { quietWorkbenchTheme } from "./cm-theme";
+import { quietWorkbenchSyntaxHighlighting, quietWorkbenchTheme } from "./cm-theme";
 import type { FindRequest } from "./find-decorations";
 
 /*
@@ -63,6 +63,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
           basicSetup,
           cmFind(),
           themeCompartment.of(quietWorkbenchTheme),
+          quietWorkbenchSyntaxHighlighting,
           languageCompartment.of(language === "markdown" ? markdown() : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.lineWrapping,

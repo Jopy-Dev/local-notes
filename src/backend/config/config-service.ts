@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { AppError } from "../../shared/errors/codes.js";
 import { configV1Schema, defaultConfig } from "../../shared/schemas/config.js";
-import type { ConfigV1 } from "../../shared/schemas/config.js";
+import type { ConfigUpdate, ConfigV1 } from "../../shared/schemas/config.js";
 import { AtomicFileWriter } from "../filesystem/atomic-writer.js";
 
 /*
@@ -76,13 +76,13 @@ export class ConfigService {
     return { config, warnings };
   }
 
-  async update(partial: Partial<ConfigV1>): Promise<ConfigV1> {
+  async update(partial: ConfigUpdate): Promise<ConfigV1> {
     const task = this.mutex.catch(() => undefined).then(() => this.lockedUpdate(partial));
     this.mutex = task;
     return task;
   }
 
-  private async lockedUpdate(partial: Partial<ConfigV1>): Promise<ConfigV1> {
+  private async lockedUpdate(partial: ConfigUpdate): Promise<ConfigV1> {
     if (this.current === null) {
       this.current = (await this.load()).config;
     }

@@ -5,7 +5,6 @@ import type { NoteListEntry } from "../components/ui/NoteListItem";
  * arrives from the notes/folders/search APIs at Step 12+ (workflow/repo-env.md
  * 11c: mock data until real wiring).
  */
-export const WORKSPACE_PATH = "~/.local-notes";
 export const TOTAL_NOTES = 248;
 
 export const mockNotes: readonly NoteListEntry[] = [

@@ -5,7 +5,8 @@ import { useWorkspaceData } from "../../stores/workspaceData";
 import { CommandPalette } from "../ui/CommandPalette";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import { Toast } from "../ui/Toast";
-import { ArchiveDialog } from "./ArchiveDialog";
+import { useEditorData } from "../../stores/editorData";
+import { ArchiveDialog, DraftUnsettledForArchiveError } from "./ArchiveDialog";
 import { MoveNotePanel } from "./MoveNotePanel";
 import { NewNoteDialog } from "./NewNoteDialog";
 import { SettingsDialog } from "./SettingsDialog";
@@ -27,7 +28,7 @@ export function ShellDialogs({ shell }: { shell: ShellState }) {
       shell.toggleSplit();
     },
     toggleFocusMode: shell.toggleFocusMode,
-    openSettings: () => shell.setDialog("settings"),
+    openSettings: shell.openSettings,
   });
 
   const openDocument = shell.editor.document;
@@ -88,6 +89,15 @@ export function ShellDialogs({ shell }: { shell: ShellState }) {
           open={shell.dialog === "archive-note"}
           noteKey={openDocument.noteKey}
           noteTitle={openDocument.title}
+          onBeforeArchive={async () => {
+            // REQ-017 x WF-009: settle the open dirty draft before the move.
+            const editor = useEditorData.getState();
+            if (editor.noteKey !== openDocument.noteKey || editor.saveState === "saved") return;
+            await editor.flushDraft();
+            if (useEditorData.getState().saveState !== "saved") {
+              throw new DraftUnsettledForArchiveError();
+            }
+          }}
           onClose={() => shell.setDialog(null)}
           onArchived={(archivedRelativePath) => {
             shell.setDialog(null);
@@ -99,11 +109,11 @@ export function ShellDialogs({ shell }: { shell: ShellState }) {
         />
       ) : null}
       <SettingsDialog
-        open={shell.dialog === "settings"}
-        onClose={() => shell.setDialog(null)}
-        onApply={() => {
-          shell.setDialog(null);
-          shell.toast.show("Settings applied locally");
+        open={shell.settingsOpen}
+        onClose={shell.closeSettings}
+        onApplied={() => {
+          shell.toast.show("Settings applied");
+          shell.closeSettings();
         }}
       />
       <ConfirmationDialog

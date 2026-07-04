@@ -8,11 +8,18 @@ import { getCapability } from "./token";
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly fieldErrors: Record<string, string[]> | undefined;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    fieldErrors?: Record<string, string[]>,
+  ) {
     super(message);
     this.status = status;
     this.code = code;
+    this.fieldErrors = fieldErrors;
   }
 }
 
@@ -25,7 +32,12 @@ async function request<T>(path: string, init: RequestInit, extraHeaders: Record<
   const body: unknown = await response.json();
   if (!response.ok) {
     const error = (body as ApiError).error;
-    throw new ApiRequestError(response.status, error?.code ?? "INTERNAL", error?.message ?? "Request failed.");
+    throw new ApiRequestError(
+      response.status,
+      error?.code ?? "INTERNAL",
+      error?.message ?? "Request failed.",
+      error?.fieldErrors,
+    );
   }
   return (body as { data: T }).data;
 }
@@ -39,6 +51,14 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return request<T>(
     path,
     { method: "POST", body: JSON.stringify(body) },
+    { "Content-Type": "application/json" },
+  );
+}
+
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(
+    path,
+    { method: "PUT", body: JSON.stringify(body) },
     { "Content-Type": "application/json" },
   );
 }

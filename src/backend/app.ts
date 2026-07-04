@@ -14,6 +14,7 @@ import { registerEventsRoute } from "./routes/events.js";
 import { registerMutationRoutes } from "./routes/mutations.js";
 import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSearchRoutes } from "./routes/search.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerSystemRoutes } from "./routes/system.js";
 import type { EventBus } from "./events/event-bus.js";
 import type { OperationRegistry } from "./events/operation-registry.js";
@@ -93,6 +94,9 @@ function registerRouteModules(
     configService: options.configService,
     indexState: options.searchService ? () => options.searchService!.status().state : undefined,
   });
+  if (options.configService) {
+    registerSettingsRoutes(app, { configService: options.configService, bus: options.eventBus });
+  }
   if (options.noteRepository) {
     registerNotesRoutes(app, { repository: options.noteRepository });
   }

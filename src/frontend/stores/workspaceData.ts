@@ -3,13 +3,14 @@ import { fetchFolders, fetchNotesPage } from "../services/notesApi";
 import { subscribeWorkspaceEvents } from "../services/events";
 import { useEditorData } from "./editorData";
 import { useSearchData } from "./searchData";
+import { useSettingsData } from "./settingsData";
 import { indexStateSchema } from "../../shared/schemas/search.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
 /*
  * Dashboard data store (WF-001/004): appended metadata pages, folder tree,
- * live refresh on SSE note events. View/sort preferences persist via the
- * settings API at Wave 7 - session-local until then.
+ * live refresh on SSE note events. The view preference persists through the
+ * settings API (REQ-007) optimistically - failure rolls the toggle back.
  */
 export type DashboardView = "list" | "card";
 
@@ -38,7 +39,16 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   error: null,
   view: "list",
 
-  setView: (view) => set({ view }),
+  setView: (view) => {
+    const previous = get().view;
+    set({ view });
+    void useSettingsData
+      .getState()
+      .apply({ dashboardView: view })
+      .then((persisted) => {
+        if (!persisted) set({ view: previous });
+      });
+  },
 
   loadInitial: async () => {
     set({ loading: true, error: null });
@@ -73,19 +83,25 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
         void get().loadInitial();
         // Open-editor conflict detection (WF-007): the controller suppresses
         // events that carry one of its own operation IDs.
-        useEditorData.getState().handleEvent({
-          type: event.type,
-          ...(typeof event.payload.noteKey === "string" ? { noteKey: event.payload.noteKey } : {}),
-          ...(typeof event.payload.oldKey === "string" ? { oldKey: event.payload.oldKey } : {}),
-          ...(typeof event.payload.version === "string" ? { version: event.payload.version } : {}),
-          ...(typeof event.payload.operationId === "string"
-            ? { operationId: event.payload.operationId }
-            : {}),
-        });
+        useEditorData.getState().handleEvent(toEditorEvent(event));
       } else if (event.type === "index.status") {
         const parsed = indexStateSchema.safeParse(event.payload.status);
         if (parsed.success) useSearchData.getState().setIndexState(parsed.data);
+      } else if (event.type === "settings.changed") {
+        void useSettingsData.getState().reload();
       }
     });
   },
 }));
+
+function toEditorEvent(event: { type: string; payload: Record<string, unknown> }) {
+  const field = (key: string) =>
+    typeof event.payload[key] === "string" ? { [key]: event.payload[key] as string } : {};
+  return {
+    type: event.type,
+    ...field("noteKey"),
+    ...field("oldKey"),
+    ...field("version"),
+    ...field("operationId"),
+  };
+}

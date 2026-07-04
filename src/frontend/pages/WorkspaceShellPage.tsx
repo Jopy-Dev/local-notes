@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { CollapsedRail } from "../components/shell/CollapsedRail";
 import { EditorPane } from "../components/shell/EditorPane";
 import { FoldersPane } from "../components/shell/FoldersPane";
 import { NotesPane } from "../components/shell/NotesPane";
@@ -6,9 +6,13 @@ import { ShellDialogs } from "../components/shell/ShellDialogs";
 import { ShellStatusBar } from "../components/shell/ShellStatusBar";
 import { ShellTitlebar } from "../components/shell/ShellTitlebar";
 import { AppShell } from "../components/ui/AppShell";
+import { PaneDivider } from "../components/ui/PaneDivider";
 import { UnsupportedViewport, useViewportSupported } from "../components/ui/UnsupportedViewport";
 import { navigate } from "../services/navigation";
-import { useEditorData } from "../stores/editorData";
+import { PANE_BOUNDS, useWorkspaceUi } from "../stores/workspaceUi";
+import type { PaneKind } from "../stores/workspaceUi";
+import { useIsDesktop } from "./useIsDesktop";
+import { useRenameFollow } from "./useRenameFollow";
 import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
@@ -100,34 +104,39 @@ function ShellEditor({ shell }: { shell: ShellState }) {
   );
 }
 
-/*
- * REQ-018: a clean open note renamed outside the app swaps the editor key;
- * the route follows silently. The editor key moving away from the routed key
- * can only be a rename follow - every other transition starts from a route
- * change, so the route is already ahead of the editor in those cases.
- */
-function useRenameFollow(routeNoteKey: string | null) {
-  const editorNoteKey = useEditorData((state) => state.noteKey);
-  const previous = useRef(editorNoteKey);
-  useEffect(() => {
-    const before = previous.current;
-    previous.current = editorNoteKey;
-    if (!before || !editorNoteKey || before === editorNoteKey) return;
-    if (routeNoteKey === before) {
-      window.history.replaceState(null, "", `/notes/${editorNoteKey}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }
-  }, [editorNoteKey, routeNoteKey]);
-}
+const RAIL_WIDTH_PX = 28;
 
-export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null }) {
+export function WorkspaceShellPage({
+  noteKey = null,
+  settingsOpen = false,
+}: {
+  noteKey?: string | null;
+  settingsOpen?: boolean;
+}) {
   const supported = useViewportSupported();
-  const shell = useShellState(noteKey);
+  const shell = useShellState(noteKey, settingsOpen);
+  const isDesktop = useIsDesktop();
+  const panesUi = useWorkspaceUi();
   useRenameFollow(noteKey);
 
   if (!supported) {
     return <UnsupportedViewport />;
   }
+
+  const divider = (pane: PaneKind) => (
+    <PaneDivider
+      pane={pane}
+      width={panesUi.widths[pane]}
+      min={PANE_BOUNDS[pane].min}
+      max={PANE_BOUNDS[pane].max}
+      disabled={!isDesktop || panesUi.collapsed[pane]}
+      onResize={(width) => panesUi.resizePane(pane, width)}
+      onCommit={(width) => panesUi.commitPane(pane, width)}
+      onToggleCollapse={() => panesUi.toggleCollapsed(pane)}
+    />
+  );
+  const paneWidth = (pane: PaneKind) =>
+    panesUi.collapsed[pane] ? RAIL_WIDTH_PX : panesUi.widths[pane];
 
   return (
     <>
@@ -136,13 +145,32 @@ export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null
         titlebar={
           <ShellTitlebar
             onOpenCommand={() => shell.setDialog("command")}
-            onOpenSettings={() => shell.setDialog("settings")}
+            onOpenSettings={shell.openSettings}
           />
         }
-        folders={<ShellFolders shell={shell} />}
-        notes={<ShellNotes shell={shell} />}
+        folders={
+          panesUi.collapsed.folder && isDesktop ? (
+            <CollapsedRail pane="folder" onExpand={() => panesUi.toggleCollapsed("folder")} />
+          ) : (
+            <ShellFolders shell={shell} />
+          )
+        }
+        notes={
+          panesUi.collapsed.notes && isDesktop ? (
+            <CollapsedRail pane="notes" onExpand={() => panesUi.toggleCollapsed("notes")} />
+          ) : (
+            <ShellNotes shell={shell} />
+          )
+        }
         editor={<ShellEditor shell={shell} />}
         status={<ShellStatusBar document={shell.editor.document} saveState={shell.editor.saveState} />}
+        panes={{
+          folderWidth: paneWidth("folder"),
+          notesWidth: paneWidth("notes"),
+          resizable: isDesktop,
+          folderDivider: divider("folder"),
+          notesDivider: divider("notes"),
+        }}
       />
       <ShellDialogs shell={shell} />
     </>

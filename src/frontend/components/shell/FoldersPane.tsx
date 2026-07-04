@@ -3,7 +3,7 @@ import { ArchiveIcon, CheckCircleIcon, ClockIcon, FolderIcon, NewNoteIcon, NoteF
 import { FolderTree, TreeSection } from "../ui/FolderTree";
 import type { TreeEntry } from "../ui/FolderTree";
 import { IconButton } from "../ui/IconButton";
-import { WORKSPACE_PATH } from "../../services/mockWorkspace";
+import { getWorkspaceDisplayPath } from "../../services/workspace";
 
 /*
  * Folder navigation pane: library section, folders section, workspace footer.
@@ -97,7 +97,7 @@ export function FoldersPane({
           <div>
             <strong className="block truncate text-xs font-medium">Workspace available</strong>
             <span className="mt-0.5 block truncate font-mono text-2xs text-text-muted">
-              {WORKSPACE_PATH}
+              {getWorkspaceDisplayPath() ?? ""}
             </span>
           </div>
         </div>

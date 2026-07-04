@@ -1,7 +1,7 @@
 # Design System: Local-Notes
 
-**Version:** v1.3 - LOCKED  
-**Last updated:** 2026-07-03
+**Version:** v1.4 - LOCKED  
+**Last updated:** 2026-07-04
 
 ## 1. Brand Identity
 
@@ -108,6 +108,53 @@ All values originate in approved prototypes. Raw color literals are allowed only
 - Border/color as sole state communication. Source: `REQ-030`.
 - Remote color/theme assets. Source: `REQ-026`.
 
+### 2.6 Light Theme (`data-theme="light"`)
+
+Warm-paper light palette; same single amber hue family. Activation: `services/theme.ts` sets `<html data-theme>`; tokens override in `src/frontend/styles/app.css` `[data-theme="light"]` block. Dark tables §2.1-2.3 stay authoritative for default theme. Every ratio machine-verified (WCAG relative luminance). Source: user-approved light token table 2026-07-04.
+
+| Token | Light value | Verified contrast | Notes |
+|---|---|---|---|
+| `accent` | `#8a6222` | 4.83:1 on root; 4.96:1 on editor | Darkened amber; link text passes normal-text 4.5:1 |
+| `accent-hover` | `#7a5519` | accent ink 6.36:1 | Hover darkens (light convention) |
+| `accent-muted` | `#dcc79b` | text primary on it 9.41:1 | Wash bg (find-match); never text |
+| `accent-ink` | `#fdf9ef` | 5.19:1 on accent | Text/icon on accent |
+| `focus` | `#6b4c14` | 6.97:1 on root; 7.47:1 on input | Min 3:1 non-text |
+| `surface-root` | `#f4f1e8` | Primary text 13.79:1 | Warm paper canvas |
+| `surface-titlebar` | `#ece8da` | Pair with primary/secondary text | |
+| `surface-sidebar` | `#efebdf` | Pair with primary/secondary text | |
+| `surface-panel` | `#f1ede2` | Primary 13.31:1; secondary 7.74:1 | |
+| `surface-editor` | `#f7f4ec` | Secondary 8.24:1 | Lighter = writing focus |
+| `surface-code` | `#ece7d6` | Source text 10.66:1 | Mono wells darker |
+| `surface-input` | `#fbf9f2` | Pair with primary/secondary text | Inputs lightest |
+| `surface-raised` | `#fdfbf5` | Muted text 6.38:1 | Popover/modal |
+| `surface-hover` | `#e6e1d0` | Primary 11.90:1 | Transient only |
+| `surface-selected` | `#e3dcc5` | Primary 11.35:1; secondary 6.60:1 | Amber-warmed |
+| `border-subtle` | `#d8d2bf` | 1.34:1 on root (dark parity 1.42) | Never sole state indicator (§11) |
+| `border-strong` | `#b3ab93` | 2.03:1 on root (dark parity 1.95) | Never sole state indicator (§11) |
+| `border-active` | `#a08850` | 3.03:1 on root (beats dark 2.73) | Pair with icon/text |
+| `text-primary` | `#262419` | 13.79:1 on root; 11.35:1 on selected | |
+| `text-secondary` | `#4c4939` | 8.02:1 on root; 6.60:1 on selected | |
+| `text-muted` | `#615d4c` | 5.85:1 on root; 5.65:1 on panel | |
+| `text-disabled` | `#6b6758` | 5.02:1 on root | |
+| `text-source` | `#32302a` | 10.66:1 on code | |
+| `text-code` | `#77571a` | 5.37:1 on code | |
+| `success` / `success-bg` | `#3f6b35` / `#e0e9d6` | 5.52:1 on root; 4.99:1 on bg | |
+| `warning` / `warning-bg` | `#7d5a17` / `#f0e5c6` | 5.56:1 on root; 5.00:1 on bg | |
+| `danger` / `danger-bg` | `#a03a2e` / `#f4ddd6` | 5.92:1 on root; 5.15:1 on bg | |
+| `info` | `#48626f` | 5.72:1 on root | |
+
+Light elevation overrides (§6 tokens):
+
+| Token | Light value |
+|---|---|
+| `shadow-selected` | `inset 2px 0 0 #8a6222` |
+| `shadow-control-active` | `0 0 0 1px #b3ab93` |
+| `shadow-status` | `0 0 0 2px rgb(63 107 53 / 18%)` |
+| `shadow-popover` | `0 18px 50px rgb(76 73 57 / 25%)` |
+
+- `html[data-theme="light"]` sets `color-scheme: light` for native controls/scrollbars.
+- System theme resolves via `matchMedia("(prefers-color-scheme")` in `services/theme.ts`; no FOUC requirement beyond default-dark first paint.
+
 ## 3. Typography
 
 ### 3.1 Families
@@ -135,6 +182,7 @@ All values originate in approved prototypes. Raw color literals are allowed only
 
 - Source: approved prototypes; editor default also required by `REQ-021`.
 - Prose maximum `65ch`; preview medium width defaults to `76ch` outer cap.
+- Editor width user setting (`REQ-022`): `narrow` = `65ch`, `medium` = `76ch` (default), `wide` = `90ch` outer cap. Wide is explicit opt-in for table/code-heavy notes; prose guidance stays `65ch`. Source: user-approved 2026-07-04.
 - Dense desktop deviation: `10px`-`12px` permitted only for redundant metadata/shortcuts; critical labels use `13px` or larger.
 - Editor size user setting: integer `12px`-`24px`; default `14px`.
 - Editor line height user setting: `1.2`-`2.0`; default `1.6`.
@@ -154,6 +202,7 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | `layout-statusbar` | `24px` | Persistent local/file status |
 | `layout-folders` | `220px`; compact `190px` | Folder navigation |
 | `layout-notes` | `320px`; compact `280px` | Virtual note list |
+| `layout-rail-collapsed` | `28px` | Collapsed folder/notes pane rail (`REQ-034`); holds expand affordance + pane icon; focusable; `aria-expanded=false` |
 | `layout-editor` | `minmax(0,1fr)` | Note workspace |
 | `layout-split` | `minmax(320px,1fr)` x 2 | Source + preview at >=1200px |
 | `layout-preview` | `max-width:76ch` | Rendered prose |
@@ -328,7 +377,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `<SettingsForm>` | `config`, `errors`, `saving` | loading, ready, invalid, saving, error, success | Grouped fields; first invalid focus; status message | `SCREEN-003`, `WF-010` |
 | `<ReadOnlyBanner>` | `reason: oversized|encoding|permission` | visible, retryable error | `role=status` or alert by severity; reason text | Mutation controls disabled |
 | `<SearchRecoveryPanel>` | `status`, `onRebuild` | degraded, rebuilding, ready, failed | Progress/status announcement; editing-available copy | `SCREEN-007`, `WF-011` |
-| `<PaneDivider>` | `orientation: vertical`; `pane: folder|notes`; `width`, `min`, `max`, `collapsed` | default, hover, dragging, focus, disabled | `role=separator`; `aria-orientation="vertical"`; `aria-valuenow`/`min`/`max`; arrow-key resize, `Home`/`End` snap | `REQ-034`, `WF-012`; disabled below `desktop` breakpoint; reuses `border-subtle`/`border-strong`/`focus` tokens, no new color |
+| `<PaneDivider>` | `orientation: vertical`; `pane: folder|notes`; `width`, `min`, `max`, `collapsed` | default, hover, dragging, focus, disabled, collapsed | `role=separator`; `aria-orientation="vertical"`; `aria-valuenow`/`min`/`max`; arrow-key resize, `Home`/`End` snap; `Enter`/double-click toggles collapse (prior width restored, session-only); collapsed pane renders `layout-rail-collapsed` `28px` rail with focusable expand affordance (`aria-expanded=false`) | `REQ-034`, `WF-012`; disabled below `desktop` breakpoint; reuses `border-subtle`/`border-strong`/`focus` tokens, no new color. Collapse extension: user-approved 2026-07-04 |
 | `<FindInNoteBar>` | `query`, `matchIndex`, `matchCount`, `caseSensitive` | idle, searching, match, no-match, closed | `role="search"` landmark; `role="status"` live region for match count; `Escape` closes and returns focus | `REQ-035`, `WF-013`; shared shell over CodeMirror search (source mode) / ProseMirror decoration (visual mode) |
 | `<ErrorState>` | `title`, `message`, `requestId?`, `actions` | recoverable, blocking | Heading, alert semantics, retry/back | Missing note/API/config errors |
 | `<ConfirmationDialog>` | `tone`, `confirmLabel`, `details` | open, submitting, error | Initial focus on safe action; explicit consequence | External URL, reload, archive |
@@ -454,3 +503,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] Asset performance/offline policy documented.
 - [x] Step 11 implementation paths and anti-drift rules documented.
 - [x] PRD/MasterPrompt aligned with Focus Mode before lock.
+- [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
