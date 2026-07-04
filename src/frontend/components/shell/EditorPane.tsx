@@ -2,6 +2,8 @@ import { FocusEnterIcon, FocusExitIcon, NoteFileIcon } from "../icons";
 import { Button } from "../ui/Button";
 import { ConflictPanel } from "../ui/ConflictPanel";
 import { EditorHeader } from "../ui/EditorHeader";
+import { FindInNoteBar } from "../ui/FindInNoteBar";
+import type { FindController } from "../ui/FindInNoteBar";
 import { EditorModeTabs } from "../ui/EditorModeTabs";
 import type { EditorMode } from "../ui/EditorModeTabs";
 import { IconButton } from "../ui/IconButton";
@@ -43,6 +45,8 @@ interface EditorPaneProps {
   menuOpen: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
+  find: FindController;
+  onOpenFind: () => void;
   onToast: (message: string) => void;
   onCopyMarkdown: () => void;
   onCopyText: () => void;
@@ -133,6 +137,19 @@ export function EditorPane(props: EditorPaneProps) {
           </>
         }
       />
+      {props.find.open ? (
+        <FindInNoteBar
+          query={props.find.query}
+          caseSensitive={props.find.caseSensitive}
+          activeIndex={props.find.activeIndex}
+          total={props.find.total}
+          onQueryChange={props.find.onQueryChange}
+          onToggleCase={props.find.onToggleCase}
+          onNext={props.find.onNext}
+          onPrevious={props.find.onPrevious}
+          onClose={props.find.onClose}
+        />
+      ) : null}
       {props.readOnlyReason ? <ReadOnlyBanner reason={props.readOnlyReason} /> : null}
       <ConflictPanel
         kind={props.conflict}
@@ -152,6 +169,9 @@ export function EditorPane(props: EditorPaneProps) {
           splitLayout={props.splitLayout}
           onChangeDraft={props.onChangeDraft}
           onToast={props.onToast}
+          find={props.find.request}
+          onFindMatches={props.find.onMatches}
+          onOpenFind={props.onOpenFind}
         />
       </div>
     </main>

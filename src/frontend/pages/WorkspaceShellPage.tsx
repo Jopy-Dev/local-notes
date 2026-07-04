@@ -87,6 +87,8 @@ function ShellEditor({ shell }: { shell: ShellState }) {
       onToggleMenu={() => shell.setMenuOpen(!shell.menuOpen)}
       onCloseMenu={() => shell.setMenuOpen(false)}
       onToast={shell.toast.show}
+      find={shell.find}
+      onOpenFind={shell.openFind}
       onCopyMarkdown={shell.copyMarkdown}
       onCopyText={shell.copyText}
       onCopyLocalPath={shell.copyLocalPath}

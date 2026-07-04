@@ -2,6 +2,7 @@ import { InfoIcon } from "../icons";
 import { MarkdownPreview } from "../../editor/MarkdownPreview";
 import { SourceEditor } from "../../editor/SourceEditor";
 import { VisualMarkdownEditor } from "../../editor/VisualMarkdownEditor";
+import type { FindRequest } from "../../editor/find-decorations";
 import type { EditorMode } from "../ui/EditorModeTabs";
 import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
@@ -23,6 +24,9 @@ interface EditorContentProps {
   splitLayout: SplitLayout;
   onChangeDraft: (value: string) => void;
   onToast: (message: string) => void;
+  find: FindRequest | null;
+  onFindMatches: (total: number) => void;
+  onOpenFind: () => void;
 }
 
 function SourceOnlyNotice({ reason }: { reason: string | null }) {
@@ -48,10 +52,21 @@ const splitGrid: Record<SplitLayout, string> = {
 
 export function EditorContent(props: EditorContentProps) {
   const { mode, document, draft, readOnly, onChangeDraft } = props;
+  const findProps = {
+    find: props.find,
+    onFindMatches: props.onFindMatches,
+    onOpenFind: props.onOpenFind,
+  };
   if (document.extension !== ".md") {
     return (
       <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
-        <SourceEditor value={draft} language="plain" readOnly={readOnly} onChange={onChangeDraft} />
+        <SourceEditor
+          value={draft}
+          language="plain"
+          readOnly={readOnly}
+          onChange={onChangeDraft}
+          {...findProps}
+        />
       </section>
     );
   }
@@ -59,7 +74,13 @@ export function EditorContent(props: EditorContentProps) {
   if (mode === "read") {
     return (
       <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
-        <MarkdownPreview source={draft} noteKey={document.noteKey} onToast={props.onToast} />
+        <MarkdownPreview
+          source={draft}
+          noteKey={document.noteKey}
+          onToast={props.onToast}
+          find={props.find}
+          onFindMatches={props.onFindMatches}
+        />
       </section>
     );
   }
@@ -74,7 +95,13 @@ export function EditorContent(props: EditorContentProps) {
         {visual ? (
           <>
             <span />
-            <VisualMarkdownEditor value={draft} readOnly={readOnly} onChange={onChangeDraft} />
+            <VisualMarkdownEditor
+              value={draft}
+              readOnly={readOnly}
+              onChange={onChangeDraft}
+              find={props.find}
+              onFindMatches={props.onFindMatches}
+            />
           </>
         ) : (
           <>
@@ -84,6 +111,7 @@ export function EditorContent(props: EditorContentProps) {
               language="markdown"
               readOnly={readOnly}
               onChange={onChangeDraft}
+              {...findProps}
             />
           </>
         )}
@@ -94,14 +122,36 @@ export function EditorContent(props: EditorContentProps) {
   if (mode === "source") {
     return (
       <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
-        <SourceEditor value={draft} language="markdown" readOnly={readOnly} onChange={onChangeDraft} />
+        <SourceEditor
+          value={draft}
+          language="markdown"
+          readOnly={readOnly}
+          onChange={onChangeDraft}
+          {...findProps}
+        />
       </section>
     );
   }
 
-  const preview = <MarkdownPreview source={draft} noteKey={document.noteKey} onToast={props.onToast} />;
+  // Split: the source pane owns find navigation and counts; the preview
+  // highlights the same query without an active match (its text ordering
+  // is the rendered document, not the Markdown source).
+  const preview = (
+    <MarkdownPreview
+      source={draft}
+      noteKey={document.noteKey}
+      onToast={props.onToast}
+      find={props.find ? { ...props.find, activeIndex: -1 } : null}
+    />
+  );
   const editor = (
-    <SourceEditor value={draft} language="markdown" readOnly={readOnly} onChange={onChangeDraft} />
+    <SourceEditor
+      value={draft}
+      language="markdown"
+      readOnly={readOnly}
+      onChange={onChangeDraft}
+      {...findProps}
+    />
   );
   return (
     <section aria-label="Note editor" className={splitGrid[props.splitLayout]}>

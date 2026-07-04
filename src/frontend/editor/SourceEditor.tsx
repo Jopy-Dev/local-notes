@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { EditorView, basicSetup } from "codemirror";
-import { Annotation, EditorState, Compartment } from "@codemirror/state";
+import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { cmFind, findField, setFindEffect } from "./cm-find";
+import type { FindRequest } from "./find-decorations";
 
 /*
  * <SourceEditor> per Design_System.md 9.2: CodeMirror 6 source/plain editor.
@@ -55,13 +58,20 @@ interface SourceEditorProps {
   language: "markdown" | "plain";
   readOnly: boolean;
   onChange: (value: string) => void;
+  find?: FindRequest | null;
+  onFindMatches?: (total: number) => void;
+  onOpenFind?: () => void;
 }
 
-export function SourceEditor({ value, language, readOnly, onChange }: SourceEditorProps) {
+export function SourceEditor({ value, language, readOnly, onChange, ...props }: SourceEditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onFindMatchesRef = useRef(props.onFindMatches);
+  onFindMatchesRef.current = props.onFindMatches;
+  const onOpenFindRef = useRef(props.onOpenFind);
+  onOpenFindRef.current = props.onOpenFind;
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -70,13 +80,30 @@ export function SourceEditor({ value, language, readOnly, onChange }: SourceEdit
       state: EditorState.create({
         doc: value,
         extensions: [
+          // FindInNoteBar owns find UI (REQ-035) - shadow basicSetup's
+          // native Mod-f search panel before it can open.
+          Prec.highest(
+            keymap.of([
+              {
+                key: "Mod-f",
+                run: () => {
+                  onOpenFindRef.current?.();
+                  return true;
+                },
+              },
+            ]),
+          ),
           basicSetup,
+          cmFind(),
           themeCompartment.of(quietWorkbenchTheme),
           languageCompartment.of(language === "markdown" ? markdown() : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
+            // Find totals track edits too (REQ-035 accurate count).
+            const findValue = update.state.field(findField);
+            if (findValue.request) onFindMatchesRef.current?.(findValue.total);
             if (update.transactions.some((tr) => tr.annotation(externalSync))) return;
             onChangeRef.current(update.state.doc.toString());
           }),
@@ -101,6 +128,21 @@ export function SourceEditor({ value, language, readOnly, onChange }: SourceEdit
       ],
     });
   }, [readOnly, language]);
+
+  // REQ-035: push the shared find request into the decoration field, report
+  // the total up, and keep the active match in view.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({ effects: setFindEffect.of(props.find ?? null) });
+    const state = view.state.field(findField);
+    onFindMatchesRef.current?.(state.total);
+    if (state.activeRange) {
+      view.dispatch({
+        effects: EditorView.scrollIntoView(state.activeRange.from, { y: "nearest" }),
+      });
+    }
+  }, [props.find]);
 
   useEffect(() => {
     const view = viewRef.current;

@@ -6,6 +6,8 @@ import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { IconButton } from "../components/ui/IconButton";
 import { navigate } from "../services/navigation";
 import { copyToClipboard } from "./copy-actions";
+import type { FindRequest } from "./find-decorations";
+import { applyPreviewFind, clearPreviewFind } from "./preview-find";
 import { hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
 
 /*
@@ -19,19 +21,34 @@ interface MarkdownPreviewProps {
   source: string;
   noteKey: string;
   onToast: (message: string) => void;
+  find?: FindRequest | null;
+  onFindMatches?: (total: number) => void;
 }
 
-export function MarkdownPreview({ source, noteKey, onToast }: MarkdownPreviewProps) {
+export function MarkdownPreview({ source, noteKey, onToast, ...props }: MarkdownPreviewProps) {
   const { html, status, retry } = useRenderedHtml(source, noteKey);
   const articleRef = useRef<HTMLElement | null>(null);
   const [pendingExternal, setPendingExternal] = useState<string | null>(null);
   const copyMounts = useCopyMounts(articleRef, html);
+  const onFindMatchesRef = useRef(props.onFindMatches);
+  onFindMatchesRef.current = props.onFindMatches;
 
   useEffect(() => {
     const container = articleRef.current;
     if (!container || html === null) return;
     return hydrateAssetImages(container);
   }, [html]);
+
+  // REQ-035: highlight the rendered article via CSS custom highlights -
+  // never by mutating the sanitized subtree (MasterPrompt 7.2).
+  useEffect(() => {
+    const container = articleRef.current;
+    if (!container || html === null) return;
+    const result = applyPreviewFind(container, props.find ?? null);
+    if (props.find) onFindMatchesRef.current?.(result.total);
+    result.activeElement?.scrollIntoView({ block: "nearest" });
+    return clearPreviewFind;
+  }, [html, props.find]);
 
   // REQ-036: sanitized HTML never carries button markup - <IconButton>
   // portals render into the useCopyMounts holder spans client-side.

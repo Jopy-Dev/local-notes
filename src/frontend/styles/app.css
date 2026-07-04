@@ -182,6 +182,28 @@
     border-radius: var(--radius-xs);
     padding: 0.05em 0.25em;
   }
+  /* Find-in-note highlights (REQ-035): shared classes for CodeMirror +
+     ProseMirror decorations; ::highlight() pair paints the read/split
+     preview via the CSS Custom Highlight API without DOM mutation. */
+  .find-match {
+    background-color: var(--color-accent-muted);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-primary);
+  }
+  .find-match-active {
+    background-color: var(--color-accent);
+    border-radius: var(--radius-xs);
+    color: var(--color-surface-root);
+  }
+  ::highlight(find-match) {
+    background-color: var(--color-accent-muted);
+    color: var(--color-text-primary);
+  }
+  ::highlight(find-match-active) {
+    background-color: var(--color-accent);
+    color: var(--color-surface-root);
+  }
+
   .markdown-preview [data-blocked] {
     background-color: var(--color-warning-bg);
     border: 1px dashed var(--color-border-active);

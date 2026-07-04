@@ -3,7 +3,8 @@ import { useEffect } from "react";
 /*
  * App-shell keyboard contract (Design_System.md 11): Ctrl+K palette,
  * Ctrl+P search, Ctrl+N create, Ctrl+, settings, Ctrl+\ split toggle,
- * Ctrl+Shift+F focus mode, Escape exits focus mode when no modal open.
+ * Ctrl+Shift+F focus mode, Ctrl+F find in note (REQ-035), Escape exits
+ * the innermost transient layer when no modal open.
  */
 interface ShellHotkeyHandlers {
   openCommand: () => void;
@@ -12,6 +13,7 @@ interface ShellHotkeyHandlers {
   openSettings: () => void;
   toggleSplit: () => void;
   toggleFocusMode: () => void;
+  openFind: () => void;
   onEscape: () => void;
 }
 
@@ -23,6 +25,7 @@ interface Binding {
 
 const modifierBindings: readonly Binding[] = [
   { key: "f", shift: true, run: (handlers) => handlers.toggleFocusMode() },
+  { key: "f", run: (handlers) => handlers.openFind() },
   { key: "k", run: (handlers) => handlers.openCommand() },
   { key: "p", run: (handlers) => handlers.focusSearch() },
   { key: "n", run: (handlers) => handlers.openNewNote() },
