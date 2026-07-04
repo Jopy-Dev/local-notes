@@ -4,6 +4,8 @@ import type { MetadataCache } from "../filesystem/metadata-cache.js";
 import type { NoteRepository } from "../filesystem/note-repository.js";
 import { encodeNoteKey } from "../filesystem/path-guard.js";
 import type { SearchService } from "../search/search-service.js";
+import { correlateRenames } from "./rename-correlation.js";
+import type { RenamePair } from "./rename-correlation.js";
 import type { WatchEvent } from "./workspace-watcher.js";
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
@@ -41,12 +43,38 @@ export class WatchEventPipeline {
   }
 
   async handleBatch(events: WatchEvent[]): Promise<void> {
+    const previous = new Map(this.snapshot.map((note) => [note.relativePath, note]));
     this.snapshot = await this.deps.repository.scan(this.snapshot);
     await this.deps.cache.save(this.snapshot);
     const byPath = new Map(this.snapshot.map((note) => [note.relativePath, note]));
-    for (const event of events) {
+    const { renames, remainder } = correlateRenames(events, previous, byPath);
+    for (const rename of renames) {
+      await this.publishRename(rename);
+    }
+    for (const event of remainder) {
       await this.publish(event, byPath.get(event.relPath));
     }
+  }
+
+  /* REQ-018: a correlated rename collapses to one note.renamed event so the
+   * open editor can follow the new key instead of seeing remove+add. */
+  private async publishRename(pair: RenamePair): Promise<void> {
+    const { bus, searchService, operationRegistry } = this.deps;
+    const oldKey = encodeNoteKey(pair.oldPath);
+    const noteKey = encodeNoteKey(pair.newPath);
+    // Consume both registry entries - an app move registers source and target.
+    const sourceId = operationRegistry.take(pair.oldPath);
+    const targetId = operationRegistry.take(pair.newPath);
+    const operationId = sourceId ?? targetId;
+    await searchService.applyRemove(oldKey).catch(() => undefined);
+    await searchService.applyUpsert(pair.note).catch(() => undefined);
+    bus.publish({
+      type: "note.renamed",
+      oldKey,
+      noteKey,
+      version: pair.note.versionToken,
+      ...(operationId ? { operationId } : {}),
+    });
   }
 
   private async publish(event: WatchEvent, note: NoteMetadata | undefined): Promise<void> {

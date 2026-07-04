@@ -11,6 +11,7 @@ import { initWorkspace } from "../backend/filesystem/workspace-init.js";
 import { acquireWorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import type { WorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import { LOG_MAX_AGE_DAYS, LOG_MAX_TOTAL_BYTES, sweepLogs } from "../backend/logging/rotation.js";
+import { MarkdownRenderService } from "../backend/markdown/render-service.js";
 import { startDiscovery } from "./discovery.js";
 import type { DiscoveryStack } from "./discovery.js";
 import { classifyStartupError, EXIT_CODES } from "./exit-codes.js";
@@ -60,6 +61,7 @@ async function main(): Promise<void> {
       searchService: discovery.searchService,
       mutationService: discovery.mutationService,
       contentService: discovery.contentService,
+      markdownService: new MarkdownRenderService(guard),
       operationRegistry: discovery.operationRegistry,
     });
     const url = await startServer(app);

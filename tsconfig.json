@@ -18,5 +18,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/frontend", "src/shared"]
+  "include": ["src/frontend", "src/shared", "tests/dom"]
 }

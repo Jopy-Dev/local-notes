@@ -46,7 +46,8 @@ describe("GET /api/v1/notes/:noteKey", () => {
     expect(res.statusCode).toBe(200);
     const doc = res.json().data;
     expect(doc.content).toBe("# Hello\nworld");
-    expect(doc.markdownCompatibility).toBe("source-only");
+    // Static scan verdict (Wave 6): conservative markdown is edit-eligible.
+    expect(doc.markdownCompatibility).toBe("edit");
     expect(doc.versionToken).toMatch(/^[a-f0-9]{64}$/);
   });
 

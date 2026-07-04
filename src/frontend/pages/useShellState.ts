@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
+import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
+import type { FindController } from "../components/ui/FindInNoteBar";
+import { copyPlainText, copyToClipboard } from "../editor/copy-actions";
 import { navigate } from "../services/navigation";
+import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
 import { useDashboardData } from "./useDashboardData";
 import type { DashboardData } from "./useDashboardData";
@@ -36,10 +40,17 @@ export interface ShellState extends DashboardData {
   mode: EditorMode;
   setMode: (mode: EditorMode) => void;
   toggleSplit: () => void;
+  splitLayout: SplitLayout;
+  cycleSplitLayout: () => void;
   focusMode: boolean;
   toggleFocusMode: () => void;
   menuOpen: boolean;
   setMenuOpen: (open: boolean) => void;
+  copyMarkdown: () => void;
+  copyText: () => void;
+  copyLocalPath: () => void;
+  find: FindController;
+  openFind: () => void;
   dialog: DialogKind;
   setDialog: (dialog: DialogKind) => void;
   focusSearch: () => void;
@@ -53,7 +64,8 @@ export function useShellState(routeNoteKey: string | null): ShellState {
   const [activeFolder, setActiveFolder] = useState("all");
   const [query, setQuery] = useState("");
   const [descending, setDescending] = useState(true);
-  const [mode, setMode] = useState<EditorMode>("edit");
+  const [mode, setModeState] = useState<EditorMode>("edit");
+  const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
   const [focusMode, setFocusMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>(null);
@@ -61,11 +73,25 @@ export function useShellState(routeNoteKey: string | null): ShellState {
   const dashboard = useDashboardData(query);
   const editor = useEditorData();
 
+  // REQ-035 find-in-note: client-side only, scoped to the open note.
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findCase, setFindCase] = useState(false);
+  const [findIndex, setFindIndex] = useState(0);
+  const [findTotal, setFindTotal] = useState(0);
+  // Escape restores focus to where find was invoked from (Design_System 11).
+  const findReturnFocus = useRef<HTMLElement | null>(null);
+
   // Route param owns which note is open (MasterPrompt.md 1.6). Both paths
   // settle or park an unsettled draft first (REQ-017).
   useEffect(() => {
     if (routeNoteKey) void useEditorData.getState().openNote(routeNoteKey);
     else void useEditorData.getState().closeNote();
+    // A different note is a different find context.
+    setFindOpen(false);
+    setFindQuery("");
+    setFindIndex(0);
+    setFindTotal(0);
   }, [routeNoteKey]);
 
   // REQ-017/018: closing the tab with an unsaved, failed, or conflicted
@@ -96,8 +122,94 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     setFocusMode((current) => !current);
   }
 
+  // REQ-015: entering visual edit mode revalidates the current draft -
+  // source-mode edits may have made the note source-only.
+  function setMode(next: EditorMode) {
+    if (next === "edit") useEditorData.getState().revalidateVisual();
+    setModeState(next);
+  }
+
   function toggleSplit() {
-    setMode((current) => (current === "split" ? "edit" : "split"));
+    setModeState((current) => (current === "split" ? "edit" : "split"));
+  }
+
+  function cycleSplitLayout() {
+    setSplitLayout((current) =>
+      current === "side" ? "preview-top" : current === "preview-top" ? "preview-bottom" : "side",
+    );
+  }
+
+  // PRD REQ-035: find unavailable until the note's content loads.
+  function openFind() {
+    if (!editor.document) return;
+    findReturnFocus.current = window.document.activeElement as HTMLElement | null;
+    setFindOpen(true);
+  }
+
+  function closeFind() {
+    setFindOpen(false);
+    setFindQuery("");
+    setFindIndex(0);
+    setFindTotal(0);
+    if (findReturnFocus.current?.isConnected) findReturnFocus.current.focus();
+    findReturnFocus.current = null;
+  }
+
+  const find: FindController = {
+    open: findOpen,
+    query: findQuery,
+    caseSensitive: findCase,
+    activeIndex: findIndex,
+    total: findTotal,
+    request: useMemo(
+      () =>
+        findOpen && findQuery.trim() !== ""
+          ? { query: findQuery, activeIndex: findIndex, caseSensitive: findCase }
+          : null,
+      [findOpen, findQuery, findIndex, findCase],
+    ),
+    onQueryChange: (query) => {
+      setFindQuery(query);
+      setFindIndex(0);
+    },
+    onToggleCase: () => {
+      setFindCase((current) => !current);
+      setFindIndex(0);
+    },
+    onNext: () => setFindIndex((index) => (findTotal > 0 ? (index + 1) % findTotal : 0)),
+    onPrevious: () =>
+      setFindIndex((index) => (findTotal > 0 ? (index - 1 + findTotal) % findTotal : 0)),
+    onClose: closeFind,
+    onMatches: (total) => {
+      setFindTotal(total);
+      setFindIndex((index) => (total === 0 ? 0 : Math.min(index, total - 1)));
+    },
+  };
+
+  // REQ-020: copy success and clipboard-denied failure both surface a toast.
+  function copyWithToast(action: Promise<boolean>, successMessage: string) {
+    void action.then((copied) =>
+      toast.show(copied ? successMessage : "Copy failed - clipboard unavailable"),
+    );
+  }
+
+  function copyMarkdown() {
+    if (!editor.document) return;
+    copyWithToast(copyToClipboard(editor.draft), "Markdown copied");
+  }
+
+  function copyText() {
+    const document = editor.document;
+    if (!document) return;
+    copyWithToast(copyPlainText(editor.draft, document.noteKey, document.extension), "Text copied");
+  }
+
+  function copyLocalPath() {
+    const document = editor.document;
+    if (!document) return;
+    const root = getWorkspaceDisplayPath();
+    const path = root ? `${root}/${document.relativePath}` : document.relativePath;
+    copyWithToast(copyToClipboard(path), "Local path copied");
   }
 
   function toggleDirection() {
@@ -112,9 +224,16 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     openSettings: () => setDialog("settings"),
     toggleSplit,
     toggleFocusMode,
+    openFind,
     onEscape: () => {
-      if (dialog === null && focusMode) setFocusMode(false);
       setMenuOpen(false);
+      // Escape closes the innermost transient layer first (Design_System 11):
+      // dialogs own their Escape; find closes before focus mode exits.
+      if (dialog === null && findOpen) {
+        closeFind();
+        return;
+      }
+      if (dialog === null && focusMode) setFocusMode(false);
     },
   });
 
@@ -133,10 +252,17 @@ export function useShellState(routeNoteKey: string | null): ShellState {
     mode,
     setMode,
     toggleSplit,
+    splitLayout,
+    cycleSplitLayout,
     focusMode,
     toggleFocusMode,
     menuOpen,
     setMenuOpen,
+    copyMarkdown,
+    copyText,
+    copyLocalPath,
+    find,
+    openFind,
     dialog,
     setDialog,
     focusSearch,

@@ -1,56 +1,162 @@
+import { InfoIcon } from "../icons";
+import { MarkdownPreview } from "../../editor/MarkdownPreview";
 import { SourceEditor } from "../../editor/SourceEditor";
+import { VisualMarkdownEditor } from "../../editor/VisualMarkdownEditor";
+import type { FindRequest } from "../../editor/find-decorations";
 import type { EditorMode } from "../ui/EditorModeTabs";
 import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
 /*
- * Editor workspace (WF-005/006): live CodeMirror source editing for .md and
- * .txt. Read mode is the same source view locked read-only; the rendered
- * preview pane replaces the placeholder when the Markdown pipeline lands
- * (Wave 6, REQ-014 render).
+ * Editor workspace (WF-005/006, REQ-014/015/016): mode-routed surfaces.
+ * Read = server-sanitized preview; Edit = TipTap for compatibility-approved
+ * .md (source fallback with explanation otherwise); Source = CodeMirror;
+ * Split = source + live preview. .txt is always the plain editor.
  */
-function PreviewPlaceholder() {
-  return (
-    <article
-      aria-label="Rendered note"
-      className="grid min-h-0 min-w-0 place-items-center overflow-auto bg-surface-editor p-6"
-    >
-      <p className="max-w-sm text-center text-sm leading-relaxed text-text-muted">
-        Rendered Markdown preview arrives with the Markdown pipeline. Source editing is fully
-        functional; the file on disk stays ordinary Markdown.
-      </p>
-    </article>
-  );
-}
+export type SplitLayout = "side" | "preview-top" | "preview-bottom";
 
 interface EditorContentProps {
   mode: EditorMode;
   document: NoteDocument;
   draft: string;
   readOnly: boolean;
+  visualCompatibility: "edit" | "source-only";
+  visualCompatibilityReason: string | null;
+  splitLayout: SplitLayout;
   onChangeDraft: (value: string) => void;
+  onToast: (message: string) => void;
+  find: FindRequest | null;
+  onFindMatches: (total: number) => void;
+  onOpenFind: () => void;
 }
 
-export function EditorContent({ mode, document, draft, readOnly, onChangeDraft }: EditorContentProps) {
-  const language = document.extension === ".md" ? ("markdown" as const) : ("plain" as const);
-  // Read mode = the same source view locked read-only until Wave 6 rendering.
-  const sourceReadOnly = readOnly || mode === "read";
-
+function SourceOnlyNotice({ reason }: { reason: string | null }) {
   return (
-    <section
-      aria-label="Note editor"
-      className={
-        mode === "split"
-          ? "grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] desktop:grid-cols-[minmax(320px,1fr)_minmax(320px,1fr)]"
-          : "grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]"
-      }
+    <div
+      role="status"
+      className="flex items-center gap-2 border-b border-border-subtle bg-surface-panel px-3 py-1.5 text-xs text-info"
     >
-      <SourceEditor
-        value={draft}
-        language={language}
-        readOnly={sourceReadOnly}
-        onChange={onChangeDraft}
-      />
-      {mode === "split" ? <PreviewPlaceholder /> : null}
+      <InfoIcon size={14} />
+      <span>
+        Visual editing is unavailable for this note - editing Markdown source instead.
+        {reason ? ` ${reason}` : ""}
+      </span>
+    </div>
+  );
+}
+
+const splitGrid: Record<SplitLayout, string> = {
+  side: "grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] desktop:grid-cols-[minmax(320px,1fr)_minmax(320px,1fr)]",
+  "preview-top": "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)]",
+  "preview-bottom": "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)]",
+};
+
+export function EditorContent(props: EditorContentProps) {
+  const { mode, document, draft, readOnly, onChangeDraft } = props;
+  const findProps = {
+    find: props.find,
+    onFindMatches: props.onFindMatches,
+    onOpenFind: props.onOpenFind,
+  };
+  if (document.extension !== ".md") {
+    return (
+      <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
+        <SourceEditor
+          value={draft}
+          language="plain"
+          readOnly={readOnly}
+          onChange={onChangeDraft}
+          {...findProps}
+        />
+      </section>
+    );
+  }
+
+  if (mode === "read") {
+    return (
+      <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
+        <MarkdownPreview
+          source={draft}
+          noteKey={document.noteKey}
+          onToast={props.onToast}
+          find={props.find}
+          onFindMatches={props.onFindMatches}
+        />
+      </section>
+    );
+  }
+
+  if (mode === "edit") {
+    const visual = !readOnly && props.visualCompatibility === "edit";
+    return (
+      <section
+        aria-label="Note editor"
+        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)]"
+      >
+        {visual ? (
+          <>
+            <span />
+            <VisualMarkdownEditor
+              value={draft}
+              readOnly={readOnly}
+              onChange={onChangeDraft}
+              find={props.find}
+              onFindMatches={props.onFindMatches}
+            />
+          </>
+        ) : (
+          <>
+            {readOnly ? <span /> : <SourceOnlyNotice reason={props.visualCompatibilityReason} />}
+            <SourceEditor
+              value={draft}
+              language="markdown"
+              readOnly={readOnly}
+              onChange={onChangeDraft}
+              {...findProps}
+            />
+          </>
+        )}
+      </section>
+    );
+  }
+
+  if (mode === "source") {
+    return (
+      <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
+        <SourceEditor
+          value={draft}
+          language="markdown"
+          readOnly={readOnly}
+          onChange={onChangeDraft}
+          {...findProps}
+        />
+      </section>
+    );
+  }
+
+  // Split: the source pane owns find navigation and counts; the preview
+  // highlights the same query without an active match (its text ordering
+  // is the rendered document, not the Markdown source).
+  const preview = (
+    <MarkdownPreview
+      source={draft}
+      noteKey={document.noteKey}
+      onToast={props.onToast}
+      find={props.find ? { ...props.find, activeIndex: -1 } : null}
+    />
+  );
+  const editor = (
+    <SourceEditor
+      value={draft}
+      language="markdown"
+      readOnly={readOnly}
+      onChange={onChangeDraft}
+      {...findProps}
+    />
+  );
+  return (
+    <section aria-label="Note editor" className={splitGrid[props.splitLayout]}>
+      {props.splitLayout === "preview-top" ? preview : editor}
+      {props.splitLayout === "preview-top" ? editor : preview}
     </section>
   );
 }

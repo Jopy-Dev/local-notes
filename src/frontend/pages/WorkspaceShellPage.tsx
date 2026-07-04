@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { EditorPane } from "../components/shell/EditorPane";
 import { FoldersPane } from "../components/shell/FoldersPane";
 import { NotesPane } from "../components/shell/NotesPane";
@@ -7,6 +8,7 @@ import { ShellTitlebar } from "../components/shell/ShellTitlebar";
 import { AppShell } from "../components/ui/AppShell";
 import { UnsupportedViewport, useViewportSupported } from "../components/ui/UnsupportedViewport";
 import { navigate } from "../services/navigation";
+import { useEditorData } from "../stores/editorData";
 import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
@@ -77,21 +79,51 @@ function ShellEditor({ shell }: { shell: ShellState }) {
       }}
       mode={shell.mode}
       onModeChange={shell.setMode}
+      visualCompatibility={editor.visualCompatibility}
+      visualCompatibilityReason={editor.visualCompatibilityReason}
+      splitLayout={shell.splitLayout}
+      onCycleSplitLayout={shell.cycleSplitLayout}
       focusMode={shell.focusMode}
       onToggleFocusMode={shell.toggleFocusMode}
       menuOpen={shell.menuOpen}
       onToggleMenu={() => shell.setMenuOpen(!shell.menuOpen)}
       onCloseMenu={() => shell.setMenuOpen(false)}
-      onMenuAction={shell.toast.show}
+      onToast={shell.toast.show}
+      find={shell.find}
+      onOpenFind={shell.openFind}
+      onCopyMarkdown={shell.copyMarkdown}
+      onCopyText={shell.copyText}
+      onCopyLocalPath={shell.copyLocalPath}
       onMoveNote={() => shell.setDialog("move-note")}
       onArchiveNote={() => shell.setDialog("archive-note")}
     />
   );
 }
 
+/*
+ * REQ-018: a clean open note renamed outside the app swaps the editor key;
+ * the route follows silently. The editor key moving away from the routed key
+ * can only be a rename follow - every other transition starts from a route
+ * change, so the route is already ahead of the editor in those cases.
+ */
+function useRenameFollow(routeNoteKey: string | null) {
+  const editorNoteKey = useEditorData((state) => state.noteKey);
+  const previous = useRef(editorNoteKey);
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = editorNoteKey;
+    if (!before || !editorNoteKey || before === editorNoteKey) return;
+    if (routeNoteKey === before) {
+      window.history.replaceState(null, "", `/notes/${editorNoteKey}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }, [editorNoteKey, routeNoteKey]);
+}
+
 export function WorkspaceShellPage({ noteKey = null }: { noteKey?: string | null }) {
   const supported = useViewportSupported();
   const shell = useShellState(noteKey);
+  useRenameFollow(noteKey);
 
   if (!supported) {
     return <UnsupportedViewport />;

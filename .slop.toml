@@ -43,8 +43,36 @@ reason = "dialog aggregator gains one dialog set per wave by design; 134 LOC, CC
 expires = "2026-08-15"
 
 [[waivers]]
+id = "editor-data-hotspot-2026-07-04"
+path = "src/frontend/stores/editorData.ts"
+rule = "structural.hotspots"
+reason = "React adapter over EditorController: Wave 6 verdict wiring extracted to editor/visual-verdict.ts (CCX 38->32); remainder is controller delegation + REQ-017 navigation parking, cohesive by design; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "markdown-preview-hotspot-2026-07-04"
+path = "src/frontend/editor/MarkdownPreview.tsx"
+rule = "structural.hotspots"
+reason = "Wave 6 preview surface split twice (preview-support.ts: render hook + asset hydration + copy mounts; CCX 44->17 healthy); growth stat is committed Wave 6 history in the 14-day window, flag is top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "source-editor-hotspot-2026-07-04"
+path = "src/frontend/editor/SourceEditor.tsx"
+rule = "structural.hotspots"
+reason = "CM host split twice (cm-theme.ts theme, cm-find.ts find field + sync hook; CCX 21->17 healthy); growth stat is committed Wave 5+6 history in the 14-day window; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "editor-controller-wmc-2026-07-04"
 path = "src/frontend/editor/editor-controller.ts"
 rule = "structural.class.complexity"
-reason = "cohesive editor state machine (WF-006/007): autosave + conflict + navigation guard; split AutosaveScheduler when Wave 6 editor work touches the file; KNOWN_ISSUES.md Suppressions"
+reason = "AutosaveScheduler extracted per original waiver condition (WMC 57->52); REQ-018 rename-follow + clean-delete handling raises inherent state-machine branching to WMC 60; fully covered by tests/unit/editor-controller.spec.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-controller-hotspot-2026-07-04"
+path = "src/frontend/editor/editor-controller.ts"
+rule = "structural.hotspots"
+reason = "growth stat is Wave 5 creation + Wave 6 REQ-018 work inside the 14-day window; AutosaveScheduler already extracted; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"

@@ -1,13 +1,17 @@
 import { useEffect, useRef } from "react";
 import { EditorView, basicSetup } from "codemirror";
-import { Annotation, EditorState, Compartment } from "@codemirror/state";
+import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { cmFind, findField, useCmFind } from "./cm-find";
+import { quietWorkbenchTheme } from "./cm-theme";
+import type { FindRequest } from "./find-decorations";
 
 /*
  * <SourceEditor> per Design_System.md 9.2: CodeMirror 6 source/plain editor.
- * Theme maps Quiet Workbench tokens through CSS variables - no raw colors
- * here (tokens resolve from the Tailwind theme at runtime). External draft
- * replacements (reload/conflict resolution) sync via dispatch, never remount.
+ * Theme lives in cm-theme.ts; find decorations + sync in cm-find.ts.
+ * External draft replacements (reload/conflict resolution) sync via
+ * dispatch, never remount.
  */
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
@@ -16,52 +20,25 @@ const languageCompartment = new Compartment();
 // echo back through onChange as if the user typed them.
 const externalSync = Annotation.define<boolean>();
 
-const quietWorkbenchTheme = EditorView.theme(
-  {
-    "&": {
-      backgroundColor: "var(--color-surface-code)",
-      color: "var(--color-text-source)",
-      height: "100%",
-      fontSize: "13px",
-    },
-    ".cm-content": {
-      fontFamily: "var(--font-mono)",
-      lineHeight: "1.7",
-      caretColor: "var(--color-focus)",
-      maxWidth: "76ch",
-      paddingBottom: "5rem",
-    },
-    ".cm-gutters": {
-      backgroundColor: "var(--color-surface-code)",
-      color: "var(--color-text-disabled)",
-      border: "none",
-    },
-    "&.cm-focused": { outline: "none" },
-    ".cm-cursor": { borderLeftColor: "var(--color-focus)" },
-    ".cm-activeLine": { backgroundColor: "transparent" },
-    ".cm-activeLineGutter": {
-      backgroundColor: "transparent",
-      color: "var(--color-text-muted)",
-    },
-    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-      backgroundColor: "var(--color-surface-selected)",
-    },
-  },
-  { dark: true },
-);
-
 interface SourceEditorProps {
   value: string;
   language: "markdown" | "plain";
   readOnly: boolean;
   onChange: (value: string) => void;
+  find?: FindRequest | null;
+  onFindMatches?: (total: number) => void;
+  onOpenFind?: () => void;
 }
 
-export function SourceEditor({ value, language, readOnly, onChange }: SourceEditorProps) {
+export function SourceEditor({ value, language, readOnly, onChange, ...props }: SourceEditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onFindMatchesRef = useRef(props.onFindMatches);
+  onFindMatchesRef.current = props.onFindMatches;
+  const onOpenFindRef = useRef(props.onOpenFind);
+  onOpenFindRef.current = props.onOpenFind;
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -70,13 +47,30 @@ export function SourceEditor({ value, language, readOnly, onChange }: SourceEdit
       state: EditorState.create({
         doc: value,
         extensions: [
+          // FindInNoteBar owns find UI (REQ-035) - shadow basicSetup's
+          // native Mod-f search panel before it can open.
+          Prec.highest(
+            keymap.of([
+              {
+                key: "Mod-f",
+                run: () => {
+                  onOpenFindRef.current?.();
+                  return true;
+                },
+              },
+            ]),
+          ),
           basicSetup,
+          cmFind(),
           themeCompartment.of(quietWorkbenchTheme),
           languageCompartment.of(language === "markdown" ? markdown() : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
+            // Find totals track edits too (REQ-035 accurate count).
+            const findValue = update.state.field(findField);
+            if (findValue.request) onFindMatchesRef.current?.(findValue.total);
             if (update.transactions.some((tr) => tr.annotation(externalSync))) return;
             onChangeRef.current(update.state.doc.toString());
           }),
@@ -101,6 +95,8 @@ export function SourceEditor({ value, language, readOnly, onChange }: SourceEdit
       ],
     });
   }, [readOnly, language]);
+
+  useCmFind(viewRef, props.find, props.onFindMatches);
 
   useEffect(() => {
     const view = viewRef.current;

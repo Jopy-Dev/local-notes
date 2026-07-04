@@ -76,6 +76,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
         useEditorData.getState().handleEvent({
           type: event.type,
           ...(typeof event.payload.noteKey === "string" ? { noteKey: event.payload.noteKey } : {}),
+          ...(typeof event.payload.oldKey === "string" ? { oldKey: event.payload.oldKey } : {}),
           ...(typeof event.payload.version === "string" ? { version: event.payload.version } : {}),
           ...(typeof event.payload.operationId === "string"
             ? { operationId: event.payload.operationId }

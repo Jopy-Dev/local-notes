@@ -2,7 +2,7 @@
  * <EditorModeTabs> per Design_System.md 9.2: segmented mode control with
  * pressed semantics; shortcut documented in command palette (Ctrl+\ split).
  */
-type EditorMode = "read" | "edit" | "split";
+type EditorMode = "read" | "edit" | "source" | "split";
 
 interface EditorModeTabsProps {
   mode: EditorMode;
@@ -13,10 +13,15 @@ interface EditorModeTabsProps {
 const modeLabel: Record<EditorMode, string> = {
   read: "Read",
   edit: "Edit",
+  source: "Source",
   split: "Split",
 };
 
-export function EditorModeTabs({ mode, onChange, modes = ["read", "edit", "split"] }: EditorModeTabsProps) {
+export function EditorModeTabs({
+  mode,
+  onChange,
+  modes = ["read", "edit", "source", "split"],
+}: EditorModeTabsProps) {
   return (
     <div
       aria-label="Editor mode"

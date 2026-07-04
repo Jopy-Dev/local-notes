@@ -495,8 +495,11 @@ interface ConfigV1 {
 ### 4.11 Find in Note (`REQ-035`)
 
 - Client-side only; operates on the already-loaded editor draft/content in memory. No new API route, no filesystem read, independent of dashboard search (`REQ-009`).
-- Source/plain-text mode (CodeMirror): `@codemirror/search` extension (§1.3) provides match highlight, next/prev navigation, and match count natively; `<FindInNoteBar>` (`Design_System.md` §9) is the UI shell wired to it.
-- Visual/WYSIWYG mode (TipTap): custom ProseMirror `Decoration.inline` plugin highlights matches against current document text. No third-party TipTap search extension added — evaluated candidates carry single-maintainer/low-adoption risk against `arch/core.md` §1.1 dependency admission bar; built in-house on TipTap's existing ProseMirror foundation instead.
+- One shared literal scan module feeds every surface so match counts agree across modes; query always literal, case-insensitive by default with explicit case toggle.
+- Source/plain-text mode (CodeMirror): decoration `StateField` over the shared scan; `basicSetup`'s native `@codemirror/search` panel keymap is shadowed with a highest-precedence `Mod-f` binding so `<FindInNoteBar>` (`Design_System.md` §9) is the only search UI.
+- Visual/WYSIWYG mode (TipTap): custom ProseMirror `Decoration.inline` plugin highlights matches against current document text, scanned per textblock. No third-party TipTap search extension added — evaluated candidates carry single-maintainer/low-adoption risk against `arch/core.md` §1.1 dependency admission bar; built in-house on TipTap's existing ProseMirror foundation instead.
+- Read/split preview: CSS Custom Highlight API ranges over the sanitized article's text nodes, segmented per block element — never mutates the sanitized subtree (§7.2). Browsers without the API keep accurate counts and navigation without painted highlights.
+- Split view: source pane owns navigation and count; preview highlights the same query without an active match (rendered text order differs from Markdown source order).
 - Shortcut `Ctrl+F` intercepted via `keydown` + `preventDefault` while a note is open and focus is inside the workspace. `Escape` closes find and returns focus to the point find was invoked from, per existing Escape-closes-transient-layer pattern (`Design_System.md` §11).
 - Match count and current position exposed via `role="status"` live region on the find bar; only the first jump-to-match scrolls the document automatically.
 - Debounce query input `150ms` before re-scanning; abort stale scan on rapid retyping.
