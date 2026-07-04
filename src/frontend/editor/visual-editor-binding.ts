@@ -19,6 +19,7 @@ export interface VisualEditorBindingOptions {
   value: string;
   onDraft: (draft: string) => void;
   editable?: boolean;
+  styleNonce?: string;
   // Typed via TipTap so this module also compiles under the node tsconfig
   // (jsdom unit tests pull it into the tests include).
   element?: EditorOptions["element"];
@@ -32,6 +33,9 @@ export function createVisualEditorBinding(options: VisualEditorBindingOptions): 
     ...(options.element ? { element: options.element } : {}),
     extensions: markdownEditorExtensions(),
     editable: options.editable ?? true,
+    // Packaged CSP has no 'unsafe-inline'; ProseMirror's injected styles
+    // carry the per-response nonce (MasterPrompt.md 7.1).
+    ...(options.styleNonce ? { injectNonce: options.styleNonce } : {}),
     content: "",
     onUpdate({ editor: updated, transaction }) {
       if (applyingExternal) return;

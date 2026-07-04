@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef } from "react";
+import { cspNonce } from "../services/csp-nonce";
 import { VisualEditorToolbar } from "./VisualEditorToolbar";
 import { createFindPlugin, findPluginKey, setFindRequest } from "./find-decorations";
 import type { FindRequest } from "./find-decorations";
@@ -30,10 +31,12 @@ export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: Vi
 
   useEffect(() => {
     if (!hostRef.current) return;
+    const nonce = cspNonce();
     const binding = createVisualEditorBinding({
       value,
       element: hostRef.current,
       onDraft: (draft) => onChangeRef.current(draft),
+      ...(nonce ? { styleNonce: nonce } : {}),
     });
     binding.editor.registerPlugin(createFindPlugin());
     binding.editor.on("transaction", rerender);

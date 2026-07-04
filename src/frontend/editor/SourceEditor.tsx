@@ -3,6 +3,7 @@ import { EditorView, basicSetup } from "codemirror";
 import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { cspNonce } from "../services/csp-nonce";
 import { cmFind, findField, useCmFind } from "./cm-find";
 import { quietWorkbenchSyntaxHighlighting, quietWorkbenchTheme } from "./cm-theme";
 import type { FindRequest } from "./find-decorations";
@@ -42,6 +43,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
 
   useEffect(() => {
     if (!hostRef.current) return;
+    const nonce = cspNonce();
     const view = new EditorView({
       parent: hostRef.current,
       state: EditorState.create({
@@ -64,6 +66,9 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
           cmFind(),
           themeCompartment.of(quietWorkbenchTheme),
           quietWorkbenchSyntaxHighlighting,
+          // Packaged CSP has no 'unsafe-inline'; CodeMirror's injected styles
+          // carry the per-response nonce (MasterPrompt.md 7.1).
+          ...(nonce ? [EditorView.cspNonce.of(nonce)] : []),
           languageCompartment.of(language === "markdown" ? markdown() : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           EditorView.lineWrapping,
