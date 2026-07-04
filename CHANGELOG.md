@@ -32,6 +32,10 @@ All notable changes to this project will be documented in this file. Format foll
 - Resizable panes: drag the dividers to resize the folder and note-list panes (or focus a divider and use arrow keys; Home/End snap to the limits), collapse either pane to a slim rail and restore it at its prior width - all remembered across restarts
 - Safer archiving: archiving a note you are editing now saves the pending draft first; if the draft cannot be saved, the archive stops with a clear error instead of losing the last edits
 
+### Fixed
+
+- Markdown syntax coloring in the source editor: headings and their # marks now show in the amber accent, inline code and links get their own colors in both themes - previously everything rendered in the plain text color
+
 ### Changed
 
 - Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability; Wide editor width now gives the editor and preview more room instead of matching Medium

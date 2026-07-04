@@ -1,4 +1,6 @@
 import { EditorView } from "@codemirror/view";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 
 /*
  * Quiet Workbench CodeMirror theme (Design_System.md 3/9.2): tokens map
@@ -39,3 +41,29 @@ export const quietWorkbenchTheme = EditorView.theme(
   },
   { dark: true },
 );
+
+/*
+ * Markdown token colors (Design_System.md 2.1/2.2): accent = "syntax
+ * heading" (heading text + hash/star mark punctuation), text-code = code/syntax
+ * emphasis. Without this, basicSetup's defaultHighlightStyle fallback
+ * leaves headings bold-only and paints marks with light-theme literals.
+ */
+const quietWorkbenchHighlightStyle = HighlightStyle.define([
+  { tag: tags.heading, color: "var(--color-accent)", fontWeight: "650" },
+  { tag: tags.processingInstruction, color: "var(--color-accent)" },
+  { tag: tags.strong, fontWeight: "700" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strikethrough, textDecoration: "line-through" },
+  { tag: tags.monospace, color: "var(--color-text-code)" },
+  {
+    tag: tags.link,
+    color: "var(--color-accent)",
+    textDecoration: "underline",
+    textUnderlineOffset: "2px",
+  },
+  { tag: tags.url, color: "var(--color-text-code)" },
+  { tag: tags.quote, color: "var(--color-text-muted)", fontStyle: "italic" },
+  { tag: tags.contentSeparator, color: "var(--color-border-active)" },
+]);
+
+export const quietWorkbenchSyntaxHighlighting = syntaxHighlighting(quietWorkbenchHighlightStyle);
