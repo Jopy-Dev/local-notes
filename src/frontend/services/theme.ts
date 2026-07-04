@@ -31,12 +31,12 @@ export interface EditorAppearance {
   editorWidth: "narrow" | "medium" | "wide";
 }
 
-// Prose width per Design_System.md 3.3: medium = 76ch outer cap. Narrow/wide
-// values ship with the DS v1.4 token extension; medium stands in until then.
+// Prose width per Design_System.md 3.3 (v1.4): narrow 65ch, medium 76ch
+// (default), wide 90ch outer cap.
 const EDITOR_WIDTH_CH: Record<EditorAppearance["editorWidth"], number> = {
   narrow: 65,
   medium: 76,
-  wide: 76,
+  wide: 90,
 };
 
 export function applyEditorAppearance(appearance: EditorAppearance): void {

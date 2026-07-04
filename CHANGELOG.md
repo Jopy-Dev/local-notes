@@ -34,4 +34,4 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Changed
 
-- Light theme groundwork: choosing Light is remembered and follows the OS in System mode; the light color palette itself ships once the design tokens are approved
+- Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability; Wide editor width now gives the editor and preview more room instead of matching Medium
