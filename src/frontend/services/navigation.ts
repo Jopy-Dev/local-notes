@@ -22,7 +22,21 @@ export function openSettingsRoute(): void {
 }
 
 export function closeSettingsRoute(): void {
+  // Idempotent: Apply navigates, then the Modal close event fires this
+  // again - a second call must not consume a fresh navigation to "/".
+  if (window.location.pathname !== "/settings") return;
   const target = settingsReturnPath ?? "/";
   settingsReturnPath = null;
   navigate(target);
+}
+
+/*
+ * The note the settings dialog opened over (SCREEN-003): the shell keeps it
+ * mounted under the dialog so the open editor is never unmounted (a phantom
+ * close would flush drafts and reset the visual verdict).
+ */
+export function settingsReturnNoteKey(): string | null {
+  if (window.location.pathname !== "/settings") return null;
+  const match = /^\/notes\/([A-Za-z0-9_-]+)$/.exec(settingsReturnPath ?? "");
+  return match?.[1] ?? null;
 }

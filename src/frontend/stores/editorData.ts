@@ -147,6 +147,10 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   discardAndClose: () => {
     controller.discardDraft();
     controller.dispose();
+    // Closed state resets the verdict outside the controller's onChange, so
+    // the content-identity memo must reset too - reopening the same content
+    // otherwise skips the verdict recompute and sticks at source-only.
+    lastAssessedContent = null;
     set(closedState);
   },
 }));
