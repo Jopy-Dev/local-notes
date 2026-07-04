@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { ChevronRightIcon } from "../components/icons";
 import { EditorPane } from "../components/shell/EditorPane";
 import { FoldersPane } from "../components/shell/FoldersPane";
 import { NotesPane } from "../components/shell/NotesPane";
@@ -6,9 +7,13 @@ import { ShellDialogs } from "../components/shell/ShellDialogs";
 import { ShellStatusBar } from "../components/shell/ShellStatusBar";
 import { ShellTitlebar } from "../components/shell/ShellTitlebar";
 import { AppShell } from "../components/ui/AppShell";
+import { IconButton } from "../components/ui/IconButton";
+import { PaneDivider } from "../components/ui/PaneDivider";
 import { UnsupportedViewport, useViewportSupported } from "../components/ui/UnsupportedViewport";
 import { navigate } from "../services/navigation";
 import { useEditorData } from "../stores/editorData";
+import { PANE_BOUNDS, useWorkspaceUi } from "../stores/workspaceUi";
+import type { PaneKind } from "../stores/workspaceUi";
 import { useShellState } from "./useShellState";
 import type { ShellState } from "./useShellState";
 
@@ -120,6 +125,35 @@ function useRenameFollow(routeNoteKey: string | null) {
   }, [editorNoteKey, routeNoteKey]);
 }
 
+/* Resize/collapse active only at the desktop breakpoint (REQ-034; DS 4.3). */
+const DESKTOP_QUERY = "(min-width: 1280px)";
+const RAIL_WIDTH_PX = 28;
+
+function useIsDesktop(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const media = window.matchMedia(DESKTOP_QUERY);
+      media.addEventListener("change", onChange);
+      return () => media.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => true,
+  );
+}
+
+function CollapsedRail({ pane, onExpand }: { pane: PaneKind; onExpand: () => void }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center border-r border-border-subtle bg-surface-sidebar pt-1.5">
+      <IconButton
+        label={pane === "folder" ? "Expand folder pane" : "Expand note list pane"}
+        onClick={onExpand}
+      >
+        <ChevronRightIcon size={14} />
+      </IconButton>
+    </div>
+  );
+}
+
 export function WorkspaceShellPage({
   noteKey = null,
   settingsOpen = false,
@@ -129,11 +163,28 @@ export function WorkspaceShellPage({
 }) {
   const supported = useViewportSupported();
   const shell = useShellState(noteKey, settingsOpen);
+  const isDesktop = useIsDesktop();
+  const panesUi = useWorkspaceUi();
   useRenameFollow(noteKey);
 
   if (!supported) {
     return <UnsupportedViewport />;
   }
+
+  const divider = (pane: PaneKind) => (
+    <PaneDivider
+      pane={pane}
+      width={panesUi.widths[pane]}
+      min={PANE_BOUNDS[pane].min}
+      max={PANE_BOUNDS[pane].max}
+      disabled={!isDesktop || panesUi.collapsed[pane]}
+      onResize={(width) => panesUi.resizePane(pane, width)}
+      onCommit={(width) => panesUi.commitPane(pane, width)}
+      onToggleCollapse={() => panesUi.toggleCollapsed(pane)}
+    />
+  );
+  const paneWidth = (pane: PaneKind) =>
+    panesUi.collapsed[pane] ? RAIL_WIDTH_PX : panesUi.widths[pane];
 
   return (
     <>
@@ -145,10 +196,29 @@ export function WorkspaceShellPage({
             onOpenSettings={shell.openSettings}
           />
         }
-        folders={<ShellFolders shell={shell} />}
-        notes={<ShellNotes shell={shell} />}
+        folders={
+          panesUi.collapsed.folder && isDesktop ? (
+            <CollapsedRail pane="folder" onExpand={() => panesUi.toggleCollapsed("folder")} />
+          ) : (
+            <ShellFolders shell={shell} />
+          )
+        }
+        notes={
+          panesUi.collapsed.notes && isDesktop ? (
+            <CollapsedRail pane="notes" onExpand={() => panesUi.toggleCollapsed("notes")} />
+          ) : (
+            <ShellNotes shell={shell} />
+          )
+        }
         editor={<ShellEditor shell={shell} />}
         status={<ShellStatusBar document={shell.editor.document} saveState={shell.editor.saveState} />}
+        panes={{
+          folderWidth: paneWidth("folder"),
+          notesWidth: paneWidth("notes"),
+          resizable: isDesktop,
+          folderDivider: divider("folder"),
+          notesDivider: divider("notes"),
+        }}
       />
       <ShellDialogs shell={shell} />
     </>

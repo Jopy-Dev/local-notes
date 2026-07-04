@@ -8,6 +8,8 @@ import { setWorkspaceDisplayPath } from "../services/workspace";
 import { useSearchData } from "../stores/searchData";
 import { useSettingsData } from "../stores/settingsData";
 import { useWorkspaceData } from "../stores/workspaceData";
+// Side-effect import: workspaceUi subscribes to settings hydration (REQ-034).
+import "../stores/workspaceUi";
 import type { BootstrapResponse } from "../../shared/schemas/bootstrap";
 import { AppRouter } from "./AppRouter";
 
@@ -32,7 +34,8 @@ export function App() {
         setWorkspaceDisplayPath(bootstrap.workspaceDisplayPath);
         // Settings + theme apply before first paint of the shell (REQ-021).
         useSettingsData.getState().hydrate(bootstrap.config);
-        // Persisted dashboard view restores across restarts (REQ-007).
+        // Persisted dashboard view restores across restarts (REQ-007); pane
+        // layout (REQ-034) hydrates via the workspaceUi settings subscription.
         useWorkspaceData.setState({ view: bootstrap.config.dashboardView });
         setState({ phase: "ready", bootstrap });
       })
