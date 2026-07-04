@@ -90,3 +90,17 @@ path = "src/backend/config/config-service.ts"
 rule = "structural.hotspots"
 reason = "Wave 7 added ConfigService.update (partial merge + mutex, one-time +116 LOC inside the 14-day window); CCX 21 driven by REQ-032 per-field fallback loop, cohesive by design; rolling-window top-scorer recompute; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-hotspot-2026-07-05"
+path = "src/backend/search/search-service.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework inside the 14-day window; entry assembly extracted to index-entries.ts; remainder is status lifecycle + crash restart policy, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-spec-hotspot-2026-07-05"
+path = "tests/unit/search-service.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 crash-policy suite split to search-crash-policy.spec.ts; growth stat is committed Wave 8 spec history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"

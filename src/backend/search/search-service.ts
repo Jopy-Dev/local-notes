@@ -3,6 +3,7 @@ import type { IndexStatus, SearchResponse } from "../../shared/schemas/search.js
 import { AppError } from "../../shared/errors/codes.js";
 import type { EventBus } from "../events/event-bus.js";
 import { IndexCheckpointer } from "./index-checkpointer.js";
+import { buildIndexEntries } from "./index-entries.js";
 import type { IndexableContent } from "./search-content.js";
 import { InProcessSearchEngine } from "./search-engine.js";
 import type { SearchEnginePort } from "./search-engine.js";
@@ -79,30 +80,13 @@ export class SearchService {
     return this.rebuilding;
   }
 
-  /*
-   * Startup reconciliation (4.3): cached entries with a matching versionToken
-   * reuse their indexed content; changed or new notes are re-read from disk.
-   */
+  /* Startup reconciliation (4.3) - warm-entry reuse in buildIndexEntries. */
   async initialize(notes: readonly NoteMetadata[]): Promise<void> {
     this.setState("building");
     const cached = new Map(
       ((await this.cacheLoad()) ?? []).map((entry) => [entry.metadata.noteKey, entry]),
     );
-    const entries = await Promise.all(
-      notes.map(async (note) => {
-        const warm = cached.get(note.noteKey);
-        if (warm && warm.metadata.versionToken === note.versionToken) {
-          return {
-            metadata: note,
-            content: warm.contentIndexStatus === "full" ? warm.content : null,
-            truncated: warm.truncated,
-          };
-        }
-        const read = await this.contentFor(note);
-        return { metadata: note, content: read.content, truncated: read.truncated };
-      }),
-    );
-    this.counts = await this.engine.init(entries);
+    this.counts = await this.engine.init(await buildIndexEntries(notes, this.contentFor, cached));
     this.setState("ready");
   }
 
@@ -152,13 +136,7 @@ export class SearchService {
     this.setState("building");
     try {
       await this.engine.ensureRunning();
-      const entries = await Promise.all(
-        notes.map(async (note) => {
-          const read = await this.contentFor(note);
-          return { metadata: note, content: read.content, truncated: read.truncated };
-        }),
-      );
-      this.counts = await this.engine.rebuild(entries);
+      this.counts = await this.engine.rebuild(await buildIndexEntries(notes, this.contentFor));
       this.setState("ready");
       this.checkpointer.markDirty();
     } catch (error) {
