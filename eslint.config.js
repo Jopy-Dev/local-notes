@@ -32,7 +32,7 @@ export default tseslint.config(
   {
     // Node maintenance scripts (package acceptance, CI gates). Inline the
     // few runtime globals they use instead of adding the `globals` package.
-    files: ["scripts/**/*.mjs"],
+    files: ["scripts/**/*.mjs", "scripts/**/*.cjs"],
     languageOptions: {
       globals: {
         console: "readonly",
@@ -40,7 +40,13 @@ export default tseslint.config(
         fetch: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        require: "readonly",
+        queueMicrotask: "readonly",
       },
+    },
+    rules: {
+      // .cjs preload scripts (net-guard) are CommonJS by contract.
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
   {

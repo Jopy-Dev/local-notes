@@ -1,16 +1,12 @@
-import { execSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { SearchIndexCache } from "../../src/backend/search/search-index-cache.js";
-import {
-  WorkerSearchEngine,
-  resolveSearchWorkerPath,
-  spawnSearchWorker,
-} from "../../src/backend/search/worker-engine.js";
+import { WorkerSearchEngine, spawnSearchWorker } from "../../src/backend/search/worker-engine.js";
 import type { WorkerLike } from "../../src/backend/search/worker-engine.js";
 import type { NoteMetadata } from "../../src/shared/schemas/notes.js";
+import { ensureDistBuilt } from "./dist-build.js";
 
 /*
  * Real worker-thread coverage per MasterPrompt.md 8.2: init, upsert, remove,
@@ -23,10 +19,7 @@ const BUILD_TIMEOUT_MS = 180_000;
 let workerPath: string;
 
 beforeAll(() => {
-  execSync("npm run build:server", { cwd: process.cwd(), stdio: "ignore" });
-  const resolved = resolveSearchWorkerPath();
-  if (!resolved) throw new Error("dist search worker missing after build:server");
-  workerPath = resolved;
+  workerPath = ensureDistBuilt();
 }, BUILD_TIMEOUT_MS);
 
 const meta = (relativePath: string, sizeBytes = 10): NoteMetadata => ({

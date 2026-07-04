@@ -3,9 +3,12 @@
  * install the tarball into an isolated prefix -> launch the installed bin
  * against an isolated HOME -> capability-authenticated /api/v1/health plus
  * the nonce-injected SPA shell respond -> clean shutdown. Fails on any step.
+ * The launch runs under scripts/net-guard.cjs (REQ-026): every non-loopback
+ * connect is refused and recorded, so the run is the network-disabled launch
+ * and the outbound-request test in one.
  */
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -42,7 +45,8 @@ try {
   const binDir = join(prefix, "node_modules", ".bin");
   const bin = join(binDir, process.platform === "win32" ? "local-notes.cmd" : "local-notes");
 
-  console.log("launch installed package with isolated HOME...");
+  console.log("launch installed package with isolated HOME + REQ-026 net guard...");
+  const guardLog = join(stage, "net-guard.log");
   const started = Date.now();
   child = spawn(bin, [], {
     env: {
@@ -50,6 +54,10 @@ try {
       HOME: home,
       USERPROFILE: home,
       LOCAL_NOTES_NO_BROWSER: "1",
+      // NODE_OPTIONS parsing treats backslash as an escape - forward slashes
+      // resolve fine on Windows and survive the .cmd shim.
+      NODE_OPTIONS: `--require "${join(repoRoot, "scripts", "net-guard.cjs").replaceAll("\\", "/")}"`,
+      LOCAL_NOTES_NET_GUARD_LOG: guardLog,
     },
     stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",
@@ -88,6 +96,13 @@ try {
   if (!nonce || !html.includes(`content="${nonce}"`)) {
     throw new Error("shell nonce does not match CSP header nonce");
   }
+
+  // REQ-026 acceptance: zero non-loopback requests during the whole launch.
+  if (existsSync(guardLog)) {
+    const attempts = readFileSync(guardLog, "utf8").trim();
+    if (attempts) throw new Error(`REQ-026 outbound request detected:\n${attempts}`);
+  }
+  console.log(JSON.stringify({ event: "metric.offline.guard", violations: 0, result: "pass" }));
 
   // METRIC-001 evidence: launch duration to first authenticated response.
   console.log(
