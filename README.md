@@ -4,7 +4,7 @@ Application type: `web app`
 
 Offline, filesystem-first notes workspace served by a local Node.js/Fastify server with a React/Vite browser interface.
 
-Launch contract:
+Launch contract (install once from a GitHub Release tarball per ADR-007, then):
 
 ```bash
 npx local-notes

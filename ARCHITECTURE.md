@@ -64,7 +64,7 @@ Status: Waves 0-5 live — Fastify core + capability boundary, filesystem founda
 
 ## 5. Integration Points
 
-None external at runtime (offline contract, `REQ-026`). Build/CI integrations: GitHub Actions (`verify` job), Dependabot, npm trusted publishing OIDC at release (`MasterPrompt.md` §1.5).
+None external at runtime (offline contract, `REQ-026`). Build/CI integrations: GitHub Actions (`verify` job + `release.yml` tag workflow attaching the `npm pack` tarball to a GitHub Release per ADR-007 — no npm publish, repo private), Dependabot.
 
 ## 6. Role Boundaries
 
