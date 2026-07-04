@@ -45,4 +45,22 @@ describe("SearchIndex discovery", () => {
     expect(index.search("original")).toHaveLength(0);
     expect(index.search("revised")).toHaveLength(1);
   });
+
+  /*
+   * METRIC-003 regression: fuzzy runs as a rescue pass only. A query with
+   * exact hits skips tolerance-1 expansion (the 10k-fixture cost driver), so
+   * distance-1 neighbours stay out when the exact term exists; a typo query
+   * still recovers through the rescue pass.
+   */
+  it("exact hits skip the fuzzy pass; typo queries still rescue", () => {
+    const index = new SearchIndex();
+    index.upsert(meta({ relativePath: "car.md", filename: "car.md", title: "car" }), "about the car");
+    index.upsert(meta({ relativePath: "cat.md", filename: "cat.md", title: "cat" }), "about the cat");
+
+    const exact = index.search("car");
+    expect(exact.map((entry) => entry.metadata.relativePath)).toEqual(["car.md"]);
+
+    const rescued = index.search("caz");
+    expect(rescued.map((entry) => entry.metadata.relativePath).sort()).toEqual(["car.md", "cat.md"]);
+  });
 });

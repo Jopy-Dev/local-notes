@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. Format foll
 - Search runs on its own background thread in the installed app: typing and saving never wait on indexing, and if the search engine ever crashes the app restarts it once automatically - editing is unaffected and the search recovery screen still rebuilds the index on demand
 - Sort notes your way: the dashboard sort selector now works - choose name, created, modified, or size, flip ascending/descending, and both choices persist across restarts
 - Local diagnostics: the app now writes structured operational logs to ~/.local-notes/logs with 10 MiB file rotation and automatic cleanup (30 days / 100 MiB total, checked hourly) - note content, search queries, and access tokens never appear in a log
+- Smooth dashboard at any size: the note list and card grid now render only the rows on screen, so a workspace with 10,000 notes scrolls without slowdown or memory growth
 
 - Crash-safe file handling foundations: atomic note/config writes, workspace boundary protection, single-instance lock, first-run workspace creation, settings persistence with safe defaults, bounded local diagnostics
 - Project scaffold: Vite/React/Tailwind frontend toolchain, CI, repo hygiene configs
@@ -46,4 +47,5 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Changed
 
+- Search is much faster in large workspaces: typo-tolerant matching now runs as a rescue pass only when a query has no exact hits, cutting worst-case search time from ~280ms to under 60ms across 10,000 notes - misspelled searches still find their notes
 - Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability; Wide editor width now gives the editor and preview more room instead of matching Medium

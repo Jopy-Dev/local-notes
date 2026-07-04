@@ -1,10 +1,10 @@
+import { useRef } from "react";
 import type { RefObject } from "react";
 import { NewNoteIcon, SearchEmptyIcon, WarningIcon } from "../icons";
 import { Button } from "../ui/Button";
 import { DashboardToolbar } from "../ui/DashboardToolbar";
-import { NoteCard } from "../ui/NoteCard";
-import { NoteListItem } from "../ui/NoteListItem";
 import type { NoteListEntry } from "../ui/NoteListItem";
+import { NotesVirtualList } from "../ui/NotesVirtualList";
 import { SearchResultItem } from "../ui/SearchResultItem";
 import { NoteListSkeleton } from "../ui/Skeleton";
 import type { DashboardSortBy } from "../../stores/workspaceData";
@@ -12,10 +12,10 @@ import type { SearchStatus } from "../../stores/searchData";
 import type { IndexState, SearchResult } from "../../../shared/schemas/search.js";
 
 /*
- * Note list pane (WF-001/002/004): toolbar + list/card views + skeleton +
- * empty/no-result states + load-more batches. Non-blank queries render
- * ranked search results (REQ-009); a degraded index links the recovery
- * surface. Virtualization upgrade rides with the 10k perf pass (REQ-031).
+ * Note list pane (WF-001/002/004): toolbar + virtualized list/card views
+ * (REQ-031 incremental rendering) + skeleton + empty/no-result states +
+ * load-more batches. Non-blank queries render ranked search results
+ * (REQ-009); a degraded index links the recovery surface.
  */
 interface NotesPaneProps {
   notes: readonly NoteListEntry[];
@@ -125,39 +125,25 @@ function SearchResultList(props: NotesPaneProps) {
   );
 }
 
-function NoteList(props: NotesPaneProps) {
-  const { notes, view } = props;
-  if (view === "card") {
-    return (
-      <div className="grid grid-cols-2 gap-2 p-2">
-        {notes.map((note) => (
-          <NoteCard
-            key={note.key}
-            note={note}
-            selected={note.key === props.selectedKey}
-            onSelect={props.onSelect}
-          />
-        ))}
-      </div>
-    );
-  }
+function NoteList(props: NotesPaneProps & { scrollRef: RefObject<HTMLDivElement | null> }) {
+  // Remount on view switch: measured row heights differ per view (REQ-031).
   return (
-    <>
-      {notes.map((note) => (
-        <NoteListItem
-          key={note.key}
-          note={note}
-          selected={note.key === props.selectedKey}
-          onSelect={props.onSelect}
-        />
-      ))}
-    </>
+    <NotesVirtualList
+      key={props.view}
+      notes={props.notes}
+      view={props.view}
+      selectedKey={props.selectedKey}
+      onSelect={props.onSelect}
+      scrollRef={props.scrollRef}
+    />
   );
 }
 
 export function NotesPane(props: NotesPaneProps) {
   const { notes, loading } = props;
   const searching = props.query.trim().length > 0;
+  // Scroll parent for the virtualizer (REQ-031).
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <section
@@ -184,6 +170,7 @@ export function NotesPane(props: NotesPaneProps) {
         <DegradedBanner onOpenRecovery={props.onOpenRecovery} />
       ) : null}
       <div
+        ref={scrollRef}
         aria-busy={loading || undefined}
         className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
       >
@@ -191,7 +178,7 @@ export function NotesPane(props: NotesPaneProps) {
         {!loading && searching ? <SearchResultList {...props} /> : null}
         {!loading && !searching ? (
           <>
-            <NoteList {...props} />
+            <NoteList {...props} scrollRef={scrollRef} />
             {notes.length === 0 ? (
               <EmptyState query="" onCreateNote={props.onCreateNote} />
             ) : null}
