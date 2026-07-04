@@ -28,6 +28,7 @@ export interface EditorSnapshot {
 export interface EditorWorkspaceEvent {
   type: string;
   noteKey?: string;
+  oldKey?: string;
   version?: string;
   operationId?: string;
 }
@@ -144,17 +145,38 @@ export class EditorController {
   }
 
   handleWorkspaceEvent(event: EditorWorkspaceEvent): void {
-    if (!this.state.noteKey || event.noteKey !== this.state.noteKey) return;
+    if (!this.state.noteKey) return;
+    if (event.type === "note.renamed" && event.oldKey === this.state.noteKey) {
+      this.applyRename(event);
+      return;
+    }
+    if (event.noteKey !== this.state.noteKey) return;
     const ownEcho = event.operationId !== undefined && this.ownOperations.delete(event.operationId);
     if (event.version) this.latestDiskVersion = event.version;
     if (ownEcho) return;
-    this.applyForeignEvent(event.type);
+    this.applyForeignEvent(event.type, event.operationId !== undefined);
   }
 
-  private applyForeignEvent(type: string): void {
+  /* REQ-018: the open note was renamed on disk. Clean editors follow the new
+   * key automatically (the shell syncs the route); dirty drafts park as
+   * source-missing so nothing is lost. App-originated moves carry an
+   * operation ID and are skipped - the move flow navigates the route itself. */
+  private applyRename(event: EditorWorkspaceEvent): void {
+    if (event.operationId !== undefined) return;
+    if (this.state.saveState !== "saved") {
+      this.enterConflict("source-missing");
+      return;
+    }
+    if (event.noteKey) void this.open(event.noteKey).catch(() => undefined);
+  }
+
+  private applyForeignEvent(type: string, appOriginated: boolean): void {
     const dirty = this.state.saveState !== "saved";
     if (type === "note.removed") {
-      if (dirty) this.enterConflict("source-missing");
+      // REQ-018: a clean note deleted outside the app parks as source-missing
+      // (save-as-new / close) instead of silently showing stale content.
+      // App-originated removals (archive) own their navigation.
+      if (dirty || !appOriginated) this.enterConflict("source-missing");
       return;
     }
     if (type !== "note.changed" && type !== "note.added") return;

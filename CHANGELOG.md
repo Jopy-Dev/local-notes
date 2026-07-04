@@ -25,3 +25,5 @@ All notable changes to this project will be documented in this file. Format foll
 - Copyable text: mark any span in a note so the rendered preview shows a one-click copy button next to it
 - Copy actions: Copy Markdown (source), Copy Text (readable plain text with Markdown syntax removed), and Copy local path from the note actions menu, with clear success and failure feedback
 - Find in note: Ctrl+F opens an in-note find bar in every mode (read, edit, source, split) with live match highlighting, current position and total count, next/previous stepping, an optional match-case toggle, and Escape to close - all without touching the file or the dashboard search
+- Rename tracking: a note renamed or moved outside the app while open with no unsaved changes now follows the new name automatically - the editor and address bar update silently and no content is lost; with unsaved changes the existing conflict panel preserves the draft
+- Deleted-file notice: a note deleted outside the app while open now shows the conflict panel immediately (with "Save as new note" recovery) instead of silently keeping stale content until the next save

@@ -244,6 +244,27 @@ describe("conflicts (WF-007, REQ-018)", () => {
     expect(controller.snapshot().draft).toBe("unsaved");
   });
 
+  it("external delete while clean parks as source-missing (proactive notice)", async () => {
+    const { controller } = harness();
+    await controller.open("bm90ZS5tZA");
+    controller.handleWorkspaceEvent({ type: "note.removed", noteKey: "bm90ZS5tZA" });
+    expect(controller.snapshot().conflict).toBe("source-missing");
+    // The last-loaded content stays recoverable via save-as-new.
+    expect(controller.snapshot().draft).toBe("disk content");
+  });
+
+  it("app-originated delete (operation-tagged) while clean is ignored - archive flow navigates", async () => {
+    const { controller } = harness();
+    await controller.open("bm90ZS5tZA");
+    controller.handleWorkspaceEvent({
+      type: "note.removed",
+      noteKey: "bm90ZS5tZA",
+      operationId: "op-archive",
+    });
+    expect(controller.snapshot().conflict).toBeNull();
+    expect(controller.snapshot().saveState).toBe("saved");
+  });
+
   it("flushes a pending draft before opening another note (REQ-017)", async () => {
     const { controller, saves, setDiskDocument } = harness();
     await controller.open("bm90ZS5tZA");
@@ -388,5 +409,68 @@ describe("conflicts (WF-007, REQ-018)", () => {
     expect(overwriteCase.saves.at(-1)?.expectedVersion).toBe("b".repeat(64));
     expect(overwriteCase.controller.snapshot().saveState).toBe("saved");
     expect(overwriteCase.controller.snapshot().conflict).toBeNull();
+  });
+});
+
+describe("external rename (REQ-018)", () => {
+  const renamedEvent = (operationId?: string) => ({
+    type: "note.renamed",
+    oldKey: "bm90ZS5tZA",
+    noteKey: "cmVuYW1lZC5tZA",
+    version: "b".repeat(64),
+    ...(operationId ? { operationId } : {}),
+  });
+
+  it("a clean open note follows the new key automatically", async () => {
+    const { controller, setDiskDocument, loads } = harness();
+    setDiskDocument(
+      doc({
+        noteKey: "cmVuYW1lZC5tZA",
+        relativePath: "renamed.md",
+        filename: "renamed.md",
+        versionToken: "b".repeat(64),
+      }),
+    );
+    await controller.open("bm90ZS5tZA");
+    controller.handleWorkspaceEvent(renamedEvent());
+    await vi.runOnlyPendingTimersAsync();
+    expect(loads).toEqual(["bm90ZS5tZA", "cmVuYW1lZC5tZA"]);
+    expect(controller.snapshot().noteKey).toBe("cmVuYW1lZC5tZA");
+    expect(controller.snapshot().draft).toBe("disk content");
+    expect(controller.snapshot().saveState).toBe("saved");
+  });
+
+  it("a dirty draft parks as source-missing instead of following", async () => {
+    const { controller } = harness();
+    await controller.open("bm90ZS5tZA");
+    controller.changeDraft("unsaved local");
+    controller.handleWorkspaceEvent(renamedEvent());
+    expect(controller.snapshot().noteKey).toBe("bm90ZS5tZA");
+    expect(controller.snapshot().conflict).toBe("source-missing");
+    expect(controller.snapshot().draft).toBe("unsaved local");
+  });
+
+  it("an app move (operation-tagged) is ignored - the move flow navigates", async () => {
+    const { controller, loads } = harness();
+    await controller.open("bm90ZS5tZA");
+    loads.length = 0;
+    controller.handleWorkspaceEvent(renamedEvent("op-move-1"));
+    await vi.runOnlyPendingTimersAsync();
+    expect(loads).toHaveLength(0);
+    expect(controller.snapshot().noteKey).toBe("bm90ZS5tZA");
+  });
+
+  it("a rename of a different note is ignored", async () => {
+    const { controller, loads } = harness();
+    await controller.open("bm90ZS5tZA");
+    loads.length = 0;
+    controller.handleWorkspaceEvent({
+      type: "note.renamed",
+      oldKey: "b3RoZXIubWQ",
+      noteKey: "bmV3Lm1k",
+      version: "b".repeat(64),
+    });
+    expect(loads).toHaveLength(0);
+    expect(controller.snapshot().noteKey).toBe("bm90ZS5tZA");
   });
 });
