@@ -37,12 +37,16 @@ export async function startDiscovery(
   const operationRegistry = new OperationRegistry();
   const mutationService = new NoteMutationService(guard);
   const contentService = new NoteContentService(guard);
-  const searchService = createSearchService({
+  const { service: searchService, engineKind } = createSearchService({
     guard,
     workspaceRoot,
     notesRelRoot: "save-data/notes",
     bus,
+    notesFor: () => repository.scan(),
   });
+  if (engineKind === "in-process") {
+    console.warn("Search worker build not found - search runs in-process (run `npm run build:server`).");
+  }
 
   const snapshot = await repository.scan((await cache.load()) ?? undefined);
   await cache.save(snapshot);

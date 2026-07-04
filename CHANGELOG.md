@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. Format foll
 ### Added
 
 - Installable package: the app now builds into a single tarball that serves the full interface from the local server - download a release, `npm install -g` it once, and `npx local-notes` opens the complete app with no dev tooling; an automated acceptance test installs the package into a clean location and verifies launch, and tagged releases attach the tarball to a GitHub Release automatically
+- Search runs on its own background thread in the installed app: typing and saving never wait on indexing, and if the search engine ever crashes the app restarts it once automatically - editing is unaffected and the search recovery screen still rebuilds the index on demand
 
 - Crash-safe file handling foundations: atomic note/config writes, workspace boundary protection, single-instance lock, first-run workspace creation, settings persistence with safe defaults, bounded local diagnostics
 - Project scaffold: Vite/React/Tailwind frontend toolchain, CI, repo hygiene configs
