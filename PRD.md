@@ -40,9 +40,10 @@ No product metric may be transmitted or retained as telemetry. Metrics below are
 - Sole product role.
 - May access notes and settings inside active workspace.
 - May create, read, edit, move, search, sort, copy, and archive supported notes.
+- May browse archived notes read-only, restore an archived note into an existing folder, and delete an archived note to the operating-system recycle bin (`REQ-039`, `REQ-040`, ADR-009).
 - May choose only existing folders inside active workspace.
 - Cannot access paths outside active workspace through product UI or local API.
-- Cannot permanently delete notes in MVP.
+- Cannot delete active notes; archive is the only removal path for active notes. Application itself never permanently deletes note content - delete hands archived files to the OS recycle bin, recoverable outside the application.
 - Has no account, authentication flow, remote session, sharing permission, or administrative role.
 
 ### Local Process
@@ -135,17 +136,14 @@ Acceptance:
 - Given external supported-file change, dashboard and search reflect final filesystem state within 2 seconds.
 - Given temporary or repeated watcher event, application does not create duplicate note entries.
 
-#### `REQ-007` List and card views
+#### `REQ-007` List view
 
-- User may switch between list and card view.
+- Dashboard presents notes as a single list view (card view removed in feedback round 2).
 - List view shows title, folder, created time or `Unknown`, modified time, and size.
-- Card view shows title, preview capped at 240 characters, modified time, and file type.
-- View choice persists locally.
 - Lists use incremental rendering and remain navigable with 10,000 notes.
 
 Acceptance:
 
-- Switching view preserves active search and sort.
 - Empty, loading, and recoverable error states are distinguishable.
 
 #### `REQ-008` Sorting
@@ -268,21 +266,17 @@ Acceptance:
 
 #### `REQ-015` Markdown editing
 
-- `.md` supports read, edit, and split modes.
-- Edit mode provides Markdown-compatible controls for bold, italic, underline, strike-through, headings, bullet lists, numbered lists, task lists, links, tables, code blocks, undo, and redo.
-- Visual editing is available only when parse-serialize round-trip preserves source semantics.
-- Markdown unsupported by visual editor opens in plain Markdown source editor with explanation.
+- `.md` supports read, source, and split modes (feedback round 2, ADR-008: dedicated visual editor removed; source is the single editing surface).
+- Source mode provides a formatting toolbar whose controls rewrite Markdown syntax at the selection: bold, italic, underline, strike-through, copyable-text mark, headings H1-H3, bullet lists, numbered lists, task lists, links, tables, code blocks, undo, and redo.
+- Toolbar operations are ordinary undoable text edits; the document remains plain Markdown at all times.
 - Underline serializes as sanitized `<u>` HTML.
-- User may switch from compatible visual mode to source mode; switching back requires round-trip validation.
-- Split mode supports side-by-side, preview above, and preview below.
+- Split mode supports side-by-side, preview above, and preview below with a draggable divider.
 - Saved file remains Markdown text without proprietary format.
 
 Acceptance:
 
-- Formatting operation produces equivalent Markdown source.
+- Toolbar operation produces equivalent Markdown syntax at the selection and is undoable.
 - Switching modes does not alter content.
-- Given unsupported Markdown construct, visual editor never rewrites source and source editor remains fully editable.
-- Given round-trip mismatch, application blocks visual-mode entry and identifies source-mode fallback.
 - Live preview reflects current draft without executing note content.
 
 #### `REQ-016` Plain-text editing
@@ -375,7 +369,7 @@ Acceptance:
 - Default editor font size is 14 px.
 - User may set line height from 1.2 through 2.0.
 - Default line height is 1.6.
-- User may set editor width to narrow, medium, or wide.
+- User may set editor width to narrow, medium, wide, or full; full removes the width cap so editor and preview fill the pane (feedback round 2).
 - Default editor width is medium.
 - Settings validate before persistence and apply without restart.
 
@@ -470,34 +464,77 @@ Acceptance:
 
 #### `REQ-036` Copyable text mark
 
-- `.md` visual and source editors support an inline copyable-text mark, applied to a selection via the same edit-mode toolbar `REQ-015` already defines, or by typing `<copy>...</copy>` around text in source mode.
-- Mark is inline-only; it cannot span multiple paragraphs or block elements.
-- Marked text renders with a visible inline copy affordance placed immediately after the marked span, in read, edit, and split preview panes. Source mode shows the literal `<copy>...</copy>` text with no rendered affordance.
-- Activating the affordance copies the marked span's plain text to the clipboard, stripping any nested Markdown syntax, using the same clipboard mechanism and failure handling as `Copy Text` (`REQ-020`).
+- `.md` supports a copyable-text mark, applied to a selection via the source-mode toolbar (`REQ-015`) or by typing `<copy>...</copy>` in source mode.
+- Inline form: `<copy>text</copy>` inside a paragraph, including soft line breaks within that paragraph.
+- Block form (feedback round 2): a line containing only `<copy>`, any Markdown content including blank lines, then a line containing only `</copy>`. Inner content renders as normal Markdown through the same sanitization pipeline.
+- Marked content renders in read and split preview with a visible copy affordance button immediately after the mark, and the marked region itself is click-to-copy: clicking anywhere in the rendered mark copies it (links inside still navigate per `REQ-014`).
+- Copying preserves line structure: block children separate with line breaks, table cells with tabs; nested Markdown syntax is stripped to plain text.
+- Uses the same clipboard mechanism and failure handling as `Copy Text` (`REQ-020`).
 - An empty mark copies an empty string; no error state.
-- Mark serializes as sanitized `<copy>` HTML. Together with `<u>` (`REQ-015`), these are the only two raw HTML tags permitted in saved Markdown source.
-- A note using only supported marks, including `<copy>`, remains eligible for the visual editor; any other raw HTML still forces source-only per `REQ-015`.
+- Mark serializes as sanitized `<copy>` HTML. Together with `<u>` (`REQ-015`), these are the only two raw HTML tags interpreted in saved Markdown source.
+- `<copy>` lines inside fenced code blocks stay literal and never form a region.
 - `.txt` notes do not interpret `<copy>`; literal `<copy>` text in a `.txt` file displays and saves as plain text with no affordance.
 - The copy affordance never triggers a filesystem write, network request, or dashboard search.
 
 Acceptance:
 
-- Given selected text and toolbar activation, the mark applies and round-trips to `<copy>...</copy>` in saved Markdown source.
-- Given marked text in read, edit, or split mode, activating the affordance copies plain text with nested Markdown syntax stripped and shows the same success/failure feedback as `Copy Text`.
-- Given a note containing only `<u>` and/or `<copy>` as raw HTML, the note remains visual-editor eligible.
+- Given selected text and toolbar activation, the mark applies as `<copy>...</copy>` in Markdown source.
+- Given an inline or block mark in read or split preview, clicking the mark or its affordance copies plain text with Markdown syntax stripped, line structure preserved, and the same success/failure feedback as `Copy Text`.
+- Given a block region containing active content (scripts, event handlers), sanitization strips it identically to normal rendering.
 - Given `<copy>` text in a `.txt` file, content displays and saves literally with no affordance rendered.
+
+### 4.10 Library Scopes and Archive Browser
+
+#### `REQ-038` Recent scope
+
+- Sidebar library provides a `Recent` row listing notes modified within the last 7 days, newest first by default.
+- Recent count displays beside the row and derives from server metadata, never from a scoped page.
+- Scope selection is session-only; sorting and search behave as in the unscoped list.
+
+Acceptance:
+
+- Given notes older and newer than 7 days, Recent lists only the newer set and the row count matches.
+- Given no recent notes, Recent shows the standard empty state without error.
+
+#### `REQ-039` Archive browser
+
+- Sidebar library provides an `Archive` row listing archived notes from the archive area (`REQ-013`) with count.
+- Archived notes open read-only; editing, autosave, and rename are unavailable. `.md` renders like read mode; `.txt` displays literal text.
+- Archived note actions: `Move note` (restore into an existing active folder), `Copy Markdown` (`.md` only), `Copy Text`, `Copy local path`, `Delete` (`REQ-040`).
+- Restore uses the same destination validation and collision rules as move (`REQ-012`); collision leaves both sides unchanged.
+- Restored note returns to active discovery, search, and editing.
+
+Acceptance:
+
+- Given archived notes, Archive row lists each exactly once and opening one shows read-only content.
+- Given restore into a folder with a case-fold name collision, restore is rejected and both files remain unchanged.
+- Given successful restore, note opens editable from its new active path.
+
+#### `REQ-040` Delete archived note to recycle bin
+
+- Delete is available only for archived notes and only behind an explicit confirmation dialog naming the file.
+- Delete moves the file to the operating-system recycle bin; the application never unlinks note content itself (deviation from original no-delete constraint recorded in ADR-009).
+- Failed delete leaves the archived file unchanged and surfaces a recoverable error.
+- Active notes have no delete action anywhere in the product.
+
+Acceptance:
+
+- Given confirmation, the archived file leaves the archive area and appears in the OS recycle bin.
+- Given cancellation, nothing changes.
+- Given delete failure, the archived note remains listed and readable.
 
 ## 5. Page / Screen Inventory
 
 | ID | Surface | Purpose | Related requirements |
 |---|---|---|---|
-| `SCREEN-001` | Dashboard | Discover, search, sort, create, open, move, and archive notes | `REQ-005`-`REQ-013`, `REQ-034` |
+| `SCREEN-001` | Dashboard | Discover, search, sort, create, open, move, and archive notes; Recent and Archive library scopes | `REQ-005`-`REQ-013`, `REQ-034`, `REQ-038`, `REQ-039` |
 | `SCREEN-002` | Note Workspace | Read, edit, preview, copy, move, and archive one note | `REQ-014`-`REQ-020`, `REQ-034`, `REQ-035`, `REQ-036`, `REQ-037` |
 | `SCREEN-003` | Settings | Configure appearance and inspect active workspace | `REQ-021`, `REQ-022` |
 | `SCREEN-004` | Workspace Lock Error | Explain active workspace ownership conflict | `REQ-003` |
 | `SCREEN-005` | Startup Error | Report initialization, configuration, or port failure | `REQ-001`, `REQ-002` |
 | `SCREEN-006` | External Change Conflict | Resolve disk-versus-draft conflict | `REQ-018` |
 | `SCREEN-007` | Search Recovery | Explain degraded index and allow explicit rebuild | `REQ-010`, `REQ-024` |
+| `SCREEN-008` | Archive Note View | Read one archived note; restore, copy, or delete it | `REQ-039`, `REQ-040` |
 
 ## 6. Dashboard Workflow Inventory
 
@@ -506,7 +543,7 @@ Acceptance:
 | `WF-001` | Discover notes | `SCREEN-001` | loading -> populated or empty | Local Operator | Skeleton; empty create action; partial filesystem errors remain visible | Active supported notes appear once |
 | `WF-002` | Search notes | `SCREEN-001` | idle -> searching -> results/no results/error | Local Operator | Query retained on no result/error; degraded index links recovery | Ranking, snippets, cap, latency pass |
 | `WF-003` | Create note | `SCREEN-001` | dialog -> validating -> created/error | Local Operator | Invalid fields remain editable; no partial file | Unique valid note opens |
-| `WF-004` | Sort and change view | `SCREEN-001` | current -> updated | Local Operator | Empty state preserves controls | Stable order and persisted preference |
+| `WF-004` | Sort notes | `SCREEN-001` | current -> updated | Local Operator | Empty state preserves controls | Stable order and persisted preference |
 | `WF-005` | Open note | `SCREEN-001`, `SCREEN-002` | loading -> readable/editable/read-only/error | Local Operator | Missing/unreadable/oversized states distinct | Correct source displayed |
 | `WF-006` | Edit and autosave | `SCREEN-002` | saved -> unsaved -> saving -> saved/error/conflict | Local Operator | Draft retained on failure | Atomic persisted content matches draft |
 | `WF-007` | Resolve conflict | `SCREEN-006` | conflict -> reload or overwrite -> resolved/error | Local Operator | Both versions preserved until explicit choice succeeds | Chosen version becomes editor and disk state |
@@ -516,6 +553,8 @@ Acceptance:
 | `WF-011` | Rebuild search | `SCREEN-007` | degraded -> rebuilding -> ready/error | Local Operator | Editing remains available during rebuild | Index matches filesystem |
 | `WF-012` | Resize and collapse panes | `SCREEN-001`, `SCREEN-002` | standard -> resizing/collapsed -> persisted | Local Operator | Divider disabled below `desktop` breakpoint; collapse preserves prior width | Width/collapsed state persists across restart |
 | `WF-013` | Find in note | `SCREEN-002` | idle -> searching -> match/no-match -> closed | Local Operator | No-match preserves query; unavailable before content loads | Matches highlight accurately; draft unchanged on close |
+| `WF-014` | Restore archived note | `SCREEN-008` | choose folder -> validating -> restored/error | Local Operator | Collision leaves both sides unchanged | Note returns to active tree and opens editable |
+| `WF-015` | Delete archived note | `SCREEN-008` | confirm -> deleting -> deleted/error | Local Operator | Cancel changes nothing; failure leaves note listed | File reaches OS recycle bin and leaves archive list |
 
 ## 7. Non-Functional Requirements
 
@@ -613,7 +652,7 @@ Acceptance:
 
 - MVP does not maintain behavioral analytics or user activity audit trail.
 - Filesystem timestamps, current files, archive files, and bounded operational logs provide local operational evidence.
-- Permanent deletion is unavailable, reducing need for destructive-action audit history.
+- Application never permanently deletes note content; delete moves archived files to the OS recycle bin (`REQ-040`), keeping destructive actions recoverable outside the product.
 
 Acceptance:
 
@@ -624,7 +663,7 @@ Acceptance:
 
 - Accounts, authentication, roles beyond Local Operator, sharing, collaboration, and remote access.
 - Cloud sync, hosted deployment, domain, VPS, external APIs, telemetry, and analytics collection.
-- Permanent delete and archive manager.
+- Permanent (unrecoverable) in-app deletion; delete for active notes.
 - Backups and restore UI.
 - Import, export, and ZIP packaging.
 - Templates and template folder controls.
@@ -657,4 +696,5 @@ Acceptance:
 | Workspace layout customization | `REQ-034` |
 | In-note search | `REQ-035` |
 | Copyable text snippets | `REQ-036` |
+| Library scopes and archive browser | `REQ-038`-`REQ-040` |
 | Future roadmap | Section 8 |

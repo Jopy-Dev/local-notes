@@ -1,6 +1,6 @@
 # Design System: Local-Notes
 
-**Version:** v1.5 - LOCKED  
+**Version:** v1.6 - LOCKED  
 **Last updated:** 2026-07-04
 
 ## 1. Brand Identity
@@ -73,6 +73,7 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | Text disabled | `#858276` | Disabled labels | `text-disabled` | 4.66:1 on root | Active controls |
 | Text source | `#d8d4c7` | Source editor body | `text-source` | 12.45:1 on code | General chrome |
 | Text code | `#d6b77d` | Code/syntax emphasis | `text-code` | 9.60:1 on code | General body text |
+| Syntax accent | `#c49a59` (dark) / `#77571a` (light) | Source-editor heading/link syntax color | `syntax-accent` | 7.3:1 on code dark; 5.5:1 on code light (brand accent misses AA on light code surface - v1.6, REQ-030) | Chrome accents (use `accent`) |
 
 ### 2.3 Semantic
 
@@ -182,7 +183,7 @@ Light elevation overrides (§6 tokens):
 
 - Source: approved prototypes; editor default also required by `REQ-021`.
 - Prose maximum `65ch`; preview medium width defaults to `76ch` outer cap.
-- Editor width user setting (`REQ-022`): `narrow` = `65ch`, `medium` = `76ch` (default), `wide` = `90ch` outer cap. Wide is explicit opt-in for table/code-heavy notes; prose guidance stays `65ch`. Source: user-approved 2026-07-04.
+- Editor width user setting (`REQ-021`): `narrow` = `65ch`, `medium` = `76ch` (default), `wide` = `90ch`, `full` = uncapped - editor and preview fill the pane (v1.6, user feedback round 2). Prose guidance stays `65ch`. Source: user-approved 2026-07-04 / 2026-07-05.
 - Dense desktop deviation: `10px`-`12px` permitted only for redundant metadata/shortcuts; critical labels use `13px` or larger.
 - Editor size user setting: integer `12px`-`24px`; default `14px`.
 - Editor line height user setting: `1.2`-`2.0`; default `1.6`.
@@ -358,17 +359,17 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `<WorkspaceLaunchPanel>` | `workspaceState`, `onChoose`, `onDefault` | empty, selecting, error, ready | Primary action first; dialog focus return | Launch prototype adaptation |
 | `<StatusBar>` | `saveState`, `path`, `encoding`, `lineEnding`, `localOnly` | saved, saving, conflict, error, degraded | `contentinfo`; live save text elsewhere prevents noise | Always visible in focus layout |
 | `<FolderTree>` | `nodes`, `activeKey`, `counts` | loading, empty, ready, partial error | Tree/nav keyboard behavior; current item explicit | Existing folders only |
-| `<DashboardToolbar>` | `query`, `sort`, `direction`, `view` | idle, searching, degraded, error | Search label; sort direction pressed state | `WF-002/004` |
+| `<DashboardToolbar>` | `query`, `sort`, `direction` | idle, searching, degraded, error | Search label; sort direction pressed state | `WF-002/004`; view toggle removed v1.6 |
 | `<NotesVirtualList>` | `items`, `selectedKey`, `hasMore` | loading, empty, partial error, ready, loading-more | List/listbox semantics chosen consistently; virtual focus retention | 10,000-note support |
 | `<NoteListItem>` | `metadata`, `selected`, `indexStatus` | default, hover, focus, selected, metadata-only, truncated | One accessible name; warning copy explicit | List variant |
-| `<NoteCard>` | `metadata`, `selected` | same as list item | Heading + metadata; card action is one focus target | Card variant; preview max 240 chars |
 | `<SearchResult>` | `title`, `snippet`, `ranges`, `indexStatus` | normal, metadata-only, truncated | `<mark>` for match; warning text | Snippet max 180 chars |
 | `<CommandPalette>` | `commands`, `query` | open, filtered, no-result | Modal combobox/listbox; Escape closes; focus returns | `Ctrl+K` |
 | `<EditorHeader>` | `path`, `title`, `saveState`, `mode`, `layout` | editable, read-only, conflict, error | Title label; live save state; actions named | Preserved in Focus Mode |
-| `<EditorModeTabs>` | `mode: read|edit|source|split` | selected, unavailable, source-only | Tab/pressed semantics; shortcut documented | `.txt` hides Markdown-only modes |
+| `<EditorModeTabs>` | `mode: read|source|split` | selected, unavailable | Tab/pressed semantics; shortcut documented | v1.6: Edit tab removed; `.txt` hides Markdown-only modes |
 | `<FocusModeToggle>` | `layout`, `onToggle` | standard, focus, disabled | `aria-pressed`; label changes enter/exit | `Ctrl+Shift+F`; Escape restores |
-| `<SourceEditor>` | `content`, `language`, `readOnly` | loading, editable, source-only, read-only, error | CodeMirror keyboard/a11y contract; visible focus | Mono; default 14px user-controlled |
-| `<VisualMarkdownEditor>` | `document`, `compatible` | loading, editable, validation-failed, source-only | Toolbar labels/shortcuts; content semantics | Enter only after lossless validation |
+| `<SourceEditor>` | `content`, `language`, `readOnly`, `toolbar` | loading, editable, read-only, error | CodeMirror keyboard/a11y contract; textbox carries accessible name; visible focus | Mono; default 14px user-controlled; single editing surface v1.6 |
+| `<MarkdownToolbar>` | `getView`, `readOnly` | ready, disabled | `role=toolbar`; every control labelled; buttons never steal editor selection | v1.6: rewrites Markdown syntax at selection; undo/redo included |
+| `<ArchiveNoteView>` | `noteKey`, `folders` | loading, read-only, missing, restore dialog, delete confirm | Read-only banner `role=status`; delete behind named confirmation | `SCREEN-008` v1.6; actions: restore/copies/delete |
 | `<MarkdownPreview>` | `html`, `loading` | loading, ready, blocked-image, render-error | Semantic rendered headings/lists; safe link labels | Server-sanitized HTML only |
 | `<PlainTextViewer>` | `content`, `readOnly` | loading, ready, unsupported-encoding, oversized | Literal text; read-only reason announced | No Markdown controls |
 | `<SaveState>` | `saved|unsaved|saving|conflict|error` | all named states | `role=status`; icon + text; no color-only state | `WF-006` |
@@ -388,7 +389,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 
 | Source ID | Surface/workflow | Required primitive | Covered by | Status |
 |---|---|---|---|---|
-| `SCREEN-001` | Dashboard | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, `<NoteCard>`, `<EmptyState>` | App shell + §9 | Covered |
+| `SCREEN-001` | Dashboard | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, `<EmptyState>` | App shell + §9 | Covered |
 | `SCREEN-002` | Note Workspace | `<EditorHeader>`, editors, preview, save state, Focus Mode, status | App shell + §9 | Covered |
 | `SCREEN-003` | Settings | `<SettingsForm>`, `<FormField>`, `<Select>`, `<Switch>`, `<Modal>` | App shell + §9 | Covered |
 | `SCREEN-004` | Workspace Lock Error | `<CliErrorPresenter>` | §9 contract | Covered |
@@ -398,7 +399,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `WF-001` | Discover notes | `<Skeleton>`, `<NotesVirtualList>`, `<EmptyState>`, `<ErrorState>` | §9 | Covered |
 | `WF-002` | Search notes | `<DashboardToolbar>`, `<SearchResult>`, `<Pagination>`, `<EmptyState>` | App shell + §9 | Covered |
 | `WF-003` | Create note | `<Modal>`, `<FormField>`, `<Input>`, `<Select>` | App shell | Covered |
-| `WF-004` | Sort/change view | `<DashboardToolbar>`, `<Select>`, `<IconButton>`, `<Tabs>` | App shell + §9 | Covered |
+| `WF-004` | Sort notes | `<DashboardToolbar>`, `<Select>`, `<IconButton>` | App shell + §9 | Covered |
 | `WF-005` | Open note | `<Skeleton>`, `<NoteWorkspace>`, `<ReadOnlyBanner>`, `<ErrorState>` | App shell + §9 | Covered |
 | `WF-006` | Edit/autosave | Editors, `<SaveState>`, `<Toast>`, `<ErrorState>` | App shell + §9 | Covered |
 | `WF-007` | Resolve conflict | `<ConflictPanel>`, `<ConfirmationDialog>` | App shell | Covered |
@@ -415,7 +416,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | Route/screen | Primitives | Primary user | Responsive notes |
 |---|---|---|---|
 | Launch/empty workspace (`REQ-001/002`) | `<NavBar>`, `<WorkspaceLaunchPanel>`, `<Button>`, `<Modal>`, `<StatusBar>`, `<UnsupportedViewport>` | Local Operator | Full at >=`1024x640`; resize guidance below |
-| `/` / `SCREEN-001` | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, list/card items, states | Local Operator | `220/320/editor`; `190/280/editor` at 1024-1199 |
+| `/` / `SCREEN-001` | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, list items, states | Local Operator | `220/320/editor`; `190/280/editor` at 1024-1199 |
 | `/notes/:noteKey` / `SCREEN-002` | Editor header/modes, editors, preview, save/conflict/read-only/focus primitives | Local Operator | Split collapses to equal minmax columns at compact desktop; Focus Mode full width |
 | `/settings` / `SCREEN-003` | `<SettingsForm>`, form primitives, `<Modal>`/page section | Local Operator | Dialog width capped to viewport; desktop full workflow only |
 | CLI / `SCREEN-004` | `<CliErrorPresenter>` | Local Operator | Terminal output; no browser layout |
@@ -506,3 +507,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] PRD/MasterPrompt aligned with Focus Mode before lock.
 - [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
 - [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
+- [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width `full` (§3.3); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.
