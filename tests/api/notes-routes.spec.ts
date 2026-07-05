@@ -79,12 +79,39 @@ describe("GET /api/v1/notes", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe("INVALID_QUERY");
   });
+
+  it("folder param scopes the page and total to that folder and its descendants (WF-001)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/notes?folder=projects",
+      headers: headers(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json().data;
+    expect(body.total).toBe(1);
+    expect(body.notes.map((note: { relativePath: string }) => note.relativePath)).toEqual([
+      "projects/inner.txt",
+    ]);
+  });
+
+  it("unknown folder returns an empty page, not an error", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/notes?folder=missing",
+      headers: headers(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.total).toBe(0);
+    expect(res.json().data.nextCursor).toBeNull();
+  });
 });
 
 describe("GET /api/v1/folders", () => {
-  it("returns the existing active folder tree only", async () => {
+  it("returns the existing active folder tree with direct note counts", async () => {
     const res = await app.inject({ method: "GET", url: "/api/v1/folders", headers: headers() });
     expect(res.statusCode).toBe(200);
     expect(res.json().data.folders).toEqual(["projects"]);
+    expect(res.json().data.counts).toEqual({ projects: 1 });
+    expect(res.json().data.total).toBe(8);
   });
 });

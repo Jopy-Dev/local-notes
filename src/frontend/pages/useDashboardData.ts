@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { NoteListEntry } from "../components/ui/NoteListItem";
-import { folderCounts, toListEntry } from "../services/noteView";
+import { toListEntry } from "../services/noteView";
 import { useSearchData } from "../stores/searchData";
 import type { SearchStatus } from "../stores/searchData";
 import { useSettingsData } from "../stores/settingsData";
@@ -23,6 +23,8 @@ export interface DashboardData {
   loadMore: () => void;
   view: DashboardView;
   setView: (view: DashboardView) => void;
+  folder: string;
+  setFolder: (folder: string) => void;
   sortBy: DashboardSortBy;
   setSortBy: (sortBy: DashboardSortBy) => void;
   sortDirection: DashboardSortDirection;
@@ -81,9 +83,13 @@ export function useDashboardData(query: string): DashboardData {
     setSortBy: data.setSortBy,
     sortDirection: data.sortDirection ?? settingsConfig?.sortDirection ?? "desc",
     setSortDirection: data.setSortDirection,
+    folder: data.folder,
+    setFolder: data.setFolder,
     folders: data.folders,
-    folderCountMap: folderCounts(data.notes),
-    totalNotes: data.total,
+    // Counts + workspace total come from /folders - the notes page may be
+    // folder-scoped and would undercount (WF-001).
+    folderCountMap: new Map(Object.entries(data.folderCounts)),
+    totalNotes: data.workspaceTotal,
     filteredNotes: notes,
     findNoteTitle: (key) =>
       data.notes.find((candidate) => candidate.noteKey === key)?.title ??

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Added
 
+- Resizable split view: drag the new divider between editor and preview (or focus it and use arrow keys; double-click resets to half) in side-by-side and stacked layouts - no more fixed 50/50 squeeze
+
 - Installable package: the app now builds into a single tarball that serves the full interface from the local server - download a release, `npm install -g` it once, and `npx local-notes` opens the complete app with no dev tooling; an automated acceptance test installs the package into a clean location and verifies launch, and tagged releases attach the tarball to a GitHub Release automatically
 - Search runs on its own background thread in the installed app: typing and saving never wait on indexing, and if the search engine ever crashes the app restarts it once automatically - editing is unaffected and the search recovery screen still rebuilds the index on demand
 - Sort notes your way: the dashboard sort selector now works - choose name, created, modified, or size, flip ascending/descending, and both choices persist across restarts
@@ -40,6 +42,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Fixed
 
+- Clicking a folder now shows that folder's notes: the selection previously did nothing - the list is now scoped on the server (correct totals and paging at any workspace size) and sidebar counts stay accurate while a folder is selected
+- Visual editing no longer locks you out of notes the visual editor itself wrote: blank-line runs and preserved blank paragraphs (saved as &nbsp;) counted as "not losslessly editable" - compatibility now compares document structure, so purely cosmetic differences open visually and the file is tidied only when you actually edit; frontmatter, footnotes, and raw HTML still fall back to source editing with an explanation
+- Copyable text works while editing: the one-click copy button now appears next to copy-marked text in the visual editor too - previously it existed only in Read mode and split preview
+- Pane resize and collapse now work at every supported window width: the dividers were disabled below 1280 CSS pixels, which display scaling made common on ordinary monitors
 - Sort direction now re-orders the note list immediately: previously the ascending/descending toggle saved the preference but the visible order never changed until a restart
 - Screen readers now announce the visual note editor by name: the editing surface itself carried no accessible label, so assistive technology announced an unnamed text field
 - Markdown syntax coloring in the source editor: headings and their # marks now show in the amber accent, inline code and links get their own colors in both themes - previously everything rendered in the plain text color

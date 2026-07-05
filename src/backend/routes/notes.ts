@@ -15,6 +15,9 @@ const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(500),
   sort: z.enum(["name", "created", "modified", "size"]).default("modified"),
   direction: z.enum(["asc", "desc"]).default("desc"),
+  // Folder scope (WF-001): comparison-only against scanned metadata - never
+  // a filesystem path, so no traversal surface. Unknown folder = empty page.
+  folder: z.string().min(1).max(4096).optional(),
 });
 
 function decodeCursor(cursor: string | undefined): number {
@@ -39,10 +42,16 @@ export function registerNotesRoutes(
     if (!parsed.success) {
       throw new AppError("INVALID_QUERY", "Invalid list query parameters.");
     }
-    const { cursor, limit, sort, direction } = parsed.data;
+    const { cursor, limit, sort, direction, folder } = parsed.data;
     const offset = decodeCursor(cursor);
 
-    const all = sortNotes(await options.repository.scan(), sort, direction);
+    const scanned = await options.repository.scan();
+    const scoped = folder
+      ? scanned.filter(
+          (note) => note.folder === folder || note.folder.startsWith(`${folder}/`),
+        )
+      : scanned;
+    const all = sortNotes(scoped, sort, direction);
     const page = all.slice(offset, offset + limit);
     const nextOffset = offset + page.length;
     return {
@@ -56,6 +65,16 @@ export function registerNotesRoutes(
   });
 
   app.get(`${API_PREFIX}/folders`, async (request) => {
-    return { data: { folders: await options.repository.listFolders() }, requestId: request.id };
+    // Direct-folder counts ride with the tree so the sidebar never derives
+    // counts from a folder-scoped notes page (WF-001).
+    const [folders, notes] = await Promise.all([
+      options.repository.listFolders(),
+      options.repository.scan(),
+    ]);
+    const counts: Record<string, number> = {};
+    for (const note of notes) {
+      if (note.folder) counts[note.folder] = (counts[note.folder] ?? 0) + 1;
+    }
+    return { data: { folders, counts, total: notes.length }, requestId: request.id };
   });
 }

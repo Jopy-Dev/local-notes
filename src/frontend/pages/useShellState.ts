@@ -63,7 +63,6 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const [activeFolder, setActiveFolder] = useState("all");
   const [query, setQuery] = useState("");
   const [mode, setModeState] = useState<EditorMode>("edit");
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
@@ -249,8 +248,9 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
     settingsOpen,
     openSettings: openSettingsRoute,
     closeSettings: closeSettingsRoute,
-    activeFolder,
-    setActiveFolder,
+    // WF-001 folder navigation lives in the workspace store (scoped fetches).
+    activeFolder: dashboard.folder,
+    setActiveFolder: dashboard.setFolder,
     selectedNote: routeNoteKey ?? "",
     selectNote,
     query,

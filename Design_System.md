@@ -1,6 +1,6 @@
 # Design System: Local-Notes
 
-**Version:** v1.4 - LOCKED  
+**Version:** v1.5 - LOCKED  
 **Last updated:** 2026-07-04
 
 ## 1. Brand Identity
@@ -234,12 +234,13 @@ Light elevation overrides (§6 tokens):
 | `unsupported-sm` | `360px` | Resize guidance; zero overflow |
 | `unsupported-md` | `390px` | Resize guidance; zero overflow |
 | `unsupported-tablet` | `768px` | Resize guidance; zero overflow |
-| `desktop-min` | `1024px` and height `640px` | Full app; compact `190/280/editor` columns |
+| `desktop-min` | `1024px` and height `640px` | Full app; compact `190/280/editor` defaults |
 | `desktop` | `1280px` | Primary optimized target |
 | `desktop-wide` | `1440px` | Product acceptance target |
 | `desktop-2xl` | `1536px` | Wide-layout balance |
 
 - Below `1024px` width or `640px` height: render `<UnsupportedViewport>`, not collapsed mobile navigation.
+- v1.5: pane resize/collapse (`REQ-034`) active at every supported width (`>=1024px`), not `desktop`-gated - display scaling puts real windows under `1280` CSS px (user feedback round 1). Compact column values remain the defaults at `desktop-min`.
 - Mobile/tablet workflow support is outside MVP by user-approved deviation. No hidden mobile menu substitutes for unsupported guidance.
 - No page-level horizontal scrolling at any verification width.
 - Focus Mode uses full editor width at every supported desktop viewport.
@@ -504,3 +505,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] Step 11 implementation paths and anti-drift rules documented.
 - [x] PRD/MasterPrompt aligned with Focus Mode before lock.
 - [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
+- [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
