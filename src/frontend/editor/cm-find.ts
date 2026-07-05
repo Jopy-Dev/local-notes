@@ -5,8 +5,7 @@ import type { Extension } from "@codemirror/state";
 import { Decoration, EditorView } from "@codemirror/view";
 import type { DecorationSet } from "@codemirror/view";
 import { scanMatches } from "./find-in-note";
-import type { FindRange } from "./find-in-note";
-import type { FindRequest } from "./find-decorations";
+import type { FindRange, FindRequest } from "./find-in-note";
 
 /*
  * Source-mode find highlighting (MasterPrompt.md 4.11, REQ-035): decoration

@@ -6,7 +6,7 @@ import { ConfirmationDialog } from "../components/ui/ConfirmationDialog";
 import { IconButton } from "../components/ui/IconButton";
 import { navigate } from "../services/navigation";
 import { copyToClipboard } from "./copy-actions";
-import type { FindRequest } from "./find-decorations";
+import type { FindRequest } from "./find-in-note";
 import { applyPreviewFind, clearPreviewFind } from "./preview-find";
 import { hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
 

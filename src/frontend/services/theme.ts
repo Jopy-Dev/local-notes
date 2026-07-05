@@ -3,7 +3,7 @@
  * data-theme lands on <html>; token overrides live in styles/app.css. System
  * theme resolves through matchMedia and follows OS changes live without a
  * persistence write. Editor appearance travels as CSS custom properties so
- * CodeMirror, TipTap, and the preview pick changes up without restart.
+ * CodeMirror and the preview pick changes up without restart.
  */
 export type ThemeSetting = "system" | "light" | "dark";
 

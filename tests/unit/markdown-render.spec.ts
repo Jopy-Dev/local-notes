@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderMarkdown } from "../../src/backend/markdown/render-pipeline.js";
 import { encodeNoteKey } from "../../src/backend/filesystem/path-guard.js";
-import { scanSourceOnlyConstructs } from "../../src/shared/markdown/compatibility-scan.js";
 
 /*
  * REQ-028 XSS corpus + link/image policy (MasterPrompt.md 4.6, 7.2) against
@@ -122,34 +121,5 @@ describe("image policy (REQ-014)", () => {
     const html = render(source);
     expect(html).not.toContain("<img");
     expect(html).toContain('data-blocked="image"');
-  });
-});
-
-describe("compatibility scan (MasterPrompt 4.6)", () => {
-  it.each([
-    ["frontmatter", "---\ntitle: x\n---\n\n# Doc", "Frontmatter"],
-    ["HTML comment", "text <!-- hidden --> more", "HTML comments"],
-    ["raw HTML", "a <div>block</div>", "Raw HTML"],
-    ["reference definition", "[ref]: https://example.com\n\nuse [ref]", "Reference definitions"],
-    ["footnote", "text[^1]\n\n[^1]: note", "Footnotes"],
-  ])("flags %s as source-only", (_name, source, reasonPart) => {
-    const scan = scanSourceOnlyConstructs(source);
-    expect(scan.compatibility).toBe("source-only");
-    expect(scan.compatibilityReason).toContain(reasonPart);
-  });
-
-  it("keeps conservative GFM with only <u>/<copy> eligible for edit", () => {
-    const scan = scanSourceOnlyConstructs(
-      "# Doc\n\nText <u>u</u> and <copy>c</copy>.\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n- [ ] task",
-    );
-    expect(scan.compatibility).toBe("edit");
-    expect(scan.compatibilityReason).toBeNull();
-  });
-
-  it("ignores constructs inside code fences and spans", () => {
-    const scan = scanSourceOnlyConstructs(
-      "Example:\n\n```html\n<div><!-- comment --></div>\n```\n\nAnd `<script>` inline.",
-    );
-    expect(scan.compatibility).toBe("edit");
   });
 });

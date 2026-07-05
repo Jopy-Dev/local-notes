@@ -21,8 +21,6 @@ export const doc = (overrides: Partial<NoteDocument> = {}): NoteDocument => ({
   oversized: false,
   preview: "",
   content: "disk content",
-  markdownCompatibility: "source-only",
-  compatibilityReason: null,
   textEncoding: "utf8",
   lineEnding: "lf",
   ...overrides,

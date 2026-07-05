@@ -49,15 +49,17 @@ export const quietWorkbenchTheme = EditorView.theme(
  * leaves headings bold-only and paints marks with light-theme literals.
  */
 const quietWorkbenchHighlightStyle = HighlightStyle.define([
-  { tag: tags.heading, color: "var(--color-accent)", fontWeight: "650" },
-  { tag: tags.processingInstruction, color: "var(--color-accent)" },
+  // Syntax accent, not brand accent: the light brand amber misses AA
+  // contrast on surface-code (REQ-030) - app.css owns the per-theme value.
+  { tag: tags.heading, color: "var(--color-syntax-accent)", fontWeight: "650" },
+  { tag: tags.processingInstruction, color: "var(--color-syntax-accent)" },
   { tag: tags.strong, fontWeight: "700" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strikethrough, textDecoration: "line-through" },
   { tag: tags.monospace, color: "var(--color-text-code)" },
   {
     tag: tags.link,
-    color: "var(--color-accent)",
+    color: "var(--color-syntax-accent)",
     textDecoration: "underline",
     textUnderlineOffset: "2px",
   },

@@ -64,7 +64,7 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState("");
-  const [mode, setModeState] = useState<EditorMode>("edit");
+  const [mode, setModeState] = useState<EditorMode>("source");
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
   const [focusMode, setFocusMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -122,15 +122,12 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
     setFocusMode((current) => !current);
   }
 
-  // REQ-015: entering visual edit mode revalidates the current draft -
-  // source-mode edits may have made the note source-only.
   function setMode(next: EditorMode) {
-    if (next === "edit") useEditorData.getState().revalidateVisual();
     setModeState(next);
   }
 
   function toggleSplit() {
-    setModeState((current) => (current === "split" ? "edit" : "split"));
+    setModeState((current) => (current === "split" ? "source" : "split"));
   }
 
   function cycleSplitLayout() {

@@ -128,8 +128,8 @@ export class EditorController {
 
   changeDraft(text: string): void {
     if (this.state.readOnlyReason || this.state.conflict) return;
-    // REQ-015 no-write-without-edit: editor echoes (e.g. TipTap setEditable
-    // fires update with no doc change) must never dirty a settled draft.
+    // No-write-without-edit: editor echoes (updates that carry no actual
+    // doc change) must never dirty a settled draft.
     if (text === this.state.draft) return;
     this.update({ ...this.state, draft: text, saveState: "unsaved" });
     this.scheduler.schedule();

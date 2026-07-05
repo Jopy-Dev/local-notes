@@ -37,6 +37,9 @@
   --color-text-disabled: #858276;
   --color-text-source: #d8d4c7;
   --color-text-code: #d6b77d;
+  /* Source-editor syntax accent (REQ-030): heading/link color on
+   * surface-code. Dark reuses the brand accent (7.3:1 on #141411). */
+  --color-syntax-accent: #c49a59;
 
   /* 2.3 Semantic */
   --color-success: #83a87a;
@@ -151,6 +154,9 @@ html[data-theme="light"] {
   --color-text-disabled: #6b6758;
   --color-text-source: #32302a;
   --color-text-code: #77571a;
+  /* REQ-030: brand accent #8a6222 is 4.4:1 on surface-code #ece7d6 - just
+   * under AA. Syntax accent drops to the code amber (5.5:1). */
+  --color-syntax-accent: #77571a;
 
   /* 2.6 Semantic */
   --color-success: #3f6b35;

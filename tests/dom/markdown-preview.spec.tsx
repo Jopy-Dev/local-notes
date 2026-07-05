@@ -8,8 +8,6 @@ import { MarkdownPreview } from "../../src/frontend/editor/MarkdownPreview";
 vi.mock("../../src/frontend/services/contentApi.js", () => ({
   renderMarkdownPreview: vi.fn(async () => ({
     html: '<p>Use <copy>npm run dev</copy> to start.</p>',
-    compatibility: "edit" as const,
-    compatibilityReason: null,
   })),
 }));
 

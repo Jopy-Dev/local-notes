@@ -2,17 +2,13 @@ import { readFile, lstat } from "node:fs/promises";
 import { posix } from "node:path";
 import type { WorkspacePathGuard } from "../filesystem/path-guard.js";
 import { decodeNoteKey } from "../filesystem/path-guard.js";
-import type { CompatibilityScan } from "../../shared/markdown/compatibility-scan.js";
-import { scanSourceOnlyConstructs } from "../../shared/markdown/compatibility-scan.js";
 import { AppError } from "../../shared/errors/codes.js";
 import { renderMarkdown } from "./render-pipeline.js";
 
 /*
  * Markdown preview pipeline service (MasterPrompt.md 4.6, 5.2, REQ-028):
- * sanitized render with the server-side compatibility verdict, plus guarded
- * asset reads for the images that render rewrote to /assets. The frontend
- * compatibility service may still downgrade "edit" after its TipTap
- * round-trip check.
+ * sanitized render plus guarded asset reads for the images that render
+ * rewrote to /assets.
  */
 export const ASSET_SIZE_CAP_BYTES = 20 * 1024 * 1024;
 
@@ -40,7 +36,7 @@ const SIGNATURES: Record<string, (bytes: Buffer) => boolean> = {
   ".ico": (b) => b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00,
 };
 
-export interface RenderResponse extends CompatibilityScan {
+export interface RenderResponse {
   html: string;
 }
 
@@ -54,9 +50,8 @@ export class MarkdownRenderService {
 
   render(source: string, noteKey: string): RenderResponse {
     const noteRelativePath = decodeOr(noteKey, "INVALID_MARKDOWN", "Render requests need a valid X-Note-Key.");
-    const scan = scanSourceOnlyConstructs(source);
     try {
-      return { ...scan, ...renderMarkdown(source, noteRelativePath) };
+      return renderMarkdown(source, noteRelativePath);
     } catch {
       throw new AppError("INVALID_MARKDOWN", "Markdown could not be rendered.");
     }

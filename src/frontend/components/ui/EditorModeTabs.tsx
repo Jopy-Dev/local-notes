@@ -1,8 +1,10 @@
 /*
  * <EditorModeTabs> per Design_System.md 9.2: segmented mode control with
  * pressed semantics; shortcut documented in command palette (Ctrl+\ split).
+ * Modes are Read / Source / Split (user feedback round 2) - Source is the
+ * single editing surface, with the Markdown toolbar for .md notes.
  */
-type EditorMode = "read" | "edit" | "source" | "split";
+type EditorMode = "read" | "source" | "split";
 
 interface EditorModeTabsProps {
   mode: EditorMode;
@@ -12,7 +14,6 @@ interface EditorModeTabsProps {
 
 const modeLabel: Record<EditorMode, string> = {
   read: "Read",
-  edit: "Edit",
   source: "Source",
   split: "Split",
 };
@@ -20,7 +21,7 @@ const modeLabel: Record<EditorMode, string> = {
 export function EditorModeTabs({
   mode,
   onChange,
-  modes = ["read", "edit", "source", "split"],
+  modes = ["read", "source", "split"],
 }: EditorModeTabsProps) {
   return (
     <div

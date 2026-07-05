@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { AppError } from "../../shared/errors/codes.js";
-import { scanSourceOnlyConstructs } from "../../shared/markdown/compatibility-scan.js";
 import { OVERSIZED_LIMIT_BYTES } from "../../shared/schemas/notes.js";
 import type { NoteDocument, NoteMetadata } from "../../shared/schemas/notes.js";
 import { AtomicFileWriter } from "./atomic-writer.js";
@@ -17,8 +16,6 @@ import type { WorkspacePathGuard } from "./path-guard.js";
  * truncated on disk.
  */
 const NOTES_REL_ROOT = "save-data/notes";
-
-const NOT_EDITABLE_REASON = "Visual editing is available for Markdown notes only.";
 
 export class NoteContentService {
   private readonly writer = new AtomicFileWriter();
@@ -67,19 +64,6 @@ export class NoteContentService {
     textEncoding: NoteDocument["textEncoding"],
     lineEnding: NoteDocument["lineEnding"],
   ): NoteDocument {
-    // Static construct verdict only (MasterPrompt.md 4.6 step 2); the
-    // frontend TipTap round-trip check may still downgrade "edit".
-    const scan =
-      metadata.extension === ".md" && !metadata.oversized && textEncoding !== "unsupported"
-        ? scanSourceOnlyConstructs(content)
-        : { compatibility: "source-only" as const, compatibilityReason: NOT_EDITABLE_REASON };
-    return {
-      ...metadata,
-      content,
-      markdownCompatibility: scan.compatibility,
-      compatibilityReason: scan.compatibilityReason,
-      textEncoding,
-      lineEnding,
-    };
+    return { ...metadata, content, textEncoding, lineEnding };
   }
 }
