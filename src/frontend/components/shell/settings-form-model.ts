@@ -15,6 +15,7 @@ export const WIDTHS: { value: ConfigV1["editorWidth"]; label: string }[] = [
   { value: "narrow", label: "Narrow" },
   { value: "medium", label: "Medium" },
   { value: "wide", label: "Wide" },
+  { value: "full", label: "Full" },
 ];
 
 // REQ-021 exact ranges: font 12..24 px integer, line height 1.2..2.0.

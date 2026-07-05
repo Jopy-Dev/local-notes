@@ -11,7 +11,7 @@ export const configV1Schema = z.object({
   workspace: z.string(),
   editorFontSize: z.number().int().min(12).max(24),
   lineHeight: z.number().min(1.2).max(2.0),
-  editorWidth: z.enum(["narrow", "medium", "wide"]),
+  editorWidth: z.enum(["narrow", "medium", "wide", "full"]),
   dashboardView: z.enum(["list", "card"]),
   sortBy: z.enum(["name", "created", "modified", "size"]),
   sortDirection: z.enum(["asc", "desc"]),
