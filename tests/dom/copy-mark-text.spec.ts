@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { copyMarkText } from "../../src/frontend/editor/preview-support.js";
+import { copyMarkText } from "../../src/frontend/editor/copy-mounts.js";
 
 /*
  * REQ-036 (round 2): line-aware clipboard text for <copy> elements.

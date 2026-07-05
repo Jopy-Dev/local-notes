@@ -8,7 +8,8 @@ import { navigate } from "../services/navigation";
 import { copyToClipboard } from "./copy-actions";
 import type { FindRequest } from "./find-in-note";
 import { applyPreviewFind, clearPreviewFind } from "./preview-find";
-import { copyMarkText, hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
+import { copyMarkText, useCopyMounts } from "./copy-mounts";
+import { hydrateAssetImages, useRenderedHtml } from "./preview-support";
 
 /*
  * <MarkdownPreview> per Design_System.md 9.2 (REQ-014): renders ONLY the
