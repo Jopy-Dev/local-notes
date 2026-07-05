@@ -14,12 +14,14 @@ export function fetchNotesPage(options: {
   sort?: string;
   direction?: string;
   folder?: string;
+  recent?: boolean;
 }): Promise<NotesPage> {
   const params = new URLSearchParams();
   if (options.cursor) params.set("cursor", options.cursor);
   if (options.sort) params.set("sort", options.sort);
   if (options.direction) params.set("direction", options.direction);
   if (options.folder) params.set("folder", options.folder);
+  if (options.recent) params.set("recent", "true");
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return apiGet<NotesPage>(`/notes${query}`);
 }
@@ -28,6 +30,8 @@ export interface FoldersResponse {
   folders: string[];
   counts: Record<string, number>;
   total: number;
+  /* Notes modified within the server's 7-day window (round 2). */
+  recent: number;
 }
 
 export function fetchFolders(): Promise<FoldersResponse> {

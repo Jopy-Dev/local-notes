@@ -22,10 +22,11 @@ interface WorkspaceDataState {
   total: number;
   nextCursor: string | null;
   folders: string[];
-  /* Direct-folder note counts + workspace total from /folders (WF-001) -
-   * never derived from a folder-scoped notes page. */
+  /* Direct-folder note counts + workspace/recent totals from /folders
+   * (WF-001) - never derived from a folder-scoped notes page. */
   folderCounts: Record<string, number>;
   workspaceTotal: number;
+  recentTotal: number;
   loading: boolean;
   loaded: boolean;
   error: string | null;
@@ -42,9 +43,15 @@ interface WorkspaceDataState {
   connectEvents: () => () => void;
 }
 
-/* Fetch params for the active scope: folder rides along unless "all". */
+/* Fetch params for the active scope: "all" = unscoped, "recent" = the
+ * server's 7-day modified window, anything else = a folder path. */
 function scopeParams(state: { folder: string } & Parameters<typeof effectiveSort>[0]) {
-  const scope = state.folder !== "all" ? { folder: state.folder } : {};
+  const scope =
+    state.folder === "all"
+      ? {}
+      : state.folder === "recent"
+        ? { recent: true }
+        : { folder: state.folder };
   return { ...effectiveSort(state), ...scope };
 }
 
@@ -55,6 +62,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   folders: [],
   folderCounts: {},
   workspaceTotal: 0,
+  recentTotal: 0,
   loading: false,
   loaded: false,
   error: null,
@@ -102,6 +110,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
         folders: folderData.folders,
         folderCounts: folderData.counts,
         workspaceTotal: folderData.total,
+        recentTotal: folderData.recent,
         loading: false,
         loaded: true,
       });

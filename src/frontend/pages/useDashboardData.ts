@@ -30,6 +30,7 @@ export interface DashboardData {
   folders: readonly string[];
   folderCountMap: ReadonlyMap<string, number>;
   totalNotes: number;
+  recentNotes: number;
   filteredNotes: readonly NoteListEntry[];
   findNoteTitle: (key: string) => string | undefined;
   searchStatus: SearchStatus;
@@ -86,6 +87,7 @@ export function useDashboardData(query: string): DashboardData {
     // folder-scoped and would undercount (WF-001).
     folderCountMap: new Map(Object.entries(data.folderCounts)),
     totalNotes: data.workspaceTotal,
+    recentNotes: data.recentTotal,
     filteredNotes: notes,
     findNoteTitle: (key) =>
       data.notes.find((candidate) => candidate.noteKey === key)?.title ??

@@ -28,6 +28,7 @@ function ShellFolders({ shell }: { shell: ShellState }) {
       onCreateNote={() => shell.setDialog("new-note")}
       onRefresh={() => shell.toast.show("Workspace refreshed")}
       totalNotes={shell.totalNotes}
+      recentNotes={shell.recentNotes}
       folders={shell.folders}
       folderCounts={shell.folderCountMap}
     />
