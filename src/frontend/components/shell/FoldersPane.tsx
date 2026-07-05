@@ -16,12 +16,13 @@ const icons: Record<"note" | "clock" | "archive" | "folder", ReactNode> = {
   folder: <FolderIcon size={15} strokeWidth={1.8} />,
 };
 
-/* Library rows (round 2): Recent = server 7-day modified window. */
-function libraryEntries(total: number, recent: number): TreeEntry[] {
+/* Library rows (round 2): Recent = server 7-day modified window; Archive =
+ * archive-tree browser (read-only notes with restore/delete actions). */
+function libraryEntries(total: number, recent: number, archived: number): TreeEntry[] {
   return [
     { key: "all", label: "All notes", count: total, icon: icons.note },
     { key: "recent", label: "Recent", count: recent, icon: icons.clock },
-    { key: "archive", label: "Archive", count: 0, icon: icons.archive },
+    { key: "archive", label: "Archive", count: archived, icon: icons.archive },
   ];
 }
 
@@ -45,6 +46,7 @@ interface FoldersPaneProps {
   onRefresh: () => void;
   totalNotes: number;
   recentNotes: number;
+  archivedNotes: number;
   folders: readonly string[];
   folderCounts: ReadonlyMap<string, number>;
 }
@@ -56,6 +58,7 @@ export function FoldersPane({
   onRefresh,
   totalNotes,
   recentNotes,
+  archivedNotes,
   folders,
   folderCounts,
 }: FoldersPaneProps) {
@@ -79,7 +82,7 @@ export function FoldersPane({
       </div>
       <FolderTree label="Note navigation">
         <TreeSection
-          entries={libraryEntries(totalNotes, recentNotes)}
+          entries={libraryEntries(totalNotes, recentNotes, archivedNotes)}
           activeKey={activeKey}
           onSelect={onSelect}
         />

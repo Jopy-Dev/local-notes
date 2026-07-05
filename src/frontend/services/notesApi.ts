@@ -15,6 +15,7 @@ export function fetchNotesPage(options: {
   direction?: string;
   folder?: string;
   recent?: boolean;
+  archived?: boolean;
 }): Promise<NotesPage> {
   const params = new URLSearchParams();
   if (options.cursor) params.set("cursor", options.cursor);
@@ -22,6 +23,7 @@ export function fetchNotesPage(options: {
   if (options.direction) params.set("direction", options.direction);
   if (options.folder) params.set("folder", options.folder);
   if (options.recent) params.set("recent", "true");
+  if (options.archived) params.set("archived", "true");
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return apiGet<NotesPage>(`/notes${query}`);
 }
@@ -32,6 +34,8 @@ export interface FoldersResponse {
   total: number;
   /* Notes modified within the server's 7-day window (round 2). */
   recent: number;
+  /* Archived note count (round 2). */
+  archived: number;
 }
 
 export function fetchFolders(): Promise<FoldersResponse> {

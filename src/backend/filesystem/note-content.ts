@@ -13,18 +13,22 @@ import type { WorkspacePathGuard } from "./path-guard.js";
  * LF-normalized; saves restore the original BOM + line-ending style through
  * the atomic writer with an expectedVersion recheck. Oversized and
  * unsupported-encoding notes are read-only - the file is never rewritten or
- * truncated on disk.
+ * truncated on disk. The root defaults to the active notes tree; an archive
+ * instance (round 2) reads the archive tree and is used read-only.
  */
 const NOTES_REL_ROOT = "save-data/notes";
 
 export class NoteContentService {
   private readonly writer = new AtomicFileWriter();
 
-  constructor(private readonly guard: WorkspacePathGuard) {}
+  constructor(
+    private readonly guard: WorkspacePathGuard,
+    private readonly rootRel: string = NOTES_REL_ROOT,
+  ) {}
 
   async read(noteKey: string): Promise<NoteDocument> {
     const relPosix = decodeNoteKey(noteKey);
-    const absPath = await this.guard.resolve(`${NOTES_REL_ROOT}/${relPosix}`);
+    const absPath = await this.guard.resolve(`${this.rootRel}/${relPosix}`);
     const metadata = await buildNoteMetadata(absPath, relPosix);
     if (!metadata) throw new AppError("NOTE_NOT_FOUND", "The note no longer exists on disk.");
 
@@ -38,7 +42,7 @@ export class NoteContentService {
 
   async write(noteKey: string, lfContent: string, expectedVersion: string): Promise<NoteMetadata> {
     const relPosix = decodeNoteKey(noteKey);
-    const absPath = await this.guard.resolve(`${NOTES_REL_ROOT}/${relPosix}`, { forWrite: true });
+    const absPath = await this.guard.resolve(`${this.rootRel}/${relPosix}`, { forWrite: true });
     const currentBytes = await readFile(absPath).catch(() => {
       throw new AppError("NOTE_NOT_FOUND", "The note no longer exists on disk.");
     });

@@ -1,5 +1,6 @@
 import { mkdir, open, readdir, rename, stat } from "node:fs/promises";
 import { basename, dirname } from "node:path";
+import trash from "trash";
 import { AppError } from "../../shared/errors/codes.js";
 import type { NoteExtension, NoteMetadata } from "../../shared/schemas/notes.js";
 import { buildNoteMetadata } from "./note-metadata.js";
@@ -7,15 +8,23 @@ import { decodeNoteKey, encodeNoteKey, validateNoteFilename } from "./path-guard
 import type { WorkspacePathGuard } from "./path-guard.js";
 
 /*
- * Create/move/archive (MasterPrompt.md 4.4, REQ-011/012/013): exclusive
- * creation, Unicode case-folded collision checks against real directory
- * entries, archive preserves the relative source structure. No overwrite,
- * no auto-suffix, no permanent delete; failed operations leave both sides
- * untouched. Same-path mutexes acquire in lexical order (2.5) so concurrent
- * move/archive pairs cannot deadlock.
+ * Create/move/archive/restore (MasterPrompt.md 4.4, REQ-011/012/013):
+ * exclusive creation, Unicode case-folded collision checks against real
+ * directory entries, archive preserves the relative source structure. No
+ * overwrite, no auto-suffix; failed operations leave both sides untouched.
+ * Delete exists ONLY for archived notes and moves the file to the OS
+ * recycle bin (ADR-009 deviation from the no-delete MVP constraint) - the
+ * app itself never unlinks note content. Same-path mutexes acquire in
+ * lexical order (2.5) so concurrent move/archive pairs cannot deadlock.
  */
 const NOTES_REL_ROOT = "save-data/notes";
 const ARCHIVE_REL_ROOT = "save-data/archive";
+
+/* Injectable for tests; production uses the real recycle bin. */
+export type TrashFn = (path: string) => Promise<void>;
+const systemTrash: TrashFn = async (path) => {
+  await trash(path);
+};
 
 function caseFold(name: string): string {
   return name.normalize("NFC").toLocaleLowerCase();
@@ -38,7 +47,10 @@ export class NoteMutationService {
   // same source/destination without deadlocking crossed pairs.
   private readonly locks = new Map<string, Promise<unknown>>();
 
-  constructor(private readonly guard: WorkspacePathGuard) {}
+  constructor(
+    private readonly guard: WorkspacePathGuard,
+    private readonly trashFn: TrashFn = systemTrash,
+  ) {}
 
   async create(input: CreateNoteInput): Promise<NoteMetadata> {
     const trimmed = input.filename.trim();
@@ -115,6 +127,40 @@ export class NoteMutationService {
       }
       await rename(sourceAbs, destAbs);
       return { archivedRelativePath: archivedRel };
+    });
+  }
+
+  /* Restore an archived note into an existing active folder (round 2):
+   * mirror of archive() with the same collision + no-overwrite rules. */
+  async restore(archivedNoteKey: string, destinationFolderKey: string): Promise<NoteMetadata> {
+    const sourceRel = decodeNoteKey(archivedNoteKey);
+    const filename = basename(sourceRel);
+    const folderRel = normalizeFolderKey(destinationFolderKey);
+    const destDirAbs = await this.resolveExistingFolder(
+      `${NOTES_REL_ROOT}${folderRel ? `/${folderRel}` : ""}`,
+    );
+    const destRel = folderRel ? `${folderRel}/${filename}` : filename;
+
+    return this.withLocks([`archive:${sourceRel}`, destRel], async () => {
+      const sourceAbs = await this.guard.resolve(`${ARCHIVE_REL_ROOT}/${sourceRel}`, { forWrite: true });
+      await this.assertSourceNote(sourceAbs);
+      if (await hasCaseFoldEntry(destDirAbs, filename)) {
+        throw new AppError("NOTE_EXISTS", "A note with this name already exists in the folder.");
+      }
+      const destAbs = await this.guard.resolve(`${NOTES_REL_ROOT}/${destRel}`, { forWrite: true });
+      await rename(sourceAbs, destAbs);
+      return this.metadataFor(destRel);
+    });
+  }
+
+  /* Move an ARCHIVED note to the OS recycle bin (round 2, ADR-009). Active
+   * notes have no delete path - archive first, always. */
+  async deleteArchived(archivedNoteKey: string): Promise<void> {
+    const sourceRel = decodeNoteKey(archivedNoteKey);
+    await this.withLocks([`archive:${sourceRel}`], async () => {
+      const sourceAbs = await this.guard.resolve(`${ARCHIVE_REL_ROOT}/${sourceRel}`, { forWrite: true });
+      await this.assertSourceNote(sourceAbs);
+      await this.trashFn(sourceAbs);
     });
   }
 

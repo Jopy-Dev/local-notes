@@ -72,6 +72,8 @@ async function main(): Promise<void> {
       workspaceRoot,
       configService,
       noteRepository: discovery.repository,
+      archiveRepository: discovery.archiveRepository,
+      archiveContentService: discovery.archiveContentService,
       eventBus: discovery.bus,
       searchService: discovery.searchService,
       mutationService: discovery.mutationService,

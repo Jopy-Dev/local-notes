@@ -32,6 +32,9 @@ export function AppRouter() {
   switch (route.name) {
     case "note":
       return <WorkspaceShellPage noteKey={route.noteKey} />;
+    case "archive-note":
+      // SCREEN-008: archived note opens read-only in the editor slot.
+      return <WorkspaceShellPage archiveNoteKey={route.noteKey} />;
     case "dashboard":
       return <WorkspaceShellPage />;
     case "settings":

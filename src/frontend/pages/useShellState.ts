@@ -59,7 +59,11 @@ export interface ShellState extends DashboardData {
   editor: ReturnType<typeof useEditorData.getState>;
 }
 
-export function useShellState(routeNoteKey: string | null, settingsOpen = false): ShellState {
+export function useShellState(
+  routeNoteKey: string | null,
+  settingsOpen = false,
+  archiveNoteKey: string | null = null,
+): ShellState {
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -105,7 +109,9 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
   }, [editor.saveState]);
 
   function selectNote(key: string) {
-    navigate(`/notes/${key}`);
+    // Archive scope lists archive-tree keys; they open on the read-only
+    // archive route, never /notes (round 2, SCREEN-008).
+    navigate(dashboard.folder === "archive" ? `/archive/${key}` : `/notes/${key}`);
     const noteTitle = dashboard.findNoteTitle(key);
     if (noteTitle !== undefined) toast.show(`Opened ${noteTitle}`);
   }
@@ -248,7 +254,7 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
     // WF-001 folder navigation lives in the workspace store (scoped fetches).
     activeFolder: dashboard.folder,
     setActiveFolder: dashboard.setFolder,
-    selectedNote: routeNoteKey ?? "",
+    selectedNote: routeNoteKey ?? archiveNoteKey ?? "",
     selectNote,
     query,
     setQuery,

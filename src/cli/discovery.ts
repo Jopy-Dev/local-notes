@@ -18,6 +18,9 @@ import { WorkspaceWatcher } from "../backend/watcher/workspace-watcher.js";
  */
 export interface DiscoveryStack {
   repository: NoteRepository;
+  /* Archive tree access (round 2): listing + read-only content. */
+  archiveRepository: NoteRepository;
+  archiveContentService: NoteContentService;
   bus: EventBus;
   searchService: SearchService;
   mutationService: NoteMutationService;
@@ -65,6 +68,8 @@ export async function startDiscovery(
 
   return {
     repository,
+    archiveRepository: new NoteRepository(guard, "save-data/archive"),
+    archiveContentService: new NoteContentService(guard, "save-data/archive"),
     bus,
     searchService,
     mutationService,

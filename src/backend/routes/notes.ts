@@ -23,6 +23,8 @@ const listQuerySchema = z.object({
   folder: z.string().min(1).max(4096).optional(),
   // Recent scope (round 2): notes modified within the 7-day window.
   recent: z.enum(["true"]).optional(),
+  // Archive scope (round 2): pages come from the archive tree instead.
+  archived: z.enum(["true"]).optional(),
 });
 
 function isRecent(modifiedAt: string, cutoffMs: number): boolean {
@@ -45,17 +47,23 @@ function encodeCursor(offset: number): string {
 
 export function registerNotesRoutes(
   app: FastifyInstance,
-  options: { repository: NoteRepository },
+  options: { repository: NoteRepository; archiveRepository?: NoteRepository | undefined },
 ): void {
   app.get(`${API_PREFIX}/notes`, async (request) => {
     const parsed = listQuerySchema.safeParse(request.query);
     if (!parsed.success) {
       throw new AppError("INVALID_QUERY", "Invalid list query parameters.");
     }
-    const { cursor, limit, sort, direction, folder, recent } = parsed.data;
+    const { cursor, limit, sort, direction, folder, recent, archived } = parsed.data;
     const offset = decodeCursor(cursor);
 
-    const scanned = await options.repository.scan();
+    // Archive scope reads the archive tree; keys stay archive-root-relative
+    // and only the /archive/* routes accept them (round 2).
+    const repository = archived ? options.archiveRepository : options.repository;
+    if (!repository) {
+      throw new AppError("INVALID_QUERY", "Archive listing is not available.");
+    }
+    const scanned = await repository.scan();
     let scoped = folder
       ? scanned.filter(
           (note) => note.folder === folder || note.folder.startsWith(`${folder}/`),
@@ -81,9 +89,10 @@ export function registerNotesRoutes(
   app.get(`${API_PREFIX}/folders`, async (request) => {
     // Direct-folder counts ride with the tree so the sidebar never derives
     // counts from a folder-scoped notes page (WF-001).
-    const [folders, notes] = await Promise.all([
+    const [folders, notes, archivedNotes] = await Promise.all([
       options.repository.listFolders(),
       options.repository.scan(),
+      options.archiveRepository?.scan() ?? Promise.resolve([]),
     ]);
     const counts: Record<string, number> = {};
     const cutoffMs = Date.now() - RECENT_WINDOW_MS;
@@ -92,6 +101,9 @@ export function registerNotesRoutes(
       if (note.folder) counts[note.folder] = (counts[note.folder] ?? 0) + 1;
       if (isRecent(note.modifiedAt, cutoffMs)) recent += 1;
     }
-    return { data: { folders, counts, total: notes.length, recent }, requestId: request.id };
+    return {
+      data: { folders, counts, total: notes.length, recent, archived: archivedNotes.length },
+      requestId: request.id,
+    };
   });
 }

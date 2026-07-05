@@ -1,3 +1,4 @@
+import { ArchiveNoteView } from "../components/shell/ArchiveNoteView";
 import { CollapsedRail } from "../components/shell/CollapsedRail";
 import { EditorPane } from "../components/shell/EditorPane";
 import { FoldersPane } from "../components/shell/FoldersPane";
@@ -29,6 +30,7 @@ function ShellFolders({ shell }: { shell: ShellState }) {
       onRefresh={() => shell.toast.show("Workspace refreshed")}
       totalNotes={shell.totalNotes}
       recentNotes={shell.recentNotes}
+      archivedNotes={shell.archivedNotes}
       folders={shell.folders}
       folderCounts={shell.folderCountMap}
     />
@@ -107,13 +109,15 @@ const RAIL_WIDTH_PX = 28;
 
 export function WorkspaceShellPage({
   noteKey = null,
+  archiveNoteKey = null,
   settingsOpen = false,
 }: {
   noteKey?: string | null;
+  archiveNoteKey?: string | null;
   settingsOpen?: boolean;
 }) {
   const supported = useViewportSupported();
-  const shell = useShellState(noteKey, settingsOpen);
+  const shell = useShellState(noteKey, settingsOpen, archiveNoteKey);
   const isDesktop = useIsDesktop();
   const panesUi = useWorkspaceUi();
   useRenameFollow(noteKey);
@@ -161,7 +165,17 @@ export function WorkspaceShellPage({
             <ShellNotes shell={shell} />
           )
         }
-        editor={<ShellEditor shell={shell} />}
+        editor={
+          archiveNoteKey ? (
+            <ArchiveNoteView
+              noteKey={archiveNoteKey}
+              folders={shell.folders}
+              onToast={shell.toast.show}
+            />
+          ) : (
+            <ShellEditor shell={shell} />
+          )
+        }
         status={<ShellStatusBar document={shell.editor.document} saveState={shell.editor.saveState} />}
         panes={{
           folderWidth: paneWidth("folder"),
