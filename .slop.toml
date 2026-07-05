@@ -127,6 +127,13 @@ reason = "Wave 8 REQ-031 benchmark suite creation is the growth stat (10k fixtur
 expires = "2026-08-15"
 
 [[waivers]]
+id = "a11y-spec-hotspot-2026-07-05"
+path = "tests/e2e/a11y.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 suite creation is the growth stat; round-2 edit (violation targets + CodeMirror-only SCREEN-002 selector) re-flags the rolling-window top scorer; CCX 20 healthy for one coherent sweep; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "search-service-spec-hotspot-2026-07-05"
 path = "tests/unit/search-service.spec.ts"
 rule = "structural.hotspots"
