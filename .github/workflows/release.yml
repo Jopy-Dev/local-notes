@@ -28,6 +28,8 @@ jobs:
       - run: node scripts/check-lifecycle-scripts.mjs
       - run: npm run typecheck
       - run: npm run lint
+      # Chromium for the REQ-030 axe sweep (tests/e2e/a11y.spec.ts)
+      - run: npx playwright install --with-deps chromium
       - run: npm test
       # prepack runs the full client+server build; the tarball carries dist only.
       - run: npm pack

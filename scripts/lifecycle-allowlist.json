@@ -1,6 +1,7 @@
 {
   "comment": "Lockfile packages allowed to carry npm lifecycle install scripts (MasterPrompt.md 1.5). Every entry = exact lockfile path @ version, reviewed before adding. scripts/check-lifecycle-scripts.mjs enforces this in CI and the release workflow.",
   "reviewed": {
-    "node_modules/fsevents@2.3.3": "macOS-only optional native filesystem-events helper pulled by chokidar/vite; install script compiles the darwin binding; widely audited, dev/optional scope only (2026-07-04)"
+    "node_modules/fsevents@2.3.3": "macOS-only optional native filesystem-events helper pulled by chokidar/vite; install script compiles the darwin binding; widely audited, dev/optional scope only (2026-07-04)",
+    "node_modules/playwright/node_modules/fsevents@2.3.2": "same darwin-only optional binding, older pin nested under playwright (a11y test harness, devDependency); identical install-script behavior to the reviewed 2.3.3 entry (2026-07-05)"
   }
 }

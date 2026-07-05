@@ -41,6 +41,7 @@ All notable changes to this project will be documented in this file. Format foll
 ### Fixed
 
 - Sort direction now re-orders the note list immediately: previously the ascending/descending toggle saved the preference but the visible order never changed until a restart
+- Screen readers now announce the visual note editor by name: the editing surface itself carried no accessible label, so assistive technology announced an unnamed text field
 - Markdown syntax coloring in the source editor: headings and their # marks now show in the amber accent, inline code and links get their own colors in both themes - previously everything rendered in the plain text color
 - Notes are no longer rewritten on disk without an edit: opening a note in the visual editor or applying settings while one was open could silently save the file (sometimes with normalized whitespace) - the editor now saves only real edits
 - Opening Settings no longer disturbs the note you were editing: the note stays open behind the dialog, applying returns you to it, and the visual editor no longer falls back to "Visual editing is unavailable" until a reload

@@ -20,6 +20,26 @@ function newestMtime(dir: string): number {
   return newest;
 }
 
+/* Same freshness contract for the Vite client build (a11y sweep serves the
+ * packaged SPA shell through the real nonce-injecting static handler). */
+export function ensureClientBuilt(): string {
+  const root = process.cwd();
+  const clientRoot = join(root, "dist", "client");
+  const indexHtml = join(clientRoot, "index.html");
+  try {
+    const builtAt = statSync(indexHtml).mtimeMs;
+    const sourceMtime = Math.max(
+      newestMtime(join(root, "src", "frontend")),
+      newestMtime(join(root, "src", "shared")),
+    );
+    if (builtAt > sourceMtime) return clientRoot;
+  } catch {
+    /* not built yet */
+  }
+  execSync("npx vite build", { cwd: root, stdio: "ignore" });
+  return clientRoot;
+}
+
 export function ensureDistBuilt(): string {
   const root = process.cwd();
   const existing = resolveSearchWorkerPath();

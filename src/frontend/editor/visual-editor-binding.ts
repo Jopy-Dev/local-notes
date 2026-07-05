@@ -33,6 +33,10 @@ export function createVisualEditorBinding(options: VisualEditorBindingOptions): 
     ...(options.element ? { element: options.element } : {}),
     extensions: markdownEditorExtensions(),
     editable: options.editable ?? true,
+    // TipTap marks the ProseMirror surface role="textbox"; the accessible
+    // name must sit on that element itself - a wrapper aria-label does not
+    // name it (REQ-030, axe aria-input-field-name).
+    editorProps: { attributes: { "aria-label": "Note editor" } },
     // Packaged CSP has no 'unsafe-inline'; ProseMirror's injected styles
     // carry the per-response nonce (MasterPrompt.md 7.1).
     ...(options.styleNonce ? { injectNonce: options.styleNonce } : {}),
