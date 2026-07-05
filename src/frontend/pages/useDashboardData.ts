@@ -3,8 +3,9 @@ import type { NoteListEntry } from "../components/ui/NoteListItem";
 import { folderCounts, toListEntry } from "../services/noteView";
 import { useSearchData } from "../stores/searchData";
 import type { SearchStatus } from "../stores/searchData";
+import { useSettingsData } from "../stores/settingsData";
 import { useWorkspaceData } from "../stores/workspaceData";
-import type { DashboardView } from "../stores/workspaceData";
+import type { DashboardSortBy, DashboardSortDirection, DashboardView } from "../stores/workspaceData";
 import type { IndexState, SearchResult } from "../../shared/schemas/search.js";
 
 /*
@@ -22,6 +23,10 @@ export interface DashboardData {
   loadMore: () => void;
   view: DashboardView;
   setView: (view: DashboardView) => void;
+  sortBy: DashboardSortBy;
+  setSortBy: (sortBy: DashboardSortBy) => void;
+  sortDirection: DashboardSortDirection;
+  setSortDirection: (direction: DashboardSortDirection) => void;
   folders: readonly string[];
   folderCountMap: ReadonlyMap<string, number>;
   totalNotes: number;
@@ -37,6 +42,8 @@ export interface DashboardData {
 export function useDashboardData(query: string): DashboardData {
   const data = useWorkspaceData();
   const search = useSearchData();
+  // Reactive fallback: session sort override wins, else persisted config.
+  const settingsConfig = useSettingsData((state) => state.config);
 
   // Initial load + SSE-driven refresh; store actions are referentially
   // stable, so this runs once on mount.
@@ -70,6 +77,10 @@ export function useDashboardData(query: string): DashboardData {
     loadMore: () => void data.loadMore(),
     view: data.view,
     setView: data.setView,
+    sortBy: data.sortBy ?? settingsConfig?.sortBy ?? "modified",
+    setSortBy: data.setSortBy,
+    sortDirection: data.sortDirection ?? settingsConfig?.sortDirection ?? "desc",
+    setSortDirection: data.setSortDirection,
     folders: data.folders,
     folderCountMap: folderCounts(data.notes),
     totalNotes: data.total,

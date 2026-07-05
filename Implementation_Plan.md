@@ -95,7 +95,7 @@ States per screen; `Auth-denied` = capability missing/stale -> secure-relaunch i
 
 | Contract | Path | Status | Owner |
 |---|---|---|---|
-| Every `SCREEN-###` -> route, states, criticality, evidence method; criticalJourneys = launch, edit/autosave, conflict, search, archive | `tests/e2e/route-manifest.ts` | Open (Wave 0 seeds, Wave 8 completes) | `workflow/testing-validation.md` §15.2 |
+| Every `SCREEN-###` -> route, states, criticality, evidence method; criticalJourneys = launch, edit/autosave, conflict, search, archive | `tests/e2e/route-manifest.ts` | Complete (Wave 8; invariants spec `tests/unit/route-manifest.spec.ts` cross-checks PRD) | `workflow/testing-validation.md` §15.2 |
 
 ## 7. Traceability Closure
 

@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
-import fastifyStatic from "@fastify/static";
 import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
 import { AppError } from "../shared/errors/codes.js";
 import type { ConfigService } from "./config/config-service.js";
@@ -19,6 +18,7 @@ import { registerSystemRoutes } from "./routes/system.js";
 import type { EventBus } from "./events/event-bus.js";
 import type { OperationRegistry } from "./events/operation-registry.js";
 import { registerBoundary } from "./security/boundary.js";
+import { registerSpa } from "./spa.js";
 import type { NoteContentService } from "./filesystem/note-content.js";
 import type { MarkdownRenderService } from "./markdown/render-service.js";
 import type { NoteMutationService } from "./filesystem/note-mutations.js";
@@ -71,12 +71,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerRouteModules(app, options, workspaceRoot);
 
   if (options.staticRoot) {
-    await app.register(fastifyStatic, {
-      root: options.staticRoot,
-      index: ["index.html"],
-      dotfiles: "deny",
-      list: false,
-    });
+    await registerSpa(app, options.staticRoot);
   }
 
   return app;

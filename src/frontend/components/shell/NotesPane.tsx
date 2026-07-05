@@ -1,21 +1,21 @@
+import { useRef } from "react";
 import type { RefObject } from "react";
 import { NewNoteIcon, SearchEmptyIcon, WarningIcon } from "../icons";
 import { Button } from "../ui/Button";
 import { DashboardToolbar } from "../ui/DashboardToolbar";
-import { NoteCard } from "../ui/NoteCard";
-import { NoteListItem } from "../ui/NoteListItem";
 import type { NoteListEntry } from "../ui/NoteListItem";
+import { NotesVirtualList } from "../ui/NotesVirtualList";
 import { SearchResultItem } from "../ui/SearchResultItem";
 import { NoteListSkeleton } from "../ui/Skeleton";
-import { SORT_OPTIONS } from "../../services/mockWorkspace";
+import type { DashboardSortBy } from "../../stores/workspaceData";
 import type { SearchStatus } from "../../stores/searchData";
 import type { IndexState, SearchResult } from "../../../shared/schemas/search.js";
 
 /*
- * Note list pane (WF-001/002/004): toolbar + list/card views + skeleton +
- * empty/no-result states + load-more batches. Non-blank queries render
- * ranked search results (REQ-009); a degraded index links the recovery
- * surface. Virtualization upgrade rides with the 10k perf pass (REQ-031).
+ * Note list pane (WF-001/002/004): toolbar + virtualized list/card views
+ * (REQ-031 incremental rendering) + skeleton + empty/no-result states +
+ * load-more batches. Non-blank queries render ranked search results
+ * (REQ-009); a degraded index links the recovery surface.
  */
 interface NotesPaneProps {
   notes: readonly NoteListEntry[];
@@ -23,6 +23,8 @@ interface NotesPaneProps {
   onSelect: (key: string) => void;
   query: string;
   onQueryChange: (value: string) => void;
+  sortBy: DashboardSortBy;
+  onSortByChange: (sortBy: DashboardSortBy) => void;
   descending: boolean;
   onToggleDirection: () => void;
   view: "list" | "card";
@@ -40,6 +42,14 @@ interface NotesPaneProps {
   onOpenRecovery: () => void;
   searchRef: RefObject<HTMLInputElement | null>;
 }
+
+/* REQ-008 sort fields; labels match Design_System.md 9.2 toolbar copy. */
+const SORT_CHOICES: ReadonlyArray<{ value: DashboardSortBy; label: string }> = [
+  { value: "modified", label: "Modified" },
+  { value: "created", label: "Created" },
+  { value: "name", label: "Name" },
+  { value: "size", label: "Size" },
+];
 
 function EmptyState({ query, onCreateNote }: { query: string; onCreateNote: () => void }) {
   if (query) {
@@ -115,39 +125,25 @@ function SearchResultList(props: NotesPaneProps) {
   );
 }
 
-function NoteList(props: NotesPaneProps) {
-  const { notes, view } = props;
-  if (view === "card") {
-    return (
-      <div className="grid grid-cols-2 gap-2 p-2">
-        {notes.map((note) => (
-          <NoteCard
-            key={note.key}
-            note={note}
-            selected={note.key === props.selectedKey}
-            onSelect={props.onSelect}
-          />
-        ))}
-      </div>
-    );
-  }
+function NoteList(props: NotesPaneProps & { scrollRef: RefObject<HTMLDivElement | null> }) {
+  // Remount on view switch: measured row heights differ per view (REQ-031).
   return (
-    <>
-      {notes.map((note) => (
-        <NoteListItem
-          key={note.key}
-          note={note}
-          selected={note.key === props.selectedKey}
-          onSelect={props.onSelect}
-        />
-      ))}
-    </>
+    <NotesVirtualList
+      key={props.view}
+      notes={props.notes}
+      view={props.view}
+      selectedKey={props.selectedKey}
+      onSelect={props.onSelect}
+      scrollRef={props.scrollRef}
+    />
   );
 }
 
 export function NotesPane(props: NotesPaneProps) {
   const { notes, loading } = props;
   const searching = props.query.trim().length > 0;
+  // Scroll parent for the virtualizer (REQ-031).
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <section
@@ -158,7 +154,12 @@ export function NotesPane(props: NotesPaneProps) {
         query={props.query}
         onQueryChange={(event) => props.onQueryChange(event.target.value)}
         resultCount={props.totalLabel}
-        sortOptions={SORT_OPTIONS}
+        sortOptions={SORT_CHOICES.map((choice) => choice.label)}
+        sortValue={SORT_CHOICES.find((choice) => choice.value === props.sortBy)?.label ?? "Modified"}
+        onSortChange={(label) => {
+          const choice = SORT_CHOICES.find((candidate) => candidate.label === label);
+          if (choice) props.onSortByChange(choice.value);
+        }}
         descending={props.descending}
         onToggleDirection={props.onToggleDirection}
         view={props.view}
@@ -169,6 +170,7 @@ export function NotesPane(props: NotesPaneProps) {
         <DegradedBanner onOpenRecovery={props.onOpenRecovery} />
       ) : null}
       <div
+        ref={scrollRef}
         aria-busy={loading || undefined}
         className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
       >
@@ -176,7 +178,7 @@ export function NotesPane(props: NotesPaneProps) {
         {!loading && searching ? <SearchResultList {...props} /> : null}
         {!loading && !searching ? (
           <>
-            <NoteList {...props} />
+            <NoteList {...props} scrollRef={scrollRef} />
             {notes.length === 0 ? (
               <EmptyState query="" onCreateNote={props.onCreateNote} />
             ) : null}

@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Added
 
+- Installable package: the app now builds into a single tarball that serves the full interface from the local server - download a release, `npm install -g` it once, and `npx local-notes` opens the complete app with no dev tooling; an automated acceptance test installs the package into a clean location and verifies launch, and tagged releases attach the tarball to a GitHub Release automatically
+- Search runs on its own background thread in the installed app: typing and saving never wait on indexing, and if the search engine ever crashes the app restarts it once automatically - editing is unaffected and the search recovery screen still rebuilds the index on demand
+- Sort notes your way: the dashboard sort selector now works - choose name, created, modified, or size, flip ascending/descending, and both choices persist across restarts
+- Local diagnostics: the app now writes structured operational logs to ~/.local-notes/logs with 10 MiB file rotation and automatic cleanup (30 days / 100 MiB total, checked hourly) - note content, search queries, and access tokens never appear in a log
+- Smooth dashboard at any size: the note list and card grid now render only the rows on screen, so a workspace with 10,000 notes scrolls without slowdown or memory growth
+
 - Crash-safe file handling foundations: atomic note/config writes, workspace boundary protection, single-instance lock, first-run workspace creation, settings persistence with safe defaults, bounded local diagnostics
 - Project scaffold: Vite/React/Tailwind frontend toolchain, CI, repo hygiene configs
 - Quiet Workbench design system tokens ported to Tailwind theme
@@ -34,10 +40,13 @@ All notable changes to this project will be documented in this file. Format foll
 
 ### Fixed
 
+- Sort direction now re-orders the note list immediately: previously the ascending/descending toggle saved the preference but the visible order never changed until a restart
+- Screen readers now announce the visual note editor by name: the editing surface itself carried no accessible label, so assistive technology announced an unnamed text field
 - Markdown syntax coloring in the source editor: headings and their # marks now show in the amber accent, inline code and links get their own colors in both themes - previously everything rendered in the plain text color
 - Notes are no longer rewritten on disk without an edit: opening a note in the visual editor or applying settings while one was open could silently save the file (sometimes with normalized whitespace) - the editor now saves only real edits
 - Opening Settings no longer disturbs the note you were editing: the note stays open behind the dialog, applying returns you to it, and the visual editor no longer falls back to "Visual editing is unavailable" until a reload
 
 ### Changed
 
+- Search is much faster in large workspaces: typo-tolerant matching now runs as a rescue pass only when a query has no exact hits, cutting worst-case search time from ~280ms to under 60ms across 10,000 notes - misspelled searches still find their notes
 - Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability; Wide editor width now gives the editor and preview more room instead of matching Medium

@@ -90,3 +90,45 @@ path = "src/backend/config/config-service.ts"
 rule = "structural.hotspots"
 reason = "Wave 7 added ConfigService.update (partial merge + mutex, one-time +116 LOC inside the 14-day window); CCX 21 driven by REQ-032 per-field fallback loop, cohesive by design; rolling-window top-scorer recompute; KNOWN_ISSUES.md Suppressions"
 expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-hotspot-2026-07-05"
+path = "src/backend/search/search-service.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework inside the 14-day window; entry assembly extracted to index-entries.ts; remainder is status lifecycle + crash restart policy, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "workspace-data-hotspot-2026-07-05"
+path = "src/frontend/stores/workspaceData.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 WF-004 sort wiring; optimistic-persist + effectiveSort extracted to workspace-preferences.ts; growth stat is committed Wave 8 history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-index-hotspot-2026-07-05"
+path = "src/backend/search/search-index.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework + METRIC-003 two-phase retrieval growth in the 14-day window; ranking/snippet/engine helpers already live in sibling modules; CCX 39 is the budget-ledger + retrieval branching, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-worker-spec-hotspot-2026-07-05"
+path = "tests/integration/search-worker.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 real-thread suite creation is the growth stat (one coherent worker-protocol suite, CCX 21 healthy); dist build already shared via dist-build.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "perf-benchmark-spec-hotspot-2026-07-05"
+path = "tests/integration/perf-benchmark.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 REQ-031 benchmark suite creation is the growth stat (10k fixture seeding + metric evidence in one coherent spec, CCX 21 healthy); KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-spec-hotspot-2026-07-05"
+path = "tests/unit/search-service.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 crash-policy suite split to search-crash-policy.spec.ts; growth stat is committed Wave 8 spec history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"

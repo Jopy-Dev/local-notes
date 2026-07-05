@@ -56,7 +56,18 @@ export class RotatingLogDestination {
     return join(this.logsDir, `local-notes-${stamp}-${process.pid}-${this.sequence}.log`);
   }
 
-  async write(line: string): Promise<void> {
+  /* Writes serialize through a promise chain: pino streams fire-and-forget,
+   * and concurrent appendFile calls could reorder lines or split rotation. */
+  private tail: Promise<void> = Promise.resolve();
+
+  write(line: string): Promise<void> {
+    const next = this.tail.then(() => this.append(line));
+    // A failed write never wedges the chain for later lines.
+    this.tail = next.catch(() => undefined);
+    return next;
+  }
+
+  private async append(line: string): Promise<void> {
     const bytes = Buffer.byteLength(line, "utf8");
     if (this.currentBytes > 0 && this.currentBytes + bytes > this.options.maxFileBytes) {
       this.currentPath = this.nextPath();
@@ -67,6 +78,7 @@ export class RotatingLogDestination {
   }
 
   async close(): Promise<void> {
-    // appendFile-based destination holds no open handle between writes.
+    // Drain queued lines; appendFile holds no open handle between writes.
+    await this.tail;
   }
 }

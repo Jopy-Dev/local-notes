@@ -31,7 +31,12 @@ beforeEach(async () => {
   capability = generateCapability();
   const guard = await WorkspacePathGuard.create(root);
   repository = new NoteRepository(guard, "save-data/notes");
-  service = createSearchService({ guard, workspaceRoot: root, notesRelRoot: "save-data/notes" });
+  service = createSearchService({
+    guard,
+    workspaceRoot: root,
+    notesRelRoot: "save-data/notes",
+    preferredEngine: "in-process",
+  }).service;
   await service.initialize(await repository.scan());
   app = await buildApp({
     capability,

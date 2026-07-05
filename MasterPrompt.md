@@ -111,10 +111,8 @@ tests/
 - Frontend builds through Vite into `dist/client`.
 - CLI output preserves executable shebang.
 - `npm pack` acceptance test installs tarball into isolated temporary prefix and launches package with npm cache offline.
-- Recheck npm name availability immediately before first publish; name collision reopens launch-contract decision.
-- First publish uses npm trusted publishing through GitHub Actions OIDC with provenance; no long-lived npm token.
-- Publish workflow runs from protected release tag, verifies clean lockfile build, `npm pack --dry-run`, package contents allowlist, tests, audits, and scans before `npm publish`.
-- CI rejects lockfile dependencies with lifecycle install scripts unless exact package/version is reviewed and allowlisted.
+- Distribution (ADR-007, supersedes npm publish plan): no npm publish; repository stays private. Version-tag workflow runs verify gates, `npm pack`, and attaches the tarball to a GitHub Release. Install = `npm install -g ./local-notes-<version>.tgz` once (then `local-notes` / `npx local-notes`) or `npx ./local-notes-<version>.tgz`.
+- CI rejects lockfile dependencies with lifecycle install scripts unless exact package/version is reviewed and allowlisted (`scripts/lifecycle-allowlist.json`).
 - Graceful shutdown order: stop accepting requests -> close SSE clients -> close watcher -> flush search cache -> terminate worker -> release workspace lock -> close logs.
 
 ### 1.6 Frontend Navigation

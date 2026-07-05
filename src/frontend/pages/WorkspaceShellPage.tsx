@@ -42,6 +42,8 @@ function ShellNotes({ shell }: { shell: ShellState }) {
       onSelect={shell.selectNote}
       query={shell.query}
       onQueryChange={shell.setQuery}
+      sortBy={shell.sortBy}
+      onSortByChange={shell.setSortBy}
       descending={shell.descending}
       onToggleDirection={shell.toggleDirection}
       view={shell.view}

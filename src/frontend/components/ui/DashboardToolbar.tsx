@@ -13,6 +13,8 @@ interface DashboardToolbarProps {
   onQueryChange: ChangeEventHandler<HTMLInputElement>;
   resultCount: string;
   sortOptions: readonly string[];
+  sortValue: string;
+  onSortChange: (label: string) => void;
   descending: boolean;
   onToggleDirection: () => void;
   view?: "list" | "card";
@@ -25,6 +27,8 @@ export function DashboardToolbar({
   onQueryChange,
   resultCount,
   sortOptions,
+  sortValue,
+  onSortChange,
   descending,
   onToggleDirection,
   view,
@@ -59,7 +63,13 @@ export function DashboardToolbar({
         <label htmlFor="sort-select" className="sr-only">
           Sort notes
         </label>
-        <Select id="sort-select" compact options={sortOptions} />
+        <Select
+          id="sort-select"
+          compact
+          options={sortOptions}
+          value={sortValue}
+          onChange={(event) => onSortChange(event.target.value)}
+        />
         <IconButton
           label={descending ? "Sort descending" : "Sort ascending"}
           pressed={descending}

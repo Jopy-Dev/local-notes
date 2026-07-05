@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -10,7 +11,8 @@ import { WorkspacePathGuard } from "../backend/filesystem/path-guard.js";
 import { initWorkspace } from "../backend/filesystem/workspace-init.js";
 import { acquireWorkspaceLock } from "../backend/filesystem/workspace-lock.js";
 import type { WorkspaceLock } from "../backend/filesystem/workspace-lock.js";
-import { LOG_MAX_AGE_DAYS, LOG_MAX_TOTAL_BYTES, sweepLogs } from "../backend/logging/rotation.js";
+import { createAppLogging } from "../backend/logging/logger.js";
+import type { AppLogging } from "../backend/logging/logger.js";
 import { MarkdownRenderService } from "../backend/markdown/render-service.js";
 import { startDiscovery } from "./discovery.js";
 import type { DiscoveryStack } from "./discovery.js";
@@ -23,12 +25,19 @@ import { buildLaunchUrl, openBrowser } from "./launch.js";
  * browser. Search worker joins at Wave 3. Failure closes initialized
  * resources in reverse order.
  */
-const packagedClientRoot = join(dirname(fileURLToPath(import.meta.url)), "../../client");
+/*
+ * Packaged layout: dist/cli/index.js -> dist/client (tsconfig.build.json
+ * emits src/* to dist/*; Vite emits the SPA to dist/client). Under vite-node
+ * (dev) the directory does not exist - the Vite dev server owns the SPA and
+ * the API runs without a static root.
+ */
+const packagedClientRoot = join(dirname(fileURLToPath(import.meta.url)), "../client");
 
 async function main(): Promise<void> {
   const workspaceRoot = join(homedir(), ".local-notes");
   let lock: WorkspaceLock | undefined;
   let discovery: DiscoveryStack | undefined;
+  let logging: AppLogging | undefined;
 
   try {
     await initWorkspace(workspaceRoot);
@@ -39,10 +48,11 @@ async function main(): Promise<void> {
     });
 
     // Log maintenance failure warns once and never blocks note workflows (4.9).
-    await sweepLogs(join(workspaceRoot, "logs"), {
-      maxTotalBytes: LOG_MAX_TOTAL_BYTES,
-      maxAgeDays: LOG_MAX_AGE_DAYS,
-    }).catch(() => console.warn("Log maintenance failed - continuing without cleanup."));
+    logging = createAppLogging(workspaceRoot, () =>
+      console.warn("Log maintenance failed - continuing without cleanup."),
+    );
+    await logging.runRetention();
+    logging.startRetentionJob();
 
     const configService = new ConfigService(workspaceRoot);
     const { warnings } = await configService.load();
@@ -51,9 +61,14 @@ async function main(): Promise<void> {
     discovery = await startDiscovery(guard, workspaceRoot);
 
     const capability = generateCapability();
+    const packagedClient = existsSync(join(packagedClientRoot, "index.html"));
+    if (!packagedClient) {
+      console.warn("Packaged SPA not found - serving API only (dev mode uses the Vite server).");
+    }
     const app = await buildApp({
       capability,
-      staticRoot: packagedClientRoot,
+      ...(packagedClient ? { staticRoot: packagedClientRoot } : {}),
+      logger: logging.fastifyLogger,
       workspaceRoot,
       configService,
       noteRepository: discovery.repository,
@@ -73,10 +88,13 @@ async function main(): Promise<void> {
     }
     console.log(`Local-Notes running at ${url} (Ctrl+C to stop)`);
 
+    app.log.info({ op: "startup" }, "Local-Notes started");
+
     const shutdown = async () => {
-      // Graceful order (1.5): server -> watcher -> cache flush -> lock.
+      // Graceful order (1.5): server -> watcher -> cache flush -> logs -> lock.
       await app.close();
       await discovery?.close();
+      await logging?.close();
       await lock?.release();
       process.exit(EXIT_CODES.clean);
     };
@@ -94,6 +112,7 @@ async function main(): Promise<void> {
       console.error(message);
     }
     await discovery?.close();
+    await logging?.close();
     await lock?.release();
     process.exitCode = exitCode;
   }

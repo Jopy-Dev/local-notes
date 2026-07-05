@@ -58,8 +58,8 @@ No product metric may be transmitted or retained as telemetry. Metrics below are
 
 #### `REQ-001` One-command launch
 
-- User starts application with `npx local-notes`.
-- First uncached package acquisition may require internet access to npm.
+- User starts application with `npx local-notes` after a one-time package install.
+- Package acquisition (ADR-007): download the release tarball from the project's GitHub Release page and install it once with `npm install -g`; acquisition may require internet access.
 - After package is available locally, application launch and every product workflow function without internet access.
 - Application starts one local process, opens default browser, and serves UI at `http://127.0.0.1:8989`.
 - Each launch creates one ephemeral local access capability for browser-to-server requests.

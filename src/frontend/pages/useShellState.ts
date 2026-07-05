@@ -7,7 +7,6 @@ import { copyPlainText, copyToClipboard } from "../editor/copy-actions";
 import { closeSettingsRoute, navigate, openSettingsRoute } from "../services/navigation";
 import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
-import { useSettingsData } from "../stores/settingsData";
 import { useDashboardData } from "./useDashboardData";
 import type { DashboardData } from "./useDashboardData";
 import { useShellHotkeys } from "./useShellHotkeys";
@@ -66,10 +65,6 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
 
   const [activeFolder, setActiveFolder] = useState("all");
   const [query, setQuery] = useState("");
-  // Persisted sort direction restores across restarts (REQ-008).
-  const [descending, setDescending] = useState(
-    () => useSettingsData.getState().config?.sortDirection !== "asc",
-  );
   const [mode, setModeState] = useState<EditorMode>("edit");
   const [splitLayout, setSplitLayout] = useState<SplitLayout>("side");
   const [focusMode, setFocusMode] = useState(false);
@@ -218,17 +213,13 @@ export function useShellState(routeNoteKey: string | null, settingsOpen = false)
     copyWithToast(copyToClipboard(path), "Local path copied");
   }
 
+  // WF-004/REQ-008: sort lives in the workspace store - persisted config
+  // restores across restarts, the store refetches sorted pages + rolls back.
+  const descending = dashboard.sortDirection === "desc";
   function toggleDirection() {
     const next = !descending;
-    setDescending(next);
     toast.show(next ? "Sorted descending" : "Sorted ascending");
-    // Persist optimistically; rollback on failure (WF-004).
-    void useSettingsData
-      .getState()
-      .apply({ sortDirection: next ? "desc" : "asc" })
-      .then((persisted) => {
-        if (!persisted) setDescending(!next);
-      });
+    dashboard.setSortDirection(next ? "desc" : "asc");
   }
 
   useShellHotkeys({

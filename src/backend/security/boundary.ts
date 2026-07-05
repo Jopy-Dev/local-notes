@@ -33,10 +33,22 @@ function assertApiAccess(request: FastifyRequest, capability: string): void {
   }
 }
 
+declare module "fastify" {
+  interface FastifyRequest {
+    /* Per-response CSP nonce; the SPA shell handler injects the same value
+     * into index.html so runtime style injection (CodeMirror/ProseMirror)
+     * passes style-src (MasterPrompt.md 7.1). */
+    cspNonce: string;
+  }
+}
+
 export function registerBoundary(app: FastifyInstance, capability: string): void {
+  app.decorateRequest("cspNonce", "");
   app.addHook("onRequest", async (request: FastifyRequest, reply: FastifyReply) => {
     assertHost(request);
     assertApiAccess(request, capability);
-    reply.headers(buildSecurityHeaders(generateNonce()));
+    const nonce = generateNonce();
+    request.cspNonce = nonce;
+    reply.headers(buildSecurityHeaders(nonce));
   });
 }
