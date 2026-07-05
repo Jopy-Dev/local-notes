@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { Marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 import { encodeNoteKey } from "../filesystem/path-guard.js";
+import { extractMultilineCopyBlocks, injectCopyBlock } from "./copy-blocks.js";
 
 /*
  * Server-side Markdown render pipeline (MasterPrompt.md 4.6, REQ-028): marked
@@ -92,6 +93,21 @@ function classifyImage(
 }
 
 export function renderMarkdown(source: string, noteRelativePath: string): RenderedMarkdown {
+  // Multi-line <copy> regions (round 2): render each region's markdown
+  // through this same pipeline, then re-wrap. The wrapper is a literal and
+  // the inner html has already passed the sanitizer below, so the boundary
+  // holds; data-block is injected after sanitizing, never accepted from
+  // note content.
+  const extraction = extractMultilineCopyBlocks(source);
+  let html = renderSanitized(extraction.source, noteRelativePath);
+  for (const block of extraction.blocks) {
+    const inner = renderSanitized(block.content, noteRelativePath);
+    html = injectCopyBlock(html, block.token, `<copy data-block="">${inner}</copy>`);
+  }
+  return { html };
+}
+
+function renderSanitized(source: string, noteRelativePath: string): string {
   const raw = marked.parse(source) as string;
   const html = sanitizeHtml(raw, {
     allowedTags: [
@@ -133,5 +149,5 @@ export function renderMarkdown(source: string, noteRelativePath: string): Render
       }),
     },
   });
-  return { html };
+  return html;
 }

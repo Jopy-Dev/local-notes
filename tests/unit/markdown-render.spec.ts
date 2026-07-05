@@ -97,6 +97,48 @@ describe("link policy (REQ-014)", () => {
   });
 });
 
+describe("multi-line copy regions (REQ-036, round 2)", () => {
+  const block = "<copy>\nFirst **bold** line\n\n- item one\n- item two\n</copy>";
+
+  it("renders inner markdown inside a block copy wrapper", () => {
+    const html = render(`before\n\n${block}\n\nafter`);
+    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("<li>item one</li>");
+    expect(html).toMatch(/<copy data-block="">[\s\S]*<\/copy>/);
+  });
+
+  it("sanitizes active content inside a block copy region", () => {
+    const html = render("<copy>\ntext <script>alert(1)</script>\n</copy>");
+    expect(html).toContain('<copy data-block="">');
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("alert(1)");
+  });
+
+  it("never accepts data-block from note content", () => {
+    const html = render('Inline <copy data-block="x">snippet</copy> here.');
+    expect(html).toContain("<copy>snippet</copy>");
+    expect(html).not.toContain('data-block="x"');
+  });
+
+  it("leaves <copy> lines inside code fences literal", () => {
+    const html = render("```\n<copy>\nnot a region\n</copy>\n```");
+    expect(html).not.toContain("data-block");
+    expect(html).toContain("not a region");
+  });
+
+  it("keeps single-line copy marks inline", () => {
+    const html = render("Use <copy>npm run dev</copy> here.");
+    expect(html).toContain("<copy>npm run dev</copy>");
+    expect(html).not.toContain("data-block");
+  });
+
+  it("an unclosed <copy> line never becomes a block wrapper", () => {
+    const html = render("<copy>\nno close tag ever");
+    expect(html).not.toContain("data-block");
+  });
+});
+
 describe("image policy (REQ-014)", () => {
   it("rewrites workspace-relative raster images to the guarded asset route", () => {
     const html = render("![shot](images/shot.png)");

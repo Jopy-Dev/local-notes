@@ -251,6 +251,13 @@ html[data-theme="light"] {
   .markdown-preview copy:hover {
     background-color: var(--color-surface-hover);
   }
+  /* Multi-line copy region (round 2): block wrapper injected server-side. */
+  .markdown-preview copy[data-block] {
+    display: block;
+    margin: 0.55em 0;
+    padding: 0.4em 0.65em;
+    border: 1px solid var(--color-border-subtle);
+  }
   /* Find-in-note highlights (REQ-035): shared classes for CodeMirror +
      ProseMirror decorations; ::highlight() pair paints the read/split
      preview via the CSS Custom Highlight API without DOM mutation. */

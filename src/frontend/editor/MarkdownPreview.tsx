@@ -8,7 +8,7 @@ import { navigate } from "../services/navigation";
 import { copyToClipboard } from "./copy-actions";
 import type { FindRequest } from "./find-in-note";
 import { applyPreviewFind, clearPreviewFind } from "./preview-find";
-import { hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
+import { copyMarkText, hydrateAssetImages, useCopyMounts, useRenderedHtml } from "./preview-support";
 
 /*
  * <MarkdownPreview> per Design_System.md 9.2 (REQ-014): renders ONLY the
@@ -71,7 +71,7 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
       // action as the affordance button next to it, which stays for
       // discoverability and keyboard access.
       const copyMark = target.closest("copy");
-      if (copyMark) copyMarkedText(copyMark.textContent ?? "");
+      if (copyMark) copyMarkedText(copyMarkText(copyMark));
       return;
     }
     event.preventDefault();
