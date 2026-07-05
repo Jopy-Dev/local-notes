@@ -46,8 +46,6 @@ function ShellNotes({ shell }: { shell: ShellState }) {
       onSortByChange={shell.setSortBy}
       descending={shell.descending}
       onToggleDirection={shell.toggleDirection}
-      view={shell.view}
-      onViewChange={shell.setView}
       loading={shell.dataLoading}
       totalLabel={shell.totalLabel}
       hasMore={shell.hasMore}

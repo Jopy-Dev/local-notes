@@ -1,5 +1,5 @@
 import type { ChangeEventHandler, RefObject } from "react";
-import { CardViewIcon, ListViewIcon, SearchIcon, SortIcon } from "../icons";
+import { SearchIcon, SortIcon } from "../icons";
 import { IconButton } from "./IconButton";
 import { Kbd } from "./Kbd";
 import { Select } from "./Select";
@@ -7,6 +7,7 @@ import { Select } from "./Select";
 /*
  * <DashboardToolbar> per Design_System.md 9.2: labelled search, sort with
  * pressed direction state (WF-002/004). Result count in tabular numerals.
+ * List is the only dashboard presentation (round 2 removed card view).
  */
 interface DashboardToolbarProps {
   query: string;
@@ -17,8 +18,6 @@ interface DashboardToolbarProps {
   onSortChange: (label: string) => void;
   descending: boolean;
   onToggleDirection: () => void;
-  view?: "list" | "card";
-  onViewChange?: (view: "list" | "card") => void;
   searchRef?: RefObject<HTMLInputElement | null>;
 }
 
@@ -31,8 +30,6 @@ export function DashboardToolbar({
   onSortChange,
   descending,
   onToggleDirection,
-  view,
-  onViewChange,
   searchRef,
 }: DashboardToolbarProps) {
   return (
@@ -77,16 +74,6 @@ export function DashboardToolbar({
         >
           <SortIcon size={16} />
         </IconButton>
-        {view && onViewChange ? (
-          <>
-            <IconButton label="List view" pressed={view === "list"} onClick={() => onViewChange("list")}>
-              <ListViewIcon size={16} />
-            </IconButton>
-            <IconButton label="Card view" pressed={view === "card"} onClick={() => onViewChange("card")}>
-              <CardViewIcon size={16} />
-            </IconButton>
-          </>
-        ) : null}
       </div>
     </div>
   );

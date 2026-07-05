@@ -90,14 +90,13 @@ function makeNotes(): NoteListEntry[] {
   }));
 }
 
-async function renderList(view: "list" | "card"): Promise<void> {
+async function renderList(): Promise<void> {
   const scrollRef = createRef<HTMLDivElement>();
   Object.defineProperty(scrollRef, "current", { value: scrollParent, writable: true });
   await act(async () => {
     root.render(
       <NotesVirtualList
         notes={makeNotes()}
-        view={view}
         selectedKey="note-3"
         onSelect={() => {}}
         scrollRef={scrollRef}
@@ -108,7 +107,7 @@ async function renderList(view: "list" | "card"): Promise<void> {
 
 describe("<NotesVirtualList> (REQ-031)", () => {
   it("renders a bounded window of 10,000 list rows", async () => {
-    await renderList("list");
+    await renderList();
     const buttons = container.querySelectorAll("button");
     expect(buttons.length).toBeGreaterThan(0);
     expect(buttons.length).toBeLessThan(100);
@@ -118,19 +117,8 @@ describe("<NotesVirtualList> (REQ-031)", () => {
     expect(Number.parseInt(spacer.style.height, 10)).toBe(TOTAL * 92);
   });
 
-  it("card view chunks two cards per virtual row and stays bounded", async () => {
-    await renderList("card");
-    const buttons = container.querySelectorAll("button");
-    expect(buttons.length).toBeGreaterThan(0);
-    expect(buttons.length).toBeLessThan(100);
-
-    const spacer = container.querySelector('[data-testid="notes-virtual-list"]') as HTMLElement;
-    // Rows re-measure under the jsdom mock; assert scale, not exact pixels.
-    expect(Number.parseInt(spacer.style.height, 10)).toBeGreaterThan(400_000);
-  });
-
   it("marks the selected note inside the rendered window", async () => {
-    await renderList("list");
+    await renderList();
     const selected = container.querySelector('[aria-current="true"]');
     expect(selected?.textContent).toContain("Note 3");
   });
