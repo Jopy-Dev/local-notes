@@ -1,9 +1,11 @@
+import { useRef, useState } from "react";
 import { InfoIcon } from "../icons";
 import { MarkdownPreview } from "../../editor/MarkdownPreview";
 import { SourceEditor } from "../../editor/SourceEditor";
 import { VisualMarkdownEditor } from "../../editor/VisualMarkdownEditor";
 import type { FindRequest } from "../../editor/find-decorations";
 import type { EditorMode } from "../ui/EditorModeTabs";
+import { SPLIT_FRACTION_DEFAULT, SplitDivider } from "../ui/SplitDivider";
 import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
 /*
@@ -44,11 +46,12 @@ function SourceOnlyNotice({ reason }: { reason: string | null }) {
   );
 }
 
-const splitGrid: Record<SplitLayout, string> = {
-  side: "grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] desktop:grid-cols-[minmax(320px,1fr)_minmax(320px,1fr)]",
-  "preview-top": "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)]",
-  "preview-bottom": "grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)]",
-};
+/* Resizable split (user feedback round 1): the divider drags the fraction of
+ * the first pane; grid tracks come from inline style since the value is
+ * continuous. Fraction is session state, reset on note/mode remount. */
+function splitTemplate(fraction: number): string {
+  return `minmax(0,${fraction}fr) auto minmax(0,${1 - fraction}fr)`;
+}
 
 export function EditorContent(props: EditorContentProps) {
   const { mode, document, draft, readOnly, onChangeDraft } = props;
@@ -101,6 +104,7 @@ export function EditorContent(props: EditorContentProps) {
               onChange={onChangeDraft}
               find={props.find}
               onFindMatches={props.onFindMatches}
+              onToast={props.onToast}
             />
           </>
         ) : (
@@ -133,6 +137,15 @@ export function EditorContent(props: EditorContentProps) {
     );
   }
 
+  return <SplitSurface {...props} />;
+}
+
+function SplitSurface(props: EditorContentProps) {
+  const { document, draft, readOnly, onChangeDraft } = props;
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [fraction, setFraction] = useState(SPLIT_FRACTION_DEFAULT);
+  const vertical = props.splitLayout === "side";
+
   // Split: the source pane owns find navigation and counts; the preview
   // highlights the same query without an active match (its text ordering
   // is the rendered document, not the Markdown source).
@@ -150,12 +163,36 @@ export function EditorContent(props: EditorContentProps) {
       language="markdown"
       readOnly={readOnly}
       onChange={onChangeDraft}
-      {...findProps}
+      find={props.find}
+      onFindMatches={props.onFindMatches}
+      onOpenFind={props.onOpenFind}
+    />
+  );
+  const divider = (
+    <SplitDivider
+      orientation={vertical ? "vertical" : "horizontal"}
+      fraction={fraction}
+      containerSize={() =>
+        vertical
+          ? (containerRef.current?.clientWidth ?? 0)
+          : (containerRef.current?.clientHeight ?? 0)
+      }
+      onChange={setFraction}
     />
   );
   return (
-    <section aria-label="Note editor" className={splitGrid[props.splitLayout]}>
+    <section
+      ref={containerRef}
+      aria-label="Note editor"
+      className="grid min-h-0 min-w-0"
+      style={
+        vertical
+          ? { gridTemplateColumns: splitTemplate(fraction) }
+          : { gridTemplateRows: splitTemplate(fraction) }
+      }
+    >
       {props.splitLayout === "preview-top" ? preview : editor}
+      {divider}
       {props.splitLayout === "preview-top" ? editor : preview}
     </section>
   );

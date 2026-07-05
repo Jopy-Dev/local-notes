@@ -279,7 +279,7 @@ interface ConfigV1 {
   - editor font integer `12..24`, default `14`;
   - line height numeric `1.2..2.0`, default `1.6`;
   - editor width enum, default `medium`.
-- Workspace layout schema (`REQ-034`): folderPaneWidth integer `190..280` default `220`; notesPaneWidth integer `280..420` default `320`; folderPaneCollapsed and notesPaneCollapsed booleans, default `false`. Fields apply only at `desktop` breakpoint (`>=1280px`) and above; ignored in favor of fixed compact tokens (`Design_System.md` §4.3) at `desktop-min`.
+- Workspace layout schema (`REQ-034`): folderPaneWidth integer `190..280` default `220`; notesPaneWidth integer `280..420` default `320`; folderPaneCollapsed and notesPaneCollapsed booleans, default `false`. Fields apply across the supported viewport range (`>=1024px`, `Design_System.md` §4.3 v1.5).
 - `workspace` is canonical and read-only in MVP.
 - Unsupported version or invalid structural JSON blocks startup; invalid individual appearance fields use exact defaults and produce local warning.
 - Migration registry uses `fromVersion -> toVersion`; migration writes atomically and preserves original on failure.
@@ -418,7 +418,7 @@ interface ConfigV1 {
 
 ### 4.6 Markdown Compatibility and Preview
 
-- `MarkdownCompatibilityService` is conservative.
+- `MarkdownCompatibilityService` guards content, not formatting.
 - Source-only triggers:
   - HTML comments;
   - YAML/TOML frontmatter;
@@ -427,14 +427,14 @@ interface ConfigV1 {
   - raw HTML other than `<u>` and `<copy>`;
   - table cells with block or multiple child structures;
   - parser/serializer exception;
-  - exact normalized source mismatch between original and TipTap round-trip.
-- Compatibility check:
+  - structural mismatch between `parse(source)` and `parse(serialize(parse(source)))`.
+- Compatibility check (user feedback round 1, Option A):
   1. normalize line endings in memory only;
   2. scan unsupported constructs;
   3. TipTap parse -> serialize;
-  4. normalize serialized line endings only;
-  5. require exact normalized source equality, including terminal newline;
-  6. mismatch -> source-only.
+  4. exact normalized source equality (incl. terminal newline) -> edit (fast path);
+  5. otherwise reparse the serialized form; identical document structure (trailing empty paragraphs insignificant) -> edit - the textual difference is representation-only (blank-line runs, serializer `&nbsp;` blank paragraphs, marker styles) and the file rewrites to the serializer's canonical form on the user's FIRST real edit, never on open;
+  6. structural mismatch -> source-only.
 - Never save compatibility probe output.
 - Cache compatibility outcome by `versionToken`; content change invalidates it.
 - TipTap uses Markdown input and `getMarkdown()` output only for compatible notes.
@@ -485,7 +485,8 @@ interface ConfigV1 {
 
 - Divider between folder pane and note list, and between note list and editor, implemented as `<PaneDivider>` (`Design_System.md` §9) with ARIA `separator` role, `aria-orientation="vertical"`, `aria-valuenow`/`aria-valuemin`/`aria-valuemax` mirroring current/min/max width.
 - Drag updates width via pointer events; release commits value. Keyboard: divider focused, arrow keys resize in `8px` increments, `Home`/`End` snap to min/max.
-- Divider active only at `desktop` breakpoint (`>=1280px`) and above. At `desktop-min` (`1024-1279px`) divider renders `disabled` and panes use fixed compact tokens (`Design_System.md` §4.3); no resize request is possible below `desktop`.
+- Divider active across the whole supported viewport range (`>=1024px`, the `REQ-031` minimum). Display scaling routinely puts real windows under `1280` CSS px; the original `desktop`-only gate made resize/collapse unreachable there (user feedback round 1, `Design_System.md` §4.3 v1.5).
+- Split mode adds a third divider between editor and preview (`<SplitDivider>`): drag or arrow keys move the split fraction (`0.2..0.8`, 5% keyboard steps, Home/End snap, double-click resets to half); vertical bar for side-by-side, horizontal for stacked layouts. Fraction is session state - never persisted.
 - Width commits debounce `250ms` then `PUT /api/v1/settings` with only the changed field; collapse/expand commits immediately. `422`/network failure rolls the pane back to its last-persisted width or collapsed state — same optimistic-rollback rule as `WF-010` theme changes (§6.2).
 - Collapsed-pane prior width held in local Zustand session state (not persisted) so restore uses last known width without a settings round-trip; only the collapsed boolean persists in `ConfigV1`.
 - No new endpoint; reuses existing `/api/v1/settings` route and `ConfigV1` schema (§2.7).

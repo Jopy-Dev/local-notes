@@ -23,14 +23,21 @@ interface WorkspaceDataState {
   total: number;
   nextCursor: string | null;
   folders: string[];
+  /* Direct-folder note counts + workspace total from /folders (WF-001) -
+   * never derived from a folder-scoped notes page. */
+  folderCounts: Record<string, number>;
+  workspaceTotal: number;
   loading: boolean;
   loaded: boolean;
   error: string | null;
   view: DashboardView;
+  /* "all" = unscoped; otherwise a folder path from the tree. Session-only. */
+  folder: string;
   /* null = not user-changed this session; falls back to persisted config. */
   sortBy: DashboardSortBy | null;
   sortDirection: DashboardSortDirection | null;
   setView: (view: DashboardView) => void;
+  setFolder: (folder: string) => void;
   setSortBy: (sortBy: DashboardSortBy) => void;
   setSortDirection: (direction: DashboardSortDirection) => void;
   loadInitial: () => Promise<void>;
@@ -38,17 +45,32 @@ interface WorkspaceDataState {
   connectEvents: () => () => void;
 }
 
+/* Fetch params for the active scope: folder rides along unless "all". */
+function scopeParams(state: { folder: string } & Parameters<typeof effectiveSort>[0]) {
+  const scope = state.folder !== "all" ? { folder: state.folder } : {};
+  return { ...effectiveSort(state), ...scope };
+}
+
 export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   notes: [],
   total: 0,
   nextCursor: null,
   folders: [],
+  folderCounts: {},
+  workspaceTotal: 0,
   loading: false,
   loaded: false,
   error: null,
   view: "list",
+  folder: "all",
   sortBy: null,
   sortDirection: null,
+
+  setFolder: (folder) => {
+    if (get().folder === folder) return;
+    set({ folder });
+    void get().loadInitial();
+  },
 
   setView: (view) => {
     const previous = get().view;
@@ -83,7 +105,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const [page, folderData] = await Promise.all([
-        fetchNotesPage(effectiveSort(get())),
+        fetchNotesPage(scopeParams(get())),
         fetchFolders(),
       ]);
       set({
@@ -91,6 +113,8 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
         total: page.total,
         nextCursor: page.nextCursor,
         folders: folderData.folders,
+        folderCounts: folderData.counts,
+        workspaceTotal: folderData.total,
         loading: false,
         loaded: true,
       });
@@ -102,7 +126,7 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   loadMore: async () => {
     const { nextCursor, notes } = get();
     if (!nextCursor) return;
-    const page = await fetchNotesPage({ cursor: nextCursor, ...effectiveSort(get()) });
+    const page = await fetchNotesPage({ cursor: nextCursor, ...scopeParams(get()) });
     // Dedupe by key across appended pages (WF-001 pass condition).
     const seen = new Set(notes.map((note) => note.noteKey));
     const appended = page.notes.filter((note) => !seen.has(note.noteKey));

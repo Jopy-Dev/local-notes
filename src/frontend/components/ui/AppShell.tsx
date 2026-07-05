@@ -11,7 +11,8 @@ export interface AppShellPanes {
   /* Resolved pixel widths - collapsed panes already mapped to the rail width. */
   folderWidth: number;
   notesWidth: number;
-  /* True at the desktop breakpoint (>=1280px) where resize is allowed. */
+  /* True across the supported viewport range (>=1024px) where resize is
+   * allowed (DS 4.3 v1.5). */
   resizable: boolean;
   folderDivider: ReactNode;
   notesDivider: ReactNode;

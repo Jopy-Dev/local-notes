@@ -57,16 +57,43 @@ describe("MarkdownCompatibilityService (MasterPrompt 4.6)", () => {
     expect(outcome.compatibilityReason).toContain("Frontmatter");
   });
 
-  it("flags round-trip mismatches as source-only", () => {
-    // Setext heading serializes back as ATX - normalized source differs.
+  it("representation-only differences are edit-compatible (structural fixed point)", () => {
+    // Setext heading parses to the same structure ATX serializes back to -
+    // the file canonicalizes on the first real edit, never on open.
     const outcome = service.check("Heading\n=======\n\nBody.\n", "v4");
-    expect(outcome.compatibility).toBe("source-only");
-    expect(outcome.compatibilityReason).toContain("round-trip");
+    expect(outcome.compatibility).toBe("edit");
   });
 
   it("accepts the serializer's own canonical output as a fixed point", () => {
     const canonical = roundTrip("# Doc\n\nText with **bold**.\n");
     const outcome = service.check(canonical, "v5");
     expect(outcome.compatibility).toBe("edit");
+  });
+
+  /*
+   * Whitespace-tolerant round-trip (user feedback round 1, Option A): runs
+   * of blank lines and the serializer's own &nbsp; blank-paragraph output
+   * are lossless-by-definition - the guard must not lock users out of files
+   * the visual editor itself wrote. Real constructs stay source-only.
+   */
+  it("tolerates runs of blank lines (whitespace-only variance)", () => {
+    const outcome = service.check("## A\n\n\n\n## B\ntext\n", "v6");
+    expect(outcome.compatibility).toBe("edit");
+  });
+
+  it("tolerates the serializer's own &nbsp; blank paragraphs", () => {
+    const outcome = service.check("# Heading1\n\n## Heading2\n\n\n\n&nbsp;\n", "v7");
+    expect(outcome.compatibility).toBe("edit");
+  });
+
+  it("emphasis marker style is representation-only under the structural rule", () => {
+    expect(service.check("_alt emphasis_\n", "v9").compatibility).toBe("edit");
+  });
+
+  it("destructive constructs stay source-only via the static scan", () => {
+    expect(service.check("Text with a footnote.[^1]\n\n[^1]: note\n", "v10").compatibility).toBe(
+      "source-only",
+    );
+    expect(service.check("<div>raw block</div>\n", "v11").compatibility).toBe("source-only");
   });
 });

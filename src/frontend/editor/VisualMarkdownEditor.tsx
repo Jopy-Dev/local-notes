@@ -1,6 +1,8 @@
 import { useEffect, useReducer, useRef } from "react";
 import { cspNonce } from "../services/csp-nonce";
 import { VisualEditorToolbar } from "./VisualEditorToolbar";
+import { copyToClipboard } from "./copy-actions";
+import { createCopyAffordancePlugin } from "./copy-affordance-decorations";
 import { createFindPlugin, findPluginKey, setFindRequest } from "./find-decorations";
 import type { FindRequest } from "./find-decorations";
 import { createVisualEditorBinding } from "./visual-editor-binding";
@@ -18,6 +20,8 @@ interface VisualMarkdownEditorProps {
   onChange: (value: string) => void;
   find?: FindRequest | null;
   onFindMatches?: (total: number) => void;
+  /* REQ-036 copy feedback; the affordance also lives in visual mode. */
+  onToast?: (message: string) => void;
 }
 
 export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: VisualMarkdownEditorProps) {
@@ -27,6 +31,8 @@ export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: Vi
   onChangeRef.current = onChange;
   const onFindMatchesRef = useRef(props.onFindMatches);
   onFindMatchesRef.current = props.onFindMatches;
+  const onToastRef = useRef(props.onToast);
+  onToastRef.current = props.onToast;
   const [, rerender] = useReducer((tick: number) => tick + 1, 0);
 
   useEffect(() => {
@@ -39,6 +45,13 @@ export function VisualMarkdownEditor({ value, readOnly, onChange, ...props }: Vi
       ...(nonce ? { styleNonce: nonce } : {}),
     });
     binding.editor.registerPlugin(createFindPlugin());
+    binding.editor.registerPlugin(
+      createCopyAffordancePlugin((text) => {
+        void copyToClipboard(text).then((copied) =>
+          onToastRef.current?.(copied ? "Text copied" : "Copy failed - clipboard unavailable"),
+        );
+      }),
+    );
     binding.editor.on("transaction", rerender);
     // Find totals track edits too (REQ-035 accurate count).
     const reportFindOnEdit = () => {
