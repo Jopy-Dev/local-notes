@@ -241,10 +241,15 @@ html[data-theme="light"] {
   }
   .markdown-preview hr { border: 0; border-top: 1px solid var(--color-border-subtle); margin: 1em 0; }
   .markdown-preview img { max-width: 100%; }
+  /* REQ-036: the marked text itself is click-to-copy in previews (round 2). */
   .markdown-preview copy {
     background-color: var(--color-surface-selected);
     border-radius: var(--radius-xs);
     padding: 0.05em 0.25em;
+    cursor: pointer;
+  }
+  .markdown-preview copy:hover {
+    background-color: var(--color-surface-hover);
   }
   /* Find-in-note highlights (REQ-035): shared classes for CodeMirror +
      ProseMirror decorations; ::highlight() pair paints the read/split

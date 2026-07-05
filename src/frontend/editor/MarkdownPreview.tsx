@@ -64,8 +64,16 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
   }
 
   function onClick(event: React.MouseEvent<HTMLElement>) {
-    const anchor = (event.target as HTMLElement).closest("a");
-    if (!anchor) return;
+    const target = event.target as HTMLElement;
+    const anchor = target.closest("a");
+    if (!anchor) {
+      // REQ-036 (round 2): clicking the marked text copies it - the same
+      // action as the affordance button next to it, which stays for
+      // discoverability and keyboard access.
+      const copyMark = target.closest("copy");
+      if (copyMark) copyMarkedText(copyMark.textContent ?? "");
+      return;
+    }
     event.preventDefault();
     const kind = anchor.getAttribute("data-link");
     const href = anchor.getAttribute("href") ?? "";

@@ -75,4 +75,19 @@ describe("MarkdownPreview copy affordance (REQ-036)", () => {
     expect(holders[0]?.isConnected).toBe(true);
     expect(holders[0]?.querySelector("button")).not.toBeNull();
   });
+
+  it("clicking the marked text itself copies it (round 2)", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    await renderPreview();
+    const mark = document.querySelector("copy") as HTMLElement;
+    expect(mark).not.toBeNull();
+    await act(async () => {
+      mark.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(writeText).toHaveBeenCalledWith("npm run dev");
+  });
 });
