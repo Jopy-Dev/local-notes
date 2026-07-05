@@ -104,4 +104,13 @@ describe("request boundary", () => {
     expect(body.error.code).toBe("NOT_FOUND");
     expect(body.requestId).toBeTruthy();
   });
+
+  it("duplicated token header (joined by Node) is ambiguous and rejected: 401", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/health",
+      headers: { ...validHeaders(capability), "x-local-notes-token": [capability, capability] },
+    });
+    expect(res.statusCode).toBe(401);
+  });
 });

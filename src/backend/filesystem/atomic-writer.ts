@@ -25,9 +25,12 @@ export interface WriteResult {
 }
 
 // Test seam: fault injection at each protocol stage (fs = acceptable boundary
-// mock per tdd skill; every other collaborator stays real).
+// mock per tdd skill; every other collaborator stays real). onBeforeRename
+// opens the flush->rename window so the pre-rename version recheck (2.5
+// step 6) is deterministically testable.
 export interface WriterFaults {
   failStage?: "write" | "flush" | "rename";
+  onBeforeRename?: () => Promise<void>;
 }
 
 function conflict(): AppError {
@@ -79,6 +82,8 @@ export class AtomicFileWriter {
       await handle.sync();
       await handle.close();
       handle = undefined;
+
+      await this.faults.onBeforeRename?.();
 
       // Recheck immediately before replacement (2.5 step 6).
       if (expectedVersion !== undefined) {
