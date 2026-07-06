@@ -269,6 +269,7 @@ Acceptance:
 - `.md` supports read, source, and split modes (feedback round 2, ADR-008: dedicated visual editor removed; source is the single editing surface).
 - Source mode provides a formatting toolbar whose controls rewrite Markdown syntax at the selection: bold, italic, underline, strike-through, copyable-text mark, headings H1-H3, bullet lists, numbered lists, task lists, links, tables, code blocks, undo, and redo.
 - Toolbar operations are ordinary undoable text edits; the document remains plain Markdown at all times.
+- The toolbar carries a line-wrap view toggle (feedback round 3): soft wrapping in source surfaces turns off and on for the session; view preference only, never persisted, never modifies the document.
 - Underline serializes as sanitized `<u>` HTML.
 - Split mode supports side-by-side, preview above, and preview below with a draggable divider.
 - Saved file remains Markdown text without proprietary format.
@@ -276,6 +277,7 @@ Acceptance:
 Acceptance:
 
 - Toolbar operation produces equivalent Markdown syntax at the selection and is undoable.
+- Toggling line wrap changes visual wrapping only; document text is byte-identical.
 - Switching modes does not alter content.
 - Live preview reflects current draft without executing note content.
 
@@ -464,8 +466,8 @@ Acceptance:
 #### `REQ-036` Copyable text mark
 
 - `.md` supports a copyable-text mark, applied to a selection via the source-mode toolbar (`REQ-015`) or by typing `<copy>...</copy>` in source mode.
-- Inline form: `<copy>text</copy>` inside a paragraph, including soft line breaks within that paragraph.
-- Block form (feedback round 2): a line containing only `<copy>`, any Markdown content including blank lines, then a line containing only `</copy>`. Inner content renders as normal Markdown through the same sanitization pipeline.
+- Inline form: `<copy>text</copy>` with text before the mark on its line, or a line holding several complete marks.
+- Block form (feedback rounds 2-3): any region whose `<copy>` starts its line - alone, with content on the open line, or opening and closing on the same line - through the first `</copy>` that ends a line. Inner content (headings, tables, lists, blank lines) renders as normal Markdown through the same sanitization pipeline, stays entirely inside the copy region, and shows the standard copy highlight.
 - Marked content renders in read and split preview with a visible copy affordance button immediately after the mark, and the marked region itself is click-to-copy: clicking anywhere in the rendered mark copies it (links inside still navigate per `REQ-014`).
 - Copying preserves line structure: block children separate with line breaks, table cells with tabs; nested Markdown syntax is stripped to plain text.
 - Uses the same clipboard mechanism and failure handling as `Copy Text` (`REQ-020`).
@@ -479,6 +481,8 @@ Acceptance:
 
 - Given selected text and toolbar activation, the mark applies as `<copy>...</copy>` in Markdown source.
 - Given an inline or block mark in read or split preview, clicking the mark or its affordance copies plain text with Markdown syntax stripped, line structure preserved, and the same success/failure feedback as `Copy Text`.
+- Given `<copy>## Heading</copy>` alone on a line, preview renders a heading inside a highlighted copy region and copying yields the heading text (feedback round 3).
+- Given a region opening with content on the `<copy>` line and closing lines later, every block between the tags (tables included) renders inside the copy region and copies with structure intact (feedback round 3).
 - Given a block region containing active content (scripts, event handlers), sanitization strips it identically to normal rendering.
 - Given `<copy>` text in a `.txt` file, content displays and saves literally with no affordance rendered.
 

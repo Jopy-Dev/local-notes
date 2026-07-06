@@ -1,14 +1,17 @@
 import { randomUUID } from "node:crypto";
 
 /*
- * Multi-line copyable regions (REQ-036, round 2): a `<copy>` alone on its
- * own line, any markdown (including blank lines), then `</copy>` alone on
- * its own line. marked would treat that region as an opaque raw-HTML block
- * and skip the inner markdown, so the pre-pass lifts each region out behind
- * a placeholder paragraph; the pipeline renders the inner content through
- * the full sanitizer separately and re-injects it as `<copy data-block>`.
- * Single-line `<copy>text</copy>` never reaches this pass - marked handles
- * it inline. Regions inside fenced code blocks stay literal.
+ * Copyable regions lifted out before marked runs (REQ-036, round 2 + 3): any
+ * region whose `<copy>` starts a line - alone (round-2 block form), with
+ * content on the open line, or opening and closing on the same line - is a
+ * block region. marked would otherwise treat the raw tag as paragraph HTML:
+ * inner markdown renders literal (`##` stays text) and the sanitizer
+ * auto-closes the unbalanced tag after the first block, so the copy element
+ * loses everything past it (round-3 items 1+2). The pre-pass swaps each
+ * region for a placeholder paragraph; the pipeline renders the inner content
+ * through the full sanitizer separately and re-injects it as
+ * `<copy data-block>`. A `<copy>` mid-line (text before the tag) stays on
+ * marked's inline path. Regions inside fenced code blocks stay literal.
  */
 export interface MultilineCopyBlock {
   token: string;
@@ -21,6 +24,8 @@ export interface CopyBlockExtraction {
 }
 
 const FENCE = /^(?:```|~~~)/;
+const OPEN = "<copy>";
+const CLOSE = "</copy>";
 
 export function extractMultilineCopyBlocks(source: string): CopyBlockExtraction {
   const lines = source.split("\n");
@@ -34,32 +39,69 @@ export function extractMultilineCopyBlocks(source: string): CopyBlockExtraction 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index] ?? "";
     if (FENCE.test(line.trimStart())) inFence = !inFence;
-    if (inFence || line.trim() !== "<copy>") {
+    const trimmed = line.trim();
+    if (inFence || !trimmed.startsWith(OPEN)) {
       out.push(line);
       continue;
     }
-    const close = findClose(lines, index + 1);
-    if (close === -1) {
+    const openRest = trimmed.slice(OPEN.length);
+    const content = regionContent(lines, index, openRest);
+    if (content === null) {
       out.push(line);
       continue;
     }
     const token = `@@copyblock-${runId}-${blocks.length}@@`;
-    blocks.push({ token, content: lines.slice(index + 1, close).join("\n") });
+    blocks.push({ token, content: content.text });
     // Blank lines around the placeholder keep it its own paragraph.
     out.push("", token, "");
-    index = close;
+    index = content.closeIndex;
   }
   return { source: out.join("\n"), blocks };
 }
 
-function findClose(lines: string[], from: number): number {
+/* Resolve a region opened at lines[openIndex]. openRest = text after the
+ * open tag on that line. Returns null when the line is not a region: close
+ * tag mid-line with trailing text (marked's inline path owns it) or no
+ * closing line at all (stays literal). */
+function regionContent(
+  lines: string[],
+  openIndex: number,
+  openRest: string,
+): { text: string; closeIndex: number } | null {
+  const closeAt = openRest.indexOf(CLOSE);
+  if (closeAt !== -1) {
+    // Same-line form: only when the first close tag ends the line, so a
+    // line carrying several inline marks keeps marked's inline rendering.
+    if (closeAt + CLOSE.length !== openRest.length) return null;
+    return { text: openRest.slice(0, closeAt), closeIndex: openIndex };
+  }
+  const close = findRegionClose(lines, openIndex + 1);
+  if (close === null) return null;
+  const middle = lines.slice(openIndex + 1, close.index);
+  const parts = [...(openRest === "" ? [] : [openRest]), ...middle];
+  if (close.prefix !== "") parts.push(close.prefix);
+  return { text: parts.join("\n"), closeIndex: close.index };
+}
+
+/* First non-fenced line ending with the close tag. prefix = content before
+ * the tag on that line (joins the region). A stray tag pair inside the
+ * prefix disqualifies the region rather than guessing nesting. */
+function findRegionClose(
+  lines: string[],
+  from: number,
+): { index: number; prefix: string } | null {
   let inFence = false;
   for (let index = from; index < lines.length; index += 1) {
     const line = lines[index] ?? "";
     if (FENCE.test(line.trimStart())) inFence = !inFence;
-    if (!inFence && line.trim() === "</copy>") return index;
+    if (inFence) continue;
+    const trimmed = line.trim();
+    if (!trimmed.endsWith(CLOSE)) continue;
+    const prefix = trimmed.slice(0, trimmed.length - CLOSE.length);
+    if (prefix.includes(OPEN) || prefix.includes(CLOSE)) return null;
+    return { index, prefix };
   }
-  return -1;
+  return null;
 }
 
 /* Swap a rendered placeholder for the wrapped block; the usual shape is its

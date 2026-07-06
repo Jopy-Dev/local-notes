@@ -36,12 +36,16 @@ interface WorkspaceUiState {
   persistedWidths: Record<PaneKind, number>;
   /* Pre-collapse width, session-only (MasterPrompt 4.10). */
   priorWidths: Record<PaneKind, number>;
+  /* Source-mode soft wrap (user feedback round 3): view preference,
+   * session-only - never persisted, never touches the document. */
+  lineWrap: boolean;
   hydrate: (config: ConfigV1) => void;
   /* Live drag/keyboard update - no persistence. */
   resizePane: (pane: PaneKind, width: number) => void;
   /* Debounced width persistence with rollback. */
   commitPane: (pane: PaneKind, width: number) => void;
   toggleCollapsed: (pane: PaneKind) => void;
+  toggleLineWrap: () => void;
 }
 
 const timers: Partial<Record<PaneKind, ReturnType<typeof setTimeout>>> = {};
@@ -51,6 +55,7 @@ export const useWorkspaceUi = create<WorkspaceUiState>((set, get) => ({
   collapsed: { folder: false, notes: false },
   persistedWidths: { folder: PANE_BOUNDS.folder.default, notes: PANE_BOUNDS.notes.default },
   priorWidths: { folder: PANE_BOUNDS.folder.default, notes: PANE_BOUNDS.notes.default },
+  lineWrap: true,
 
   hydrate: (config) => {
     const widths = { folder: config.folderPaneWidth, notes: config.notesPaneWidth };
@@ -85,6 +90,10 @@ export const useWorkspaceUi = create<WorkspaceUiState>((set, get) => ({
           }
         });
     }, COMMIT_DEBOUNCE_MS);
+  },
+
+  toggleLineWrap: () => {
+    set({ lineWrap: !get().lineWrap });
   },
 
   toggleCollapsed: (pane) => {

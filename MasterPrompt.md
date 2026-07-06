@@ -418,7 +418,8 @@ interface ConfigV1 {
 
 - Modes are Read / Source / Split (ADR-008, round 2): CodeMirror is the single editing surface for `.md` and `.txt`; no visual editor, no compatibility service. Every construct edits as source.
 - Source-mode toolbar (`REQ-015`): pure transforms in `src/frontend/editor/markdown-commands.ts` produce original-document change spans + post-edit selection; the toolbar dispatches them into CodeMirror as ordinary undoable edits. Wrap toggles (bold/italic/underline/strike/copy-mark), heading level toggles H1-H3, line-prefix list toggles, link/table/code-block inserts, undo/redo via `@codemirror/commands`.
-- Multi-line copy regions (`REQ-036`, round 2): pre-pass `src/backend/markdown/copy-blocks.ts` lifts `<copy>`-alone-line ... `</copy>`-alone-line regions behind a random per-render placeholder (content cannot spoof it), renders inner Markdown through the full pipeline below, re-injects as `<copy data-block="">`; `data-block` is never accepted from note content and fenced `<copy>` lines stay literal.
+- Line-wrap view toggle (`REQ-015`, round 3): toolbar toggle flips `EditorView.lineWrapping` through a CodeMirror compartment; state = `workspaceUi.lineWrap`, session-only, default on, never persisted, no document change; applies to every source surface including read-only notes.
+- Copy block regions (`REQ-036`, rounds 2-3): pre-pass `src/backend/markdown/copy-blocks.ts` lifts every region whose `<copy>` starts a line (alone, with content on the open line, or closing on the same line) through the first `</copy>` ending a line, behind a random per-render placeholder (content cannot spoof it), renders inner Markdown through the full pipeline below, re-injects as `<copy data-block="">`. Round-3 rationale: raw line-starting tags left inner markdown literal and the sanitizer auto-close dropped everything after the first block from the copy element. Mid-line `<copy>` stays on marked's inline path; `data-block` is never accepted from note content; fenced `<copy>` lines stay literal.
 - `POST /api/v1/markdown/render`:
   - parses with GFM tables/task lists;
   - sanitizes server-side;
@@ -485,7 +486,7 @@ interface ConfigV1 {
 
 ### 4.12 Copyable Text Mark (`REQ-036`)
 
-- Authored in source mode: toolbar wrap toggle or literal `<copy>...</copy>` (inline) / `<copy>`-line region (block form, §4.6).
+- Authored in source mode: toolbar wrap toggle or literal `<copy>...</copy>` (inline) / line-starting `<copy>` region (block form, §4.6, rounds 2-3).
 - Read/split preview: server-sanitized HTML passes `<copy>` through the allowlist (§4.6); the preview component mounts an inline `<IconButton>` (`Design_System.md` §9) after each rendered `<copy>` element client-side — the sanitized HTML itself carries no button markup.
 - Click-to-copy (round 2): clicking anywhere in the rendered `<copy>` element copies it; anchors inside still follow link policy first.
 - Clipboard text is line-aware (`src/frontend/editor/copy-mounts.ts`): block children join with newlines, table cells with tabs, `<br>` breaks; nested Markdown is already stripped by rendering. Same clipboard mechanism + toast as `Copy Text` (§4.7).
