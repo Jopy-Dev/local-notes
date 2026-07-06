@@ -3,8 +3,6 @@ import type { NoteDocument, NoteMetadata } from "../../shared/schemas/notes.js";
 
 export interface RenderedPreview {
   html: string;
-  compatibility: "edit" | "source-only";
-  compatibilityReason: string | null;
 }
 
 // Note open/save API (MasterPrompt.md 5.2, WF-005/006).

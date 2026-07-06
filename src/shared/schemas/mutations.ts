@@ -24,3 +24,10 @@ export const archiveNoteSchema = z.object({
   operationId: z.uuid(),
 });
 export type ArchiveNoteRequest = z.infer<typeof archiveNoteSchema>;
+
+/* Restore an archived note into an active folder (round 2). */
+export const restoreNoteSchema = z.object({
+  destinationFolderKey: z.string().max(512),
+  operationId: z.uuid(),
+});
+export type RestoreNoteRequest = z.infer<typeof restoreNoteSchema>;

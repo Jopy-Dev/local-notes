@@ -57,7 +57,6 @@ describe("GET /api/v1/settings", () => {
       theme: "system",
       editorFontSize: 14,
       lineHeight: 1.6,
-      editorWidth: "medium",
       folderPaneWidth: 220,
       notesPaneWidth: 320,
       folderPaneCollapsed: false,

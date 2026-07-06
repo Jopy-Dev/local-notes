@@ -36,8 +36,6 @@ interface EditorPaneProps {
   onCloseWithoutSaving: () => void;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
-  visualCompatibility: "edit" | "source-only";
-  visualCompatibilityReason: string | null;
   splitLayout: SplitLayout;
   onCycleSplitLayout: () => void;
   focusMode: boolean;
@@ -81,7 +79,7 @@ export function EditorPane(props: EditorPaneProps) {
     document.filename,
   ];
   const modes: readonly EditorMode[] =
-    document.extension === ".md" ? ["read", "edit", "source", "split"] : ["edit"];
+    document.extension === ".md" ? ["read", "source", "split"] : ["source"];
   const splitLayoutLabel: Record<SplitLayout, string> = {
     side: "Side by side",
     "preview-top": "Preview above",
@@ -160,12 +158,10 @@ export function EditorPane(props: EditorPaneProps) {
       />
       <div className="grid min-h-0 flex-1">
         <EditorContent
-          mode={document.extension === ".md" ? props.mode : "edit"}
+          mode={document.extension === ".md" ? props.mode : "source"}
           document={document}
           draft={props.draft}
           readOnly={props.readOnlyReason !== null || props.conflict !== null}
-          visualCompatibility={props.visualCompatibility}
-          visualCompatibilityReason={props.visualCompatibilityReason}
           splitLayout={props.splitLayout}
           onChangeDraft={props.onChangeDraft}
           onToast={props.onToast}

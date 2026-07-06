@@ -128,6 +128,5 @@ describe("POST /api/v1/markdown/render", () => {
     const data = res.json().data;
     expect(data.html).toContain("<h1>Hello</h1>");
     expect(data.html).toContain("checkbox");
-    expect(data.compatibility).toBe("edit");
   });
 });

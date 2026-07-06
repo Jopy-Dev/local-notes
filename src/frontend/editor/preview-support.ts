@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { RefObject } from "react";
 import { renderMarkdownPreview } from "../services/contentApi";
 import { getCapability } from "../services/token";
 
@@ -68,36 +67,4 @@ export function hydrateAssetImages(container: HTMLElement): () => void {
   };
 }
 
-/*
- * REQ-036: portal hosts for the inline copy affordance - a plain span
- * inserted after each sanitized <copy> element. Hosts vanish with the next
- * innerHTML swap; the component renders <IconButton> portals into them.
- */
-export interface CopyMount {
-  holder: HTMLElement;
-  text: string;
-}
-
-export function useCopyMounts(
-  articleRef: RefObject<HTMLElement | null>,
-  html: string | null,
-): CopyMount[] {
-  const [copyMounts, setCopyMounts] = useState<CopyMount[]>([]);
-
-  useEffect(() => {
-    const container = articleRef.current;
-    if (!container || html === null) return;
-    const mounts: CopyMount[] = [];
-    for (const mark of Array.from(container.querySelectorAll("copy"))) {
-      const holder = document.createElement("span");
-      holder.setAttribute("data-copy-affordance", "");
-      mark.after(holder);
-      mounts.push({ holder, text: mark.textContent ?? "" });
-    }
-    setCopyMounts(mounts);
-    return () => setCopyMounts([]);
-    // articleRef is a stable ref object; html drives re-mount.
-  }, [articleRef, html]);
-
-  return copyMounts;
-}
+/* Copy-mark clipboard text + affordance mounts live in copy-mounts.ts. */

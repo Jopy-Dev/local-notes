@@ -11,10 +11,9 @@ import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
 /*
  * Dashboard data store (WF-001/004): appended metadata pages, folder tree,
- * live refresh on SSE note events. View/sort preferences persist through the
- * settings API (REQ-007/008) optimistically - failure rolls the change back.
+ * live refresh on SSE note events. Sort preferences persist through the
+ * settings API (REQ-008) optimistically - failure rolls the change back.
  */
-export type DashboardView = "list" | "card";
 export type DashboardSortBy = ConfigV1["sortBy"];
 export type DashboardSortDirection = ConfigV1["sortDirection"];
 
@@ -23,20 +22,20 @@ interface WorkspaceDataState {
   total: number;
   nextCursor: string | null;
   folders: string[];
-  /* Direct-folder note counts + workspace total from /folders (WF-001) -
-   * never derived from a folder-scoped notes page. */
+  /* Direct-folder note counts + workspace/recent totals from /folders
+   * (WF-001) - never derived from a folder-scoped notes page. */
   folderCounts: Record<string, number>;
   workspaceTotal: number;
+  recentTotal: number;
+  archiveTotal: number;
   loading: boolean;
   loaded: boolean;
   error: string | null;
-  view: DashboardView;
   /* "all" = unscoped; otherwise a folder path from the tree. Session-only. */
   folder: string;
   /* null = not user-changed this session; falls back to persisted config. */
   sortBy: DashboardSortBy | null;
   sortDirection: DashboardSortDirection | null;
-  setView: (view: DashboardView) => void;
   setFolder: (folder: string) => void;
   setSortBy: (sortBy: DashboardSortBy) => void;
   setSortDirection: (direction: DashboardSortDirection) => void;
@@ -45,9 +44,18 @@ interface WorkspaceDataState {
   connectEvents: () => () => void;
 }
 
-/* Fetch params for the active scope: folder rides along unless "all". */
+/* Fetch params for the active scope: "all" = unscoped, "recent" = the
+ * server's 7-day modified window, "archive" = the archive tree, anything
+ * else = a folder path. */
 function scopeParams(state: { folder: string } & Parameters<typeof effectiveSort>[0]) {
-  const scope = state.folder !== "all" ? { folder: state.folder } : {};
+  const scope =
+    state.folder === "all"
+      ? {}
+      : state.folder === "recent"
+        ? { recent: true }
+        : state.folder === "archive"
+          ? { archived: true }
+          : { folder: state.folder };
   return { ...effectiveSort(state), ...scope };
 }
 
@@ -58,10 +66,11 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
   folders: [],
   folderCounts: {},
   workspaceTotal: 0,
+  recentTotal: 0,
+  archiveTotal: 0,
   loading: false,
   loaded: false,
   error: null,
-  view: "list",
   folder: "all",
   sortBy: null,
   sortDirection: null,
@@ -70,15 +79,6 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
     if (get().folder === folder) return;
     set({ folder });
     void get().loadInitial();
-  },
-
-  setView: (view) => {
-    const previous = get().view;
-    persistPreference({
-      update: { dashboardView: view },
-      apply: () => set({ view }),
-      rollback: () => set({ view: previous }),
-    });
   },
 
   setSortBy: (sortBy) => {
@@ -115,6 +115,8 @@ export const useWorkspaceData = create<WorkspaceDataState>((set, get) => ({
         folders: folderData.folders,
         folderCounts: folderData.counts,
         workspaceTotal: folderData.total,
+        recentTotal: folderData.recent,
+        archiveTotal: folderData.archived,
         loading: false,
         loaded: true,
       });

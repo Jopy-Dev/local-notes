@@ -71,9 +71,9 @@ describe("ConfigService.load", () => {
 describe("ConfigService.update", () => {
   it("persists a valid partial update", async () => {
     await service.load();
-    const updated = await service.update({ theme: "light", dashboardView: "card" });
+    const updated = await service.update({ theme: "light", editorFontSize: 18 });
     expect(updated.theme).toBe("light");
-    expect(JSON.parse(readFileSync(configPath(), "utf8")).dashboardView).toBe("card");
+    expect(JSON.parse(readFileSync(configPath(), "utf8")).editorFontSize).toBe(18);
   });
 
   it("rejects invalid values with INVALID_SETTING and leaves the file unchanged", async () => {
@@ -99,12 +99,12 @@ describe("ConfigService.update", () => {
     await service.load();
     await Promise.all([
       service.update({ theme: "dark" }),
-      service.update({ dashboardView: "card" }),
+      service.update({ editorFontSize: 16 }),
       service.update({ sortBy: "name" }),
     ]);
     const stored = JSON.parse(readFileSync(configPath(), "utf8"));
     expect(stored.theme).toBe("dark");
-    expect(stored.dashboardView).toBe("card");
+    expect(stored.editorFontSize).toBe(16);
     expect(stored.sortBy).toBe("name");
   });
 });

@@ -3,7 +3,6 @@ import { ApiRequestError } from "../services/api";
 import { loadNoteDocument, saveNoteContent } from "../services/contentApi";
 import { DraftUnsettledError, EditorController } from "../editor/editor-controller";
 import type { EditorSnapshot, EditorWorkspaceEvent } from "../editor/editor-controller";
-import { draftVerdict, visualVerdict } from "../editor/visual-verdict";
 
 /*
  * React adapter over the EditorController state machine (WF-005/006/007).
@@ -11,10 +10,7 @@ import { draftVerdict, visualVerdict } from "../editor/visual-verdict";
  * exposes actions. SSE note events route in via workspaceData.connectEvents.
  * Navigation away from an unsettled draft (save error or open conflict)
  * parks as pendingNavigation until the user answers stay/discard (REQ-017).
- * Visual-editing verdicts live in editor/visual-verdict (REQ-015).
  */
-let lastAssessedContent: string | null = null;
-
 const controller = new EditorController(
   {
     load: (noteKey) => loadNoteDocument(noteKey),
@@ -30,16 +26,6 @@ const controller = new EditorController(
   },
   {
     onChange: (snapshot) => {
-      const content = snapshot.document?.content ?? null;
-      if (content !== lastAssessedContent) {
-        lastAssessedContent = content;
-        useEditorData.setState({
-          ...snapshot,
-          loadError: null,
-          ...visualVerdict(snapshot.document, snapshot.readOnlyReason !== null),
-        });
-        return;
-      }
       useEditorData.setState({ ...snapshot, loadError: null });
     },
   },
@@ -56,16 +42,11 @@ const closedState = {
   readOnlyReason: null,
   loadError: null,
   pendingNavigation: null,
-  visualCompatibility: "source-only" as const,
-  visualCompatibilityReason: null,
 };
 
 interface EditorDataState extends EditorSnapshot {
   loadError: string | null;
   pendingNavigation: PendingNavigation;
-  visualCompatibility: "edit" | "source-only";
-  visualCompatibilityReason: string | null;
-  revalidateVisual: () => void;
   openNote: (noteKey: string) => Promise<void>;
   changeDraft: (text: string) => void;
   retry: () => void;
@@ -106,14 +87,6 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   },
   changeDraft: (text) => controller.changeDraft(text),
   retry: () => controller.retry(),
-
-  // REQ-015: switching back to visual mode revalidates the CURRENT draft -
-  // source-mode edits may have introduced unsupported constructs.
-  revalidateVisual: () => {
-    const { document, draft, readOnlyReason } = get();
-    if (!document || document.extension !== ".md" || readOnlyReason) return;
-    set({ ...draftVerdict(draft) });
-  },
   resolveReload: () => controller.resolveReload(),
   resolveOverwrite: () => controller.resolveOverwrite(),
   handleEvent: (event) => controller.handleWorkspaceEvent(event),
@@ -147,10 +120,6 @@ export const useEditorData = create<EditorDataState>((set, get) => ({
   discardAndClose: () => {
     controller.discardDraft();
     controller.dispose();
-    // Closed state resets the verdict outside the controller's onChange, so
-    // the content-identity memo must reset too - reopening the same content
-    // otherwise skips the verdict recompute and sticks at source-only.
-    lastAssessedContent = null;
     set(closedState);
   },
 }));

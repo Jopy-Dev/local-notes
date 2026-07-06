@@ -1,5 +1,5 @@
 import { FIND_HIGHLIGHT_CAP, scanMatches } from "./find-in-note";
-import type { FindRequest } from "./find-decorations";
+import type { FindRequest } from "./find-in-note";
 
 /*
  * Read/split preview find (MasterPrompt.md 4.11, REQ-035): highlights the
@@ -8,7 +8,7 @@ import type { FindRequest } from "./find-decorations";
  * the CSS Custom Highlight API; browsers without it still get accurate
  * counts and active-match scrolling. Text nodes are segmented per block
  * element so a query never matches across block boundaries (parity with
- * the visual-mode plugin).
+ * the source editor's per-document scan).
  */
 const BLOCK_SELECTOR = "h1, h2, h3, h4, h5, h6, p, li, td, th, pre, blockquote";
 const MATCH_HIGHLIGHT = "find-match";

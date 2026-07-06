@@ -1,11 +1,17 @@
 /*
  * Find-in-note scan (MasterPrompt.md 4.11, REQ-035): pure text scan shared
- * by every editor surface (CodeMirror source, TipTap visual, rendered
- * preview). Case-insensitive by default, query always literal. Highlight
- * ranges cap at 500 to bound render cost on pathological repetitive
- * content; total match count stays accurate beyond the cap.
+ * by every editor surface (CodeMirror source, rendered preview).
+ * Case-insensitive by default, query always literal. Highlight ranges cap
+ * at 500 to bound render cost on pathological repetitive content; total
+ * match count stays accurate beyond the cap.
  */
 export const FIND_HIGHLIGHT_CAP = 500;
+
+export interface FindRequest {
+  query: string;
+  activeIndex: number;
+  caseSensitive: boolean;
+}
 
 export interface FindRange {
   from: number;

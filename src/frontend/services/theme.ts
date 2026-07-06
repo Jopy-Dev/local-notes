@@ -3,7 +3,7 @@
  * data-theme lands on <html>; token overrides live in styles/app.css. System
  * theme resolves through matchMedia and follows OS changes live without a
  * persistence write. Editor appearance travels as CSS custom properties so
- * CodeMirror, TipTap, and the preview pick changes up without restart.
+ * CodeMirror and the preview pick changes up without restart.
  */
 export type ThemeSetting = "system" | "light" | "dark";
 
@@ -28,20 +28,12 @@ export function watchSystemTheme(onChange: () => void): () => void {
 export interface EditorAppearance {
   editorFontSize: number;
   lineHeight: number;
-  editorWidth: "narrow" | "medium" | "wide";
 }
 
-// Prose width per Design_System.md 3.3 (v1.4): narrow 65ch, medium 76ch
-// (default), wide 90ch outer cap.
-const EDITOR_WIDTH_CH: Record<EditorAppearance["editorWidth"], number> = {
-  narrow: 65,
-  medium: 76,
-  wide: 90,
-};
-
+// No width setting (user feedback round 2b): editor and preview always fill
+// their pane; the line-length cap and its config option were removed.
 export function applyEditorAppearance(appearance: EditorAppearance): void {
   const style = document.documentElement.style;
   style.setProperty("--editor-font-size", `${appearance.editorFontSize}px`);
   style.setProperty("--editor-line-height", String(appearance.lineHeight));
-  style.setProperty("--editor-max-width", `${EDITOR_WIDTH_CH[appearance.editorWidth]}ch`);
 }

@@ -6,6 +6,7 @@
 export type Route =
   | { name: "dashboard" }
   | { name: "note"; noteKey: string }
+  | { name: "archive-note"; noteKey: string }
   | { name: "settings" }
   | { name: "search-recovery" };
 
@@ -18,6 +19,12 @@ export function parseRoute(pathname: string): Route | null {
   const noteMatch = /^\/notes\/([^/]+)$/.exec(pathname);
   if (noteMatch?.[1] && NOTE_KEY_PATTERN.test(noteMatch[1])) {
     return { name: "note", noteKey: noteMatch[1] };
+  }
+  // Archived notes open read-only (round 2, SCREEN-008); keys are
+  // archive-root-relative and never valid on /notes.
+  const archiveMatch = /^\/archive\/([^/]+)$/.exec(pathname);
+  if (archiveMatch?.[1] && NOTE_KEY_PATTERN.test(archiveMatch[1])) {
+    return { name: "archive-note", noteKey: archiveMatch[1] };
   }
   return null;
 }

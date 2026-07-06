@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRightIcon, CloseIcon, SearchIcon } from "../icons";
-import type { FindRequest } from "../../editor/find-decorations";
+import type { FindRequest } from "../../editor/find-in-note";
 import { IconButton } from "./IconButton";
 import { Input } from "./Input";
 
 /*
  * <FindInNoteBar> per Design_System.md 9.2 (REQ-035, WF-013): shared find
- * shell over CodeMirror decorations (source), the ProseMirror find plugin
- * (visual), and CSS custom highlights (preview). Query input debounces
- * 150ms; match position announces through a status live region; Escape
- * closes via the shell hotkey contract and returns focus to the caller.
+ * shell over CodeMirror decorations (source) and CSS custom highlights
+ * (preview). Query input debounces 150ms; match position announces through
+ * a status live region; Escape closes via the shell hotkey contract and
+ * returns focus to the caller.
  */
 const QUERY_DEBOUNCE_MS = 150;
 

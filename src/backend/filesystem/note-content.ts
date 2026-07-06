@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { AppError } from "../../shared/errors/codes.js";
-import { scanSourceOnlyConstructs } from "../../shared/markdown/compatibility-scan.js";
 import { OVERSIZED_LIMIT_BYTES } from "../../shared/schemas/notes.js";
 import type { NoteDocument, NoteMetadata } from "../../shared/schemas/notes.js";
 import { AtomicFileWriter } from "./atomic-writer.js";
@@ -14,20 +13,22 @@ import type { WorkspacePathGuard } from "./path-guard.js";
  * LF-normalized; saves restore the original BOM + line-ending style through
  * the atomic writer with an expectedVersion recheck. Oversized and
  * unsupported-encoding notes are read-only - the file is never rewritten or
- * truncated on disk.
+ * truncated on disk. The root defaults to the active notes tree; an archive
+ * instance (round 2) reads the archive tree and is used read-only.
  */
 const NOTES_REL_ROOT = "save-data/notes";
-
-const NOT_EDITABLE_REASON = "Visual editing is available for Markdown notes only.";
 
 export class NoteContentService {
   private readonly writer = new AtomicFileWriter();
 
-  constructor(private readonly guard: WorkspacePathGuard) {}
+  constructor(
+    private readonly guard: WorkspacePathGuard,
+    private readonly rootRel: string = NOTES_REL_ROOT,
+  ) {}
 
   async read(noteKey: string): Promise<NoteDocument> {
     const relPosix = decodeNoteKey(noteKey);
-    const absPath = await this.guard.resolve(`${NOTES_REL_ROOT}/${relPosix}`);
+    const absPath = await this.guard.resolve(`${this.rootRel}/${relPosix}`);
     const metadata = await buildNoteMetadata(absPath, relPosix);
     if (!metadata) throw new AppError("NOTE_NOT_FOUND", "The note no longer exists on disk.");
 
@@ -41,7 +42,7 @@ export class NoteContentService {
 
   async write(noteKey: string, lfContent: string, expectedVersion: string): Promise<NoteMetadata> {
     const relPosix = decodeNoteKey(noteKey);
-    const absPath = await this.guard.resolve(`${NOTES_REL_ROOT}/${relPosix}`, { forWrite: true });
+    const absPath = await this.guard.resolve(`${this.rootRel}/${relPosix}`, { forWrite: true });
     const currentBytes = await readFile(absPath).catch(() => {
       throw new AppError("NOTE_NOT_FOUND", "The note no longer exists on disk.");
     });
@@ -67,19 +68,6 @@ export class NoteContentService {
     textEncoding: NoteDocument["textEncoding"],
     lineEnding: NoteDocument["lineEnding"],
   ): NoteDocument {
-    // Static construct verdict only (MasterPrompt.md 4.6 step 2); the
-    // frontend TipTap round-trip check may still downgrade "edit".
-    const scan =
-      metadata.extension === ".md" && !metadata.oversized && textEncoding !== "unsupported"
-        ? scanSourceOnlyConstructs(content)
-        : { compatibility: "source-only" as const, compatibilityReason: NOT_EDITABLE_REASON };
-    return {
-      ...metadata,
-      content,
-      markdownCompatibility: scan.compatibility,
-      compatibilityReason: scan.compatibilityReason,
-      textEncoding,
-      lineEnding,
-    };
+    return { ...metadata, content, textEncoding, lineEnding };
   }
 }

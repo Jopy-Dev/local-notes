@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderMarkdown } from "../../src/backend/markdown/render-pipeline.js";
 import { encodeNoteKey } from "../../src/backend/filesystem/path-guard.js";
-import { scanSourceOnlyConstructs } from "../../src/shared/markdown/compatibility-scan.js";
 
 /*
  * REQ-028 XSS corpus + link/image policy (MasterPrompt.md 4.6, 7.2) against
@@ -98,6 +97,48 @@ describe("link policy (REQ-014)", () => {
   });
 });
 
+describe("multi-line copy regions (REQ-036, round 2)", () => {
+  const block = "<copy>\nFirst **bold** line\n\n- item one\n- item two\n</copy>";
+
+  it("renders inner markdown inside a block copy wrapper", () => {
+    const html = render(`before\n\n${block}\n\nafter`);
+    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("<li>item one</li>");
+    expect(html).toMatch(/<copy data-block="">[\s\S]*<\/copy>/);
+  });
+
+  it("sanitizes active content inside a block copy region", () => {
+    const html = render("<copy>\ntext <script>alert(1)</script>\n</copy>");
+    expect(html).toContain('<copy data-block="">');
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("alert(1)");
+  });
+
+  it("never accepts data-block from note content", () => {
+    const html = render('Inline <copy data-block="x">snippet</copy> here.');
+    expect(html).toContain("<copy>snippet</copy>");
+    expect(html).not.toContain('data-block="x"');
+  });
+
+  it("leaves <copy> lines inside code fences literal", () => {
+    const html = render("```\n<copy>\nnot a region\n</copy>\n```");
+    expect(html).not.toContain("data-block");
+    expect(html).toContain("not a region");
+  });
+
+  it("keeps single-line copy marks inline", () => {
+    const html = render("Use <copy>npm run dev</copy> here.");
+    expect(html).toContain("<copy>npm run dev</copy>");
+    expect(html).not.toContain("data-block");
+  });
+
+  it("an unclosed <copy> line never becomes a block wrapper", () => {
+    const html = render("<copy>\nno close tag ever");
+    expect(html).not.toContain("data-block");
+  });
+});
+
 describe("image policy (REQ-014)", () => {
   it("rewrites workspace-relative raster images to the guarded asset route", () => {
     const html = render("![shot](images/shot.png)");
@@ -122,34 +163,5 @@ describe("image policy (REQ-014)", () => {
     const html = render(source);
     expect(html).not.toContain("<img");
     expect(html).toContain('data-blocked="image"');
-  });
-});
-
-describe("compatibility scan (MasterPrompt 4.6)", () => {
-  it.each([
-    ["frontmatter", "---\ntitle: x\n---\n\n# Doc", "Frontmatter"],
-    ["HTML comment", "text <!-- hidden --> more", "HTML comments"],
-    ["raw HTML", "a <div>block</div>", "Raw HTML"],
-    ["reference definition", "[ref]: https://example.com\n\nuse [ref]", "Reference definitions"],
-    ["footnote", "text[^1]\n\n[^1]: note", "Footnotes"],
-  ])("flags %s as source-only", (_name, source, reasonPart) => {
-    const scan = scanSourceOnlyConstructs(source);
-    expect(scan.compatibility).toBe("source-only");
-    expect(scan.compatibilityReason).toContain(reasonPart);
-  });
-
-  it("keeps conservative GFM with only <u>/<copy> eligible for edit", () => {
-    const scan = scanSourceOnlyConstructs(
-      "# Doc\n\nText <u>u</u> and <copy>c</copy>.\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n- [ ] task",
-    );
-    expect(scan.compatibility).toBe("edit");
-    expect(scan.compatibilityReason).toBeNull();
-  });
-
-  it("ignores constructs inside code fences and spans", () => {
-    const scan = scanSourceOnlyConstructs(
-      "Example:\n\n```html\n<div><!-- comment --></div>\n```\n\nAnd `<script>` inline.",
-    );
-    expect(scan.compatibility).toBe("edit");
   });
 });

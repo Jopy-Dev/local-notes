@@ -32,12 +32,15 @@ export function AppRouter() {
   switch (route.name) {
     case "note":
       return <WorkspaceShellPage noteKey={route.noteKey} />;
+    case "archive-note":
+      // SCREEN-008: archived note opens read-only in the editor slot.
+      return <WorkspaceShellPage archiveNoteKey={route.noteKey} />;
     case "dashboard":
       return <WorkspaceShellPage />;
     case "settings":
       // SCREEN-003: the settings form opens as a route-driven dialog over the
       // shell. The note it opened over stays mounted - unmounting would close
-      // the editor (draft flush + visual-verdict reset) for a dialog visit.
+      // the editor (draft flush) for a dialog visit.
       return <WorkspaceShellPage settingsOpen noteKey={settingsReturnNoteKey()} />;
     case "search-recovery":
       return <SearchRecoveryPage />;

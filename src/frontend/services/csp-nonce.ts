@@ -1,7 +1,7 @@
 /*
  * Per-response CSP nonce (MasterPrompt.md 7.1): the packaged server injects
- * it into the shell's meta tag; CodeMirror and TipTap pass it to their
- * runtime <style> injection so style-src holds without 'unsafe-inline'.
+ * it into the shell's meta tag; CodeMirror passes it to its runtime
+ * <style> injection so style-src holds without 'unsafe-inline'.
  * Under the Vite dev server the placeholder survives and no nonce applies
  * (dev CSP is not enforced there).
  */

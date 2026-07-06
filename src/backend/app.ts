@@ -7,6 +7,7 @@ import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
 import { AppError } from "../shared/errors/codes.js";
 import type { ConfigService } from "./config/config-service.js";
 import { registerErrorHandling } from "./error-handling.js";
+import { registerArchiveRoutes } from "./routes/archive.js";
 import { registerContentRoutes } from "./routes/content.js";
 import { registerMarkdownRoutes } from "./routes/markdown.js";
 import { registerEventsRoute } from "./routes/events.js";
@@ -36,6 +37,9 @@ export interface BuildAppOptions {
   workspaceRoot?: string;
   configService?: ConfigService;
   noteRepository?: NoteRepository;
+  /* Archive tree repository + read-only content service (round 2). */
+  archiveRepository?: NoteRepository;
+  archiveContentService?: NoteContentService;
   eventBus?: EventBus;
   searchService?: SearchService;
   mutationService?: NoteMutationService;
@@ -89,11 +93,19 @@ function registerRouteModules(
     configService: options.configService,
     indexState: options.searchService ? () => options.searchService!.status().state : undefined,
   });
+  registerReadModules(app, options);
+  registerWriteModules(app, options);
+}
+
+function registerReadModules(app: FastifyInstance, options: BuildAppOptions): void {
   if (options.configService) {
     registerSettingsRoutes(app, { configService: options.configService, bus: options.eventBus });
   }
   if (options.noteRepository) {
-    registerNotesRoutes(app, { repository: options.noteRepository });
+    registerNotesRoutes(app, {
+      repository: options.noteRepository,
+      archiveRepository: options.archiveRepository,
+    });
   }
   if (options.eventBus) {
     registerEventsRoute(app, { bus: options.eventBus });
@@ -104,6 +116,12 @@ function registerRouteModules(
       repository: options.noteRepository,
     });
   }
+  if (options.markdownService) {
+    registerMarkdownRoutes(app, { markdownService: options.markdownService });
+  }
+}
+
+function registerWriteModules(app: FastifyInstance, options: BuildAppOptions): void {
   if (options.mutationService) {
     registerMutationRoutes(app, {
       mutationService: options.mutationService,
@@ -111,8 +129,13 @@ function registerRouteModules(
       operationRegistry: options.operationRegistry,
     });
   }
-  if (options.markdownService) {
-    registerMarkdownRoutes(app, { markdownService: options.markdownService });
+  if (options.archiveContentService && options.mutationService) {
+    registerArchiveRoutes(app, {
+      archiveContentService: options.archiveContentService,
+      mutationService: options.mutationService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
+    });
   }
   if (options.contentService) {
     registerContentRoutes(app, {

@@ -223,21 +223,13 @@ export function SortIcon(props: IconProps) {
   );
 }
 
-export function ListViewIcon(props: IconProps) {
+export function TrashIcon(props: IconProps) {
   return (
     <svg {...baseProps(props)}>
-      <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-export function CardViewIcon(props: IconProps) {
-  return (
-    <svg {...baseProps(props)}>
-      <rect x="4" y="4" width="7" height="7" rx="1" />
-      <rect x="13" y="4" width="7" height="7" rx="1" />
-      <rect x="4" y="13" width="7" height="7" rx="1" />
-      <rect x="13" y="13" width="7" height="7" rx="1" />
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
     </svg>
   );
 }

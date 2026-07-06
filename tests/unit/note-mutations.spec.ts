@@ -119,3 +119,58 @@ describe("archive note (REQ-013)", () => {
     expect(await readFile(join(root, "save-data", "archive", "dup-2026.md"), "utf8")).toBe("active");
   });
 });
+
+describe("restore archived note (round 2)", () => {
+  it("moves the archived file into an existing active folder", async () => {
+    await writeFile(join(root, "save-data", "archive", "old.md"), "kept", "utf8");
+    const restored = await service.restore(encodeNoteKey("old.md"), "projects");
+    expect(restored.relativePath).toBe("projects/old.md");
+    expect(await readFile(join(notesDir(), "projects", "old.md"), "utf8")).toBe("kept");
+    await expect(readFile(join(root, "save-data", "archive", "old.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("rejects case-fold collisions in the destination and leaves both sides unchanged", async () => {
+    await writeFile(join(root, "save-data", "archive", "clash.md"), "archived", "utf8");
+    await writeFile(join(notesDir(), "projects", "Clash.md"), "active", "utf8");
+    await expect(service.restore(encodeNoteKey("clash.md"), "projects")).rejects.toMatchObject({
+      code: "NOTE_EXISTS",
+    });
+    expect(await readFile(join(root, "save-data", "archive", "clash.md"), "utf8")).toBe("archived");
+    expect(await readFile(join(notesDir(), "projects", "Clash.md"), "utf8")).toBe("active");
+  });
+
+  it("rejects a missing destination folder before touching the archive", async () => {
+    await writeFile(join(root, "save-data", "archive", "stay.md"), "archived", "utf8");
+    await expect(service.restore(encodeNoteKey("stay.md"), "nope")).rejects.toMatchObject({
+      code: "FOLDER_NOT_FOUND",
+    });
+    expect(await readFile(join(root, "save-data", "archive", "stay.md"), "utf8")).toBe("archived");
+  });
+});
+
+describe("delete archived note (round 2, ADR-009)", () => {
+  it("hands the archived file to the trash function", async () => {
+    const trashed: string[] = [];
+    const guard = await WorkspacePathGuard.create(root);
+    const trashing = new NoteMutationService(guard, async (path) => {
+      trashed.push(path);
+    });
+    await writeFile(join(root, "save-data", "archive", "gone.md"), "bye", "utf8");
+    await trashing.deleteArchived(encodeNoteKey("gone.md"));
+    expect(trashed).toEqual([join(root, "save-data", "archive", "gone.md")]);
+  });
+
+  it("missing archived note maps to NOTE_NOT_FOUND and never calls trash", async () => {
+    const trashed: string[] = [];
+    const guard = await WorkspacePathGuard.create(root);
+    const trashing = new NoteMutationService(guard, async (path) => {
+      trashed.push(path);
+    });
+    await expect(trashing.deleteArchived(encodeNoteKey("ghost.md"))).rejects.toMatchObject({
+      code: "NOTE_NOT_FOUND",
+    });
+    expect(trashed).toEqual([]);
+  });
+});

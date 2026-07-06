@@ -127,6 +127,55 @@ reason = "Wave 8 REQ-031 benchmark suite creation is the growth stat (10k fixtur
 expires = "2026-08-15"
 
 [[waivers]]
+id = "a11y-spec-hotspot-2026-07-05"
+path = "tests/e2e/a11y.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 suite creation is the growth stat; round-2 edit (violation targets + CodeMirror-only SCREEN-002 selector) re-flags the rolling-window top scorer; CCX 20 healthy for one coherent sweep; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "notes-virtual-list-spec-hotspot-2026-07-05"
+path = "tests/dom/notes-virtual-list.spec.tsx"
+rule = "structural.hotspots"
+reason = "Wave 8 suite creation is the growth stat; round-2 card-view REMOVAL shrank the file yet re-flags the recomputed top scorer after seven visual-editor suites were deleted; CCX 18 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "markdown-render-spec-hotspot-2026-07-05"
+path = "tests/unit/markdown-render.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 6 corpus history is the growth stat; round-2 removed the compatibility-scan block (file shrank) and the deletion of seven visual-editor suites re-ranked the rolling window; CCX 18 healthy for one coherent XSS/link/image corpus; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "preview-support-hotspot-2026-07-05"
+path = "src/frontend/editor/preview-support.ts"
+rule = "structural.hotspots"
+reason = "Wave 6 creation + round-2 copy work is the growth stat; copy text walker + mounts already extracted to copy-mounts.ts (file shrank, CCX 21 healthy); committed-history stat cannot shrink by further edits; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-wmc-2026-07-05"
+path = "src/backend/filesystem/note-mutations.ts"
+rule = "structural.class.complexity"
+reason = "round-2 restore + recycle-bin delete join create/move/archive; all methods share the lexically-ordered path-lock map (2.5) so splitting the archive family out would need a shared lock coordinator for less cohesion; WMC 46 fully covered by tests/unit/note-mutations.spec.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-hotspot-2026-07-05"
+path = "src/backend/filesystem/note-mutations.ts"
+rule = "structural.hotspots"
+reason = "round-2 archive-browser feature growth (restore + deleteArchived) inside the 14-day window; cohesive with the existing mutation family per the WMC waiver; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-spec-hotspot-2026-07-05"
+path = "tests/unit/note-mutations.spec.ts"
+rule = "structural.hotspots"
+reason = "round-2 restore/delete suites join the create/move/archive spec (one coherent mutation suite, CCX 25); growth stat is committed feature history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "search-service-spec-hotspot-2026-07-05"
 path = "tests/unit/search-service.spec.ts"
 rule = "structural.hotspots"

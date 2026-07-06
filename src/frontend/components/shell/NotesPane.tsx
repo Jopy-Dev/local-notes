@@ -12,10 +12,10 @@ import type { SearchStatus } from "../../stores/searchData";
 import type { IndexState, SearchResult } from "../../../shared/schemas/search.js";
 
 /*
- * Note list pane (WF-001/002/004): toolbar + virtualized list/card views
- * (REQ-031 incremental rendering) + skeleton + empty/no-result states +
- * load-more batches. Non-blank queries render ranked search results
- * (REQ-009); a degraded index links the recovery surface.
+ * Note list pane (WF-001/002/004): toolbar + virtualized list (REQ-031
+ * incremental rendering) + skeleton + empty/no-result states + load-more
+ * batches. Non-blank queries render ranked search results (REQ-009); a
+ * degraded index links the recovery surface.
  */
 interface NotesPaneProps {
   notes: readonly NoteListEntry[];
@@ -27,8 +27,6 @@ interface NotesPaneProps {
   onSortByChange: (sortBy: DashboardSortBy) => void;
   descending: boolean;
   onToggleDirection: () => void;
-  view: "list" | "card";
-  onViewChange: (view: "list" | "card") => void;
   loading: boolean;
   totalLabel: string;
   hasMore: boolean;
@@ -126,12 +124,9 @@ function SearchResultList(props: NotesPaneProps) {
 }
 
 function NoteList(props: NotesPaneProps & { scrollRef: RefObject<HTMLDivElement | null> }) {
-  // Remount on view switch: measured row heights differ per view (REQ-031).
   return (
     <NotesVirtualList
-      key={props.view}
       notes={props.notes}
-      view={props.view}
       selectedKey={props.selectedKey}
       onSelect={props.onSelect}
       scrollRef={props.scrollRef}
@@ -162,8 +157,6 @@ export function NotesPane(props: NotesPaneProps) {
         }}
         descending={props.descending}
         onToggleDirection={props.onToggleDirection}
-        view={props.view}
-        onViewChange={props.onViewChange}
         searchRef={props.searchRef}
       />
       {props.indexState === "degraded" ? (

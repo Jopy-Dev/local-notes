@@ -1,6 +1,6 @@
 import type { NoteMetadata } from "../../shared/schemas/notes.js";
 
-// View model consumed by <NoteListItem> and <NoteCard>.
+// View model consumed by <NoteListItem>.
 export interface NoteListEntry {
   key: string;
   title: string;

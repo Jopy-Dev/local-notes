@@ -137,6 +137,23 @@ export const routes: readonly RouteDefinition[] = [
     evidence: { kind: "automated" },
   },
   {
+    screenId: "SCREEN-008",
+    name: "Archive Note View",
+    path: "/archive/:noteKey",
+    roles: [LOCAL_OPERATOR],
+    deniedRoles: [],
+    states: {
+      populated: "read-only archived content with archive banner",
+      loading: "busy surface while archived document loads",
+      empty: "missing archived key -> not-found message",
+      error: "restore collision / delete failure surface recoverable errors",
+      success: "restore navigates to active note; delete reaches recycle bin and returns to list",
+      postRestart: "archive list and counts rebuild from the archive tree",
+    },
+    criticality: "standard",
+    evidence: { kind: "automated" },
+  },
+  {
     screenId: "SCREEN-007",
     name: "Search Recovery",
     path: "/recovery/search",

@@ -1,18 +1,16 @@
 import { useRef, useState } from "react";
-import { InfoIcon } from "../icons";
 import { MarkdownPreview } from "../../editor/MarkdownPreview";
 import { SourceEditor } from "../../editor/SourceEditor";
-import { VisualMarkdownEditor } from "../../editor/VisualMarkdownEditor";
-import type { FindRequest } from "../../editor/find-decorations";
+import type { FindRequest } from "../../editor/find-in-note";
 import type { EditorMode } from "../ui/EditorModeTabs";
 import { SPLIT_FRACTION_DEFAULT, SplitDivider } from "../ui/SplitDivider";
 import type { NoteDocument } from "../../../shared/schemas/notes.js";
 
 /*
- * Editor workspace (WF-005/006, REQ-014/015/016): mode-routed surfaces.
- * Read = server-sanitized preview; Edit = TipTap for compatibility-approved
- * .md (source fallback with explanation otherwise); Source = CodeMirror;
- * Split = source + live preview. .txt is always the plain editor.
+ * Editor workspace (WF-005/006, REQ-014/016): mode-routed surfaces.
+ * Read = server-sanitized preview; Source = CodeMirror with the Markdown
+ * formatting toolbar; Split = source + live preview. .txt is always the
+ * plain editor without a toolbar.
  */
 export type SplitLayout = "side" | "preview-top" | "preview-bottom";
 
@@ -21,29 +19,12 @@ interface EditorContentProps {
   document: NoteDocument;
   draft: string;
   readOnly: boolean;
-  visualCompatibility: "edit" | "source-only";
-  visualCompatibilityReason: string | null;
   splitLayout: SplitLayout;
   onChangeDraft: (value: string) => void;
   onToast: (message: string) => void;
   find: FindRequest | null;
   onFindMatches: (total: number) => void;
   onOpenFind: () => void;
-}
-
-function SourceOnlyNotice({ reason }: { reason: string | null }) {
-  return (
-    <div
-      role="status"
-      className="flex items-center gap-2 border-b border-border-subtle bg-surface-panel px-3 py-1.5 text-xs text-info"
-    >
-      <InfoIcon size={14} />
-      <span>
-        Visual editing is unavailable for this note - editing Markdown source instead.
-        {reason ? ` ${reason}` : ""}
-      </span>
-    </div>
-  );
 }
 
 /* Resizable split (user feedback round 1): the divider drags the fraction of
@@ -88,41 +69,6 @@ export function EditorContent(props: EditorContentProps) {
     );
   }
 
-  if (mode === "edit") {
-    const visual = !readOnly && props.visualCompatibility === "edit";
-    return (
-      <section
-        aria-label="Note editor"
-        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)]"
-      >
-        {visual ? (
-          <>
-            <span />
-            <VisualMarkdownEditor
-              value={draft}
-              readOnly={readOnly}
-              onChange={onChangeDraft}
-              find={props.find}
-              onFindMatches={props.onFindMatches}
-              onToast={props.onToast}
-            />
-          </>
-        ) : (
-          <>
-            {readOnly ? <span /> : <SourceOnlyNotice reason={props.visualCompatibilityReason} />}
-            <SourceEditor
-              value={draft}
-              language="markdown"
-              readOnly={readOnly}
-              onChange={onChangeDraft}
-              {...findProps}
-            />
-          </>
-        )}
-      </section>
-    );
-  }
-
   if (mode === "source") {
     return (
       <section aria-label="Note editor" className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]">
@@ -131,6 +77,7 @@ export function EditorContent(props: EditorContentProps) {
           language="markdown"
           readOnly={readOnly}
           onChange={onChangeDraft}
+          toolbar
           {...findProps}
         />
       </section>
@@ -163,6 +110,7 @@ function SplitSurface(props: EditorContentProps) {
       language="markdown"
       readOnly={readOnly}
       onChange={onChangeDraft}
+      toolbar
       find={props.find}
       onFindMatches={props.onFindMatches}
       onOpenFind={props.onOpenFind}

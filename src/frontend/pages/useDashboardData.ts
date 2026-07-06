@@ -5,7 +5,7 @@ import { useSearchData } from "../stores/searchData";
 import type { SearchStatus } from "../stores/searchData";
 import { useSettingsData } from "../stores/settingsData";
 import { useWorkspaceData } from "../stores/workspaceData";
-import type { DashboardSortBy, DashboardSortDirection, DashboardView } from "../stores/workspaceData";
+import type { DashboardSortBy, DashboardSortDirection } from "../stores/workspaceData";
 import type { IndexState, SearchResult } from "../../shared/schemas/search.js";
 
 /*
@@ -21,8 +21,6 @@ export interface DashboardData {
   totalLabel: string;
   hasMore: boolean;
   loadMore: () => void;
-  view: DashboardView;
-  setView: (view: DashboardView) => void;
   folder: string;
   setFolder: (folder: string) => void;
   sortBy: DashboardSortBy;
@@ -32,6 +30,8 @@ export interface DashboardData {
   folders: readonly string[];
   folderCountMap: ReadonlyMap<string, number>;
   totalNotes: number;
+  recentNotes: number;
+  archivedNotes: number;
   filteredNotes: readonly NoteListEntry[];
   findNoteTitle: (key: string) => string | undefined;
   searchStatus: SearchStatus;
@@ -77,8 +77,6 @@ export function useDashboardData(query: string): DashboardData {
       : `${data.total} note${data.total === 1 ? "" : "s"}`,
     hasMore: data.nextCursor !== null,
     loadMore: () => void data.loadMore(),
-    view: data.view,
-    setView: data.setView,
     sortBy: data.sortBy ?? settingsConfig?.sortBy ?? "modified",
     setSortBy: data.setSortBy,
     sortDirection: data.sortDirection ?? settingsConfig?.sortDirection ?? "desc",
@@ -90,6 +88,8 @@ export function useDashboardData(query: string): DashboardData {
     // folder-scoped and would undercount (WF-001).
     folderCountMap: new Map(Object.entries(data.folderCounts)),
     totalNotes: data.workspaceTotal,
+    recentNotes: data.recentTotal,
+    archivedNotes: data.archiveTotal,
     filteredNotes: notes,
     findNoteTitle: (key) =>
       data.notes.find((candidate) => candidate.noteKey === key)?.title ??

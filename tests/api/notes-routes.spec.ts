@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -104,6 +104,24 @@ describe("GET /api/v1/notes", () => {
     expect(res.json().data.total).toBe(0);
     expect(res.json().data.nextCursor).toBeNull();
   });
+
+  it("recent=true scopes to notes modified within seven days (round 2)", async () => {
+    // Age two notes past the window; mtime is the scoped stat.
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    utimesSync(join(root, "save-data", "notes", "note-0.md"), old, old);
+    utimesSync(join(root, "save-data", "notes", "note-1.md"), old, old);
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/v1/notes?recent=true",
+      headers: headers(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json().data;
+    expect(body.total).toBe(6);
+    const names = body.notes.map((note: { filename: string }) => note.filename);
+    expect(names).not.toContain("note-0.md");
+    expect(names).not.toContain("note-1.md");
+  });
 });
 
 describe("GET /api/v1/folders", () => {
@@ -113,5 +131,13 @@ describe("GET /api/v1/folders", () => {
     expect(res.json().data.folders).toEqual(["projects"]);
     expect(res.json().data.counts).toEqual({ projects: 1 });
     expect(res.json().data.total).toBe(8);
+  });
+
+  it("reports the recent count alongside the tree (round 2)", async () => {
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    utimesSync(join(root, "save-data", "notes", "note-2.md"), old, old);
+    const res = await app.inject({ method: "GET", url: "/api/v1/folders", headers: headers() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.recent).toBe(7);
   });
 });

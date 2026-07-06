@@ -42,8 +42,10 @@ describe("quiet workbench markdown highlighting", () => {
       const markCls = highlightingFor(view.state, [tags.processingInstruction]);
       expect(headingCls).toBeTruthy();
       expect(markCls).toBeTruthy();
-      expect(styleRulesFor(headingCls!)).toContain("var(--color-accent)");
-      expect(styleRulesFor(markCls!)).toContain("var(--color-accent)");
+      // Syntax accent token (REQ-030): per-theme value lives in app.css so
+      // the light palette holds AA contrast on surface-code.
+      expect(styleRulesFor(headingCls!)).toContain("var(--color-syntax-accent)");
+      expect(styleRulesFor(markCls!)).toContain("var(--color-syntax-accent)");
       const line = view.contentDOM.querySelector(".cm-line");
       const headingSpans = Array.from(
         line?.querySelectorAll(`span[class~="${headingCls!.split(" ")[0]}"]`) ?? [],

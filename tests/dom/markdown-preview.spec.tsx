@@ -8,8 +8,6 @@ import { MarkdownPreview } from "../../src/frontend/editor/MarkdownPreview";
 vi.mock("../../src/frontend/services/contentApi.js", () => ({
   renderMarkdownPreview: vi.fn(async () => ({
     html: '<p>Use <copy>npm run dev</copy> to start.</p>',
-    compatibility: "edit" as const,
-    compatibilityReason: null,
   })),
 }));
 
@@ -76,5 +74,20 @@ describe("MarkdownPreview copy affordance (REQ-036)", () => {
     expect(holders).toHaveLength(1);
     expect(holders[0]?.isConnected).toBe(true);
     expect(holders[0]?.querySelector("button")).not.toBeNull();
+  });
+
+  it("clicking the marked text itself copies it (round 2)", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    await renderPreview();
+    const mark = document.querySelector("copy") as HTMLElement;
+    expect(mark).not.toBeNull();
+    await act(async () => {
+      mark.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(writeText).toHaveBeenCalledWith("npm run dev");
   });
 });

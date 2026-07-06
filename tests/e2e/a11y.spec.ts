@@ -101,9 +101,9 @@ interface ScreenTarget {
 
 const SCREENS: ScreenTarget[] = [
   { screenId: "SCREEN-001", path: "/", readySelector: "#note-search" },
-  // Compatible notes open in the visual editor (.ProseMirror); source-only
-  // notes fall back to CodeMirror (.cm-content). Path set from noteKey at runtime.
-  { screenId: "SCREEN-002", path: "", readySelector: ".ProseMirror, .cm-content" },
+  // Source mode is the single editing surface (round 2). Path set from
+  // noteKey at runtime.
+  { screenId: "SCREEN-002", path: "", readySelector: ".cm-content" },
   { screenId: "SCREEN-003", path: "/settings", readySelector: "#settings-form" },
   { screenId: "SCREEN-007", path: "/recovery/search", readySelector: "main, h1, h2" },
 ];
@@ -121,6 +121,7 @@ interface ViolationRecord {
   id: string;
   impact: string;
   nodes: number;
+  targets: string[];
   help: string;
 }
 
@@ -143,6 +144,7 @@ describe("REQ-030 accessibility sweep (axe, three viewports)", () => {
             id: violation.id,
             impact: violation.impact ?? "unknown",
             nodes: violation.nodes.length,
+            targets: violation.nodes.map((node) => node.target.join(" ")),
             help: violation.help,
           });
         }

@@ -7,7 +7,6 @@ import { getCapability } from "../services/token";
 import { setWorkspaceDisplayPath } from "../services/workspace";
 import { useSearchData } from "../stores/searchData";
 import { useSettingsData } from "../stores/settingsData";
-import { useWorkspaceData } from "../stores/workspaceData";
 // Side-effect import: workspaceUi subscribes to settings hydration (REQ-034).
 import "../stores/workspaceUi";
 import type { BootstrapResponse } from "../../shared/schemas/bootstrap";
@@ -32,11 +31,9 @@ export function App() {
         // Seed index state; SSE index.status keeps it live afterwards.
         useSearchData.getState().setIndexState(bootstrap.indexStatus);
         setWorkspaceDisplayPath(bootstrap.workspaceDisplayPath);
-        // Settings + theme apply before first paint of the shell (REQ-021).
+        // Settings + theme apply before first paint of the shell (REQ-021);
+        // pane layout (REQ-034) hydrates via the workspaceUi subscription.
         useSettingsData.getState().hydrate(bootstrap.config);
-        // Persisted dashboard view restores across restarts (REQ-007); pane
-        // layout (REQ-034) hydrates via the workspaceUi settings subscription.
-        useWorkspaceData.setState({ view: bootstrap.config.dashboardView });
         setState({ phase: "ready", bootstrap });
       })
       .catch((error: unknown) => {
