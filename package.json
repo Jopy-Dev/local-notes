@@ -1,6 +1,6 @@
 {
   "name": "local-notes",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Offline, filesystem-first notes workspace served by a local Node.js/Fastify server with a React/Vite browser interface.",
   "type": "module",
@@ -25,6 +25,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:package": "node scripts/test-package.mjs",
+    "scan:predeploy": "bash scripts/scan-predeploy.sh",
     "verify:local": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {

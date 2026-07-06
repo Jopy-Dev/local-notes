@@ -82,11 +82,14 @@ try {
     });
   });
 
+  // Loopback HTTP is the product's transport (ADR-003: 127.0.0.1 only, no TLS).
+  // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
   const health = await fetch("http://127.0.0.1:8989/api/v1/health", {
     headers: { "x-local-notes-token": capability },
   });
   if (health.status !== 200) throw new Error(`/api/v1/health returned ${health.status}`);
 
+  // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
   const shellRes = await fetch("http://127.0.0.1:8989/");
   if (shellRes.status !== 200) throw new Error(`SPA shell returned ${shellRes.status}`);
   const html = await shellRes.text();

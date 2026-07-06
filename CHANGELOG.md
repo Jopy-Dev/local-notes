@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. Format follows Keep a Changelog; versions follow Semantic Versioning. First release after the initial npm publish will be `1.0.0`.
+All notable changes to this project will be documented in this file. Format follows Keep a Changelog; versions follow Semantic Versioning. Releases ship as GitHub Release tarballs per ADR-007.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-07-06
+
+First release: the complete local notes workspace as an installable package.
 
 ### Added
 
