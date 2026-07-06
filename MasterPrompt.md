@@ -487,6 +487,7 @@ interface ConfigV1 {
 ### 4.12 Copyable Text Mark (`REQ-036`)
 
 - Authored in source mode: toolbar wrap toggle or literal `<copy>...</copy>` (inline) / line-starting `<copy>` region (block form, §4.6, rounds 2-3).
+- Source mode colors the literal tags (round 4): `src/frontend/editor/cm-copy-tag.ts` MatchDecorator marks `<copy>`/`</copy>` with `--color-copy-tag` (`Design_System.md` §2.2); wired in the language compartment so `.txt` stays unstyled; decoration only, never an edit.
 - Read/split preview: server-sanitized HTML passes `<copy>` through the allowlist (§4.6); the preview component mounts an inline `<IconButton>` (`Design_System.md` §9) after each rendered `<copy>` element client-side — the sanitized HTML itself carries no button markup.
 - Click-to-copy (round 2): clicking anywhere in the rendered `<copy>` element copies it; anchors inside still follow link policy first.
 - Clipboard text is line-aware (`src/frontend/editor/copy-mounts.ts`): block children join with newlines, table cells with tabs, `<br>` breaks; nested Markdown is already stripped by rendering. Same clipboard mechanism + toast as `Copy Text` (§4.7).
