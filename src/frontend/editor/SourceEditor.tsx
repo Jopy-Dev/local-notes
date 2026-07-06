@@ -4,6 +4,7 @@ import { Annotation, EditorState, Compartment, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { cspNonce } from "../services/csp-nonce";
+import { useWorkspaceUi } from "../stores/workspaceUi";
 import { cmFind, findField, useCmFind } from "./cm-find";
 import { quietWorkbenchSyntaxHighlighting, quietWorkbenchTheme } from "./cm-theme";
 import { MarkdownToolbar } from "./MarkdownToolbar";
@@ -19,6 +20,7 @@ import type { FindRequest } from "./find-in-note";
 const themeCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
 const languageCompartment = new Compartment();
+const wrapCompartment = new Compartment();
 // Marks programmatic value syncs (reload/conflict adoption) so they never
 // echo back through onChange as if the user typed them.
 const externalSync = Annotation.define<boolean>();
@@ -37,6 +39,9 @@ interface SourceEditorProps {
 export function SourceEditor({ value, language, readOnly, onChange, ...props }: SourceEditorProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // Soft-wrap view preference (round 3): session store, applies to every
+  // source surface; toggling reconfigures the compartment, never the text.
+  const lineWrap = useWorkspaceUi((state) => state.lineWrap);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onFindMatchesRef = useRef(props.onFindMatches);
@@ -77,7 +82,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
           ...(nonce ? [EditorView.cspNonce.of(nonce)] : []),
           languageCompartment.of(language === "markdown" ? markdown() : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
-          EditorView.lineWrapping,
+          wrapCompartment.of(useWorkspaceUi.getState().lineWrap ? EditorView.lineWrapping : []),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
             // Find totals track edits too (REQ-035 accurate count).
@@ -104,9 +109,10 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
       effects: [
         readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
         languageCompartment.reconfigure(language === "markdown" ? markdown() : []),
+        wrapCompartment.reconfigure(lineWrap ? EditorView.lineWrapping : []),
       ],
     });
-  }, [readOnly, language]);
+  }, [readOnly, language, lineWrap]);
 
   useCmFind(viewRef, props.find, props.onFindMatches);
 

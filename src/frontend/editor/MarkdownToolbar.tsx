@@ -14,8 +14,10 @@ import {
   TaskListIcon,
   UnderlineIcon,
   UndoIcon,
+  WrapTextIcon,
 } from "../components/icons";
 import { IconButton } from "../components/ui/IconButton";
+import { useWorkspaceUi } from "../stores/workspaceUi";
 import { applyMarkdownCommand } from "./markdown-commands";
 import type { MarkdownCommandId } from "./markdown-commands";
 
@@ -133,6 +135,20 @@ export function MarkdownToolbar({ getView, readOnly }: MarkdownToolbarProps) {
       <IconButton label="Redo" disabled={readOnly} onClick={() => history(redo)}>
         <RedoIcon size={15} />
       </IconButton>
+      <Divider />
+      <LineWrapToggle />
     </div>
+  );
+}
+
+/* View action, not an edit (round 3): toggles soft wrapping for every
+ * source surface this session. Enabled even when the note is read-only. */
+function LineWrapToggle() {
+  const lineWrap = useWorkspaceUi((state) => state.lineWrap);
+  const toggleLineWrap = useWorkspaceUi((state) => state.toggleLineWrap);
+  return (
+    <IconButton label="Line wrap" pressed={lineWrap} onClick={toggleLineWrap}>
+      <WrapTextIcon size={15} />
+    </IconButton>
   );
 }

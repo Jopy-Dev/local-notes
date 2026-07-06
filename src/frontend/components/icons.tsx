@@ -366,3 +366,12 @@ export function CopyMarkIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function WrapTextIcon(props: IconProps) {
+  return (
+    <svg {...baseProps(props)}>
+      <path d="M4 6.5h16M4 12h12.5a3 3 0 0 1 0 6h-4M4 17.5h5" />
+      <path d="m14.5 15.5-2.5 2.5 2.5 2.5" />
+    </svg>
+  );
+}

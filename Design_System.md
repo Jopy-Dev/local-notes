@@ -1,7 +1,7 @@
 # Design System: Local-Notes
 
-**Version:** v1.6 - LOCKED  
-**Last updated:** 2026-07-04
+**Version:** v1.7 - LOCKED  
+**Last updated:** 2026-07-06
 
 ## 1. Brand Identity
 
@@ -367,7 +367,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `<EditorModeTabs>` | `mode: read|source|split` | selected, unavailable | Tab/pressed semantics; shortcut documented | v1.6: Edit tab removed; `.txt` hides Markdown-only modes |
 | `<FocusModeToggle>` | `layout`, `onToggle` | standard, focus, disabled | `aria-pressed`; label changes enter/exit | `Ctrl+Shift+F`; Escape restores |
 | `<SourceEditor>` | `content`, `language`, `readOnly`, `toolbar` | loading, editable, read-only, error | CodeMirror keyboard/a11y contract; textbox carries accessible name; visible focus | Mono; default 14px user-controlled; single editing surface v1.6 |
-| `<MarkdownToolbar>` | `getView`, `readOnly` | ready, disabled | `role=toolbar`; every control labelled; buttons never steal editor selection | v1.6: rewrites Markdown syntax at selection; undo/redo included |
+| `<MarkdownToolbar>` | `getView`, `readOnly` | ready, disabled | `role=toolbar`; every control labelled; buttons never steal editor selection | v1.6: rewrites Markdown syntax at selection; undo/redo included. v1.7: `Line wrap` view toggle (`aria-pressed`, session-only, active while read-only) |
 | `<ArchiveNoteView>` | `noteKey`, `folders` | loading, read-only, missing, restore dialog, delete confirm | Read-only banner `role=status`; delete behind named confirmation | `SCREEN-008` v1.6; actions: restore/copies/delete |
 | `<MarkdownPreview>` | `html`, `loading` | loading, ready, blocked-image, render-error | Semantic rendered headings/lists; safe link labels | Server-sanitized HTML only |
 | `<PlainTextViewer>` | `content`, `readOnly` | loading, ready, unsupported-encoding, oversized | Literal text; read-only reason announced | No Markdown controls |
@@ -507,3 +507,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
 - [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
 - [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width setting and line-length cap removed entirely - content fills the pane (§3.3, round 2b); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.
+- [x] v1.7 (user feedback round 3): `<MarkdownToolbar>` gains the `Line wrap` view toggle - `WrapTextIcon`, `aria-pressed`, session-only, never edits the document (§9.2); copy block regions generalized - any line-starting `<copy>` region renders inner Markdown normally inside the standard copy highlight (`copy[data-block]` visual unchanged). Source: user-approved 2026-07-06.

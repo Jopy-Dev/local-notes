@@ -139,6 +139,38 @@ describe("multi-line copy regions (REQ-036, round 2)", () => {
   });
 });
 
+describe("generalized copy regions (REQ-036, round 3)", () => {
+  it("a whole-line copy mark renders its inner markdown", () => {
+    const html = render("<copy>## The system provides:</copy>");
+    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain("<h2>The system provides:</h2>");
+  });
+
+  it("a region opening with content on the same line keeps every block inside the copy element", () => {
+    const source = "<copy>First line\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n</copy>";
+    const html = render(source);
+    expect(html).toMatch(/<copy data-block="">[\s\S]*First line[\s\S]*<table>[\s\S]*<\/copy>/);
+    expect(html).not.toContain("<td></td>");
+  });
+
+  it("content before the closing tag on its line joins the region", () => {
+    const html = render("<copy>first line\nlast line</copy>");
+    expect(html).toMatch(/<copy data-block="">[\s\S]*first line[\s\S]*last line[\s\S]*<\/copy>/);
+  });
+
+  it("a line carrying several inline copy marks stays inline", () => {
+    const html = render("<copy>one</copy> and <copy>two</copy>");
+    expect(html).toContain("<copy>one</copy>");
+    expect(html).toContain("<copy>two</copy>");
+    expect(html).not.toContain("data-block");
+  });
+
+  it("a fenced close line never terminates a region", () => {
+    const html = render("<copy>text\n```\n</copy>\n```");
+    expect(html).not.toContain("data-block");
+  });
+});
+
 describe("image policy (REQ-014)", () => {
   it("rewrites workspace-relative raster images to the guarded asset route", () => {
     const html = render("![shot](images/shot.png)");
