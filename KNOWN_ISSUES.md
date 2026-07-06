@@ -39,6 +39,12 @@ Deliberately deferred items + suppression records. Entries pair with `.slop.toml
 |---|---|---|---|
 | Rename correlation split across watch batches (`REQ-018` edge) | Unlink and add landing in different 100ms coalesce windows surface as removed+added, not `note.renamed`; a clean open editor then parks as source-missing instead of following | Pairing is per-batch by design; cross-batch correlation needs a held-back removal buffer with timeout. Recovery path (save-as-new / close) loses no data | Wave 8 packaged-build pass, or first user report |
 
+## Scan Coverage Gaps
+
+| ID | Gap | Compensating control | Revisit |
+|---|---|---|---|
+| `trivy-vuln-db-offline-2026-07-06` | Local Trivy `fs` vuln scanner cannot fetch its DB - dev machine firewall blocks all OCI registries (mirror.gcr.io, ghcr.io, public.ecr.aws; socket forbidden). CLI upgraded to 0.72.0; Trivy misconfig ran clean offline | Dep-CVE layer covered by `npm audit --omit=dev --audit-level=high` = 0 vulns locally AND enforced in `release.yml` CI (network-enabled). Semgrep (0), Gitleaks (0, 93-commit history) unaffected | When OCI registry egress is permitted on the dev machine, run `trivy fs --scanners vuln` and close this entry |
+
 Resolved: `api-suite-growth-2026-07-03` - `tests/api/app.spec.ts` split into `boundary.spec.ts` + `system-routes.spec.ts` (Wave 2, 2026-07-03); waiver removed.
 Resolved: External delete while editor clean (`REQ-018` edge) - clean open note removed outside the app now parks as source-missing with save-as-new / close (Wave 6, 2026-07-04); app-originated removals (operation-tagged) stay silent, archive flow owns navigation.
 Resolved: External rename while editor clean (`REQ-018` acceptance PARTIAL) - watch pipeline pairs unlink+add per batch (size + mtime match) and emits `note.renamed {oldKey,noteKey,version}`; clean open editor follows the new key and the route updates silently; dirty drafts park as source-missing (Wave 6, 2026-07-04).

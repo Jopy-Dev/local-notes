@@ -1,0 +1,2 @@
+# Trivy fs suppressions (arch/scan-policy.md 26.7): every entry pairs with a
+# KNOWN_ISSUES.md row. Empty = no suppressions.

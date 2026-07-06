@@ -10,6 +10,10 @@ updates:
       day: monday
       time: '09:00'
       timezone: Asia/Manila
+    # Supply-chain cooldown (semgrep dependabot-missing-cooldown): let new
+    # releases age before auto-PR - compromised-package window protection.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     versioning-strategy: increase
     labels: [dependencies]
@@ -28,6 +32,8 @@ updates:
       day: monday
       time: '09:00'
       timezone: Asia/Manila
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     labels: [dependencies, ci]
     groups:
