@@ -182,8 +182,7 @@ Light elevation overrides (§6 tokens):
 ### 3.3 Rules
 
 - Source: approved prototypes; editor default also required by `REQ-021`.
-- Prose maximum `65ch`; preview medium width defaults to `76ch` outer cap.
-- Editor width user setting (`REQ-021`): `narrow` = `65ch`, `medium` = `76ch` (default), `wide` = `90ch`, `full` = uncapped - editor and preview fill the pane (v1.6, user feedback round 2). Prose guidance stays `65ch`. Source: user-approved 2026-07-04 / 2026-07-05.
+- Editor width (`REQ-021`, v1.6 user feedback round 2b): NO line-length cap and no width setting - editor and preview always fill their pane. The capped column (65-90ch tiers, earlier revisions) left unusable blank space on widescreen displays. Source: user-approved 2026-07-05.
 - Dense desktop deviation: `10px`-`12px` permitted only for redundant metadata/shortcuts; critical labels use `13px` or larger.
 - Editor size user setting: integer `12px`-`24px`; default `14px`.
 - Editor line height user setting: `1.2`-`2.0`; default `1.6`.
@@ -206,7 +205,7 @@ Light elevation overrides (§6 tokens):
 | `layout-rail-collapsed` | `28px` | Collapsed folder/notes pane rail (`REQ-034`); holds expand affordance + pane icon; focusable; `aria-expanded=false` |
 | `layout-editor` | `minmax(0,1fr)` | Note workspace |
 | `layout-split` | `minmax(320px,1fr)` x 2 | Source + preview at >=1200px |
-| `layout-preview` | `max-width:76ch` | Rendered prose |
+| `layout-preview` | fills pane, no max-width (round 2b) | Rendered prose |
 | `layout-dialog` | `min(520px,100vw-48px)` | Standard dialog |
 | `layout-command` | `min(620px,100vw-48px)` | Command palette |
 | `layout-focus` | Editor + status only | Hide titlebar/folder/note panes; preserve note tools |
@@ -507,4 +506,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] PRD/MasterPrompt aligned with Focus Mode before lock.
 - [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
 - [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
-- [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width `full` (§3.3); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.
+- [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width setting and line-length cap removed entirely - content fills the pane (§3.3, round 2b); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.

@@ -11,13 +11,6 @@ export const THEMES: { value: ConfigV1["theme"]; label: string }[] = [
   { value: "light", label: "Light" },
 ];
 
-export const WIDTHS: { value: ConfigV1["editorWidth"]; label: string }[] = [
-  { value: "narrow", label: "Narrow" },
-  { value: "medium", label: "Medium" },
-  { value: "wide", label: "Wide" },
-  { value: "full", label: "Full" },
-];
-
 // REQ-021 exact ranges: font 12..24 px integer, line height 1.2..2.0.
 export const FONT_SIZES = Array.from({ length: 13 }, (_, index) => 12 + index);
 export const LINE_HEIGHTS = Array.from({ length: 9 }, (_, index) => (12 + index) / 10);
@@ -26,7 +19,6 @@ export interface AppearanceDraft {
   theme: ConfigV1["theme"];
   editorFontSize: number;
   lineHeight: number;
-  editorWidth: ConfigV1["editorWidth"];
 }
 
 export function draftFrom(config: ConfigV1): AppearanceDraft {
@@ -34,7 +26,6 @@ export function draftFrom(config: ConfigV1): AppearanceDraft {
     theme: config.theme,
     editorFontSize: config.editorFontSize,
     lineHeight: config.lineHeight,
-    editorWidth: config.editorWidth,
   };
 }
 
@@ -43,14 +34,9 @@ export function changedFields(config: ConfigV1, draft: AppearanceDraft): ConfigU
   if (draft.theme !== config.theme) partial.theme = draft.theme;
   if (draft.editorFontSize !== config.editorFontSize) partial.editorFontSize = draft.editorFontSize;
   if (draft.lineHeight !== config.lineHeight) partial.lineHeight = draft.lineHeight;
-  if (draft.editorWidth !== config.editorWidth) partial.editorWidth = draft.editorWidth;
   return partial;
 }
 
 export function themeByLabel(label: string): ConfigV1["theme"] {
   return THEMES.find((theme) => theme.label === label)?.value ?? "system";
-}
-
-export function widthByLabel(label: string): ConfigV1["editorWidth"] {
-  return WIDTHS.find((width) => width.label === label)?.value ?? "medium";
 }

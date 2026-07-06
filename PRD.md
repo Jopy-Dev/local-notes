@@ -369,8 +369,7 @@ Acceptance:
 - Default editor font size is 14 px.
 - User may set line height from 1.2 through 2.0.
 - Default line height is 1.6.
-- User may set editor width to narrow, medium, wide, or full; full removes the width cap so editor and preview fill the pane (feedback round 2).
-- Default editor width is medium.
+- Editor and preview always fill their pane; there is no editor width setting or line-length cap (feedback round 2b - the capped column left unusable blank space on widescreen displays).
 - Settings validate before persistence and apply without restart.
 
 Acceptance:

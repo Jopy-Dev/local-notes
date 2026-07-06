@@ -10,11 +10,9 @@ import {
   FONT_SIZES,
   LINE_HEIGHTS,
   THEMES,
-  WIDTHS,
   changedFields,
   draftFrom,
   themeByLabel,
-  widthByLabel,
 } from "./settings-form-model";
 import type { AppearanceDraft } from "./settings-form-model";
 
@@ -109,13 +107,6 @@ export function SettingsDialog({ open, onClose, onApplied }: SettingsDialogProps
                   // Optimistic preview (WF-010); Apply persists, close reverts.
                   setPreviewTheme(next);
                 }}
-              />
-            </FormField>
-            <FormField label="Editor width" {...errorProps("editorWidth")}>
-              <Select
-                options={WIDTHS.map((width) => width.label)}
-                value={WIDTHS.find((width) => width.value === draft.editorWidth)?.label ?? "Medium"}
-                onChange={(event) => setDraft({ ...draft, editorWidth: widthByLabel(event.target.value) })}
               />
             </FormField>
             <FormField label="Editor font size" {...errorProps("editorFontSize")}>

@@ -260,7 +260,6 @@ interface ConfigV1 {
   workspace: string;
   editorFontSize: number;
   lineHeight: number;
-  editorWidth: "narrow" | "medium" | "wide" | "full";
   sortBy: "name" | "created" | "modified" | "size";
   sortDirection: "asc" | "desc";
   folderPaneWidth: number;
@@ -276,7 +275,7 @@ interface ConfigV1 {
   - theme enum, default `system`;
   - editor font integer `12..24`, default `14`;
   - line height numeric `1.2..2.0`, default `1.6`;
-  - editor width enum (`narrow`/`medium`/`wide`/`full`; `full` = uncapped, round 2), default `medium`.
+  - no editor width field (round 2b): editor and preview always fill their pane; unknown keys in older config files strip on parse.
 - Workspace layout schema (`REQ-034`): folderPaneWidth integer `190..280` default `220`; notesPaneWidth integer `280..420` default `320`; folderPaneCollapsed and notesPaneCollapsed booleans, default `false`. Fields apply across the supported viewport range (`>=1024px`, `Design_System.md` §4.3 v1.5).
 - `workspace` is canonical and read-only in MVP.
 - Unsupported version or invalid structural JSON blocks startup; invalid individual appearance fields use exact defaults and produce local warning.

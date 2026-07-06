@@ -182,8 +182,8 @@ html[data-theme="light"] {
    * HTML gets prose styling here because it carries no utility classes. */
   .markdown-preview {
     color: var(--color-text-secondary);
-    /* REQ-021 editor appearance settings apply without restart. */
-    max-width: var(--editor-max-width, 76ch);
+    /* REQ-021 editor appearance settings apply without restart. No width
+     * cap: content fills the pane (user feedback round 2b). */
     font-size: var(--editor-font-size, var(--text-body));
     line-height: var(--editor-line-height, 1.6);
   }

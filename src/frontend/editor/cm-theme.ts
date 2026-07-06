@@ -20,7 +20,7 @@ export const quietWorkbenchTheme = EditorView.theme(
       fontFamily: "var(--font-mono)",
       lineHeight: "var(--editor-line-height, 1.7)",
       caretColor: "var(--color-focus)",
-      maxWidth: "var(--editor-max-width, 76ch)",
+      // No width cap: lines wrap at the pane edge (user feedback round 2b).
       paddingBottom: "5rem",
     },
     ".cm-gutters": {

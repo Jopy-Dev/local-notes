@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. Format foll
 - Archive browser: the Archive sidebar row lists archived notes; open one to read it, move it back into any folder, copy its content or local path, or delete it - Delete moves the file to the system Recycle Bin after an explicit confirmation, and the app itself never permanently erases a note
 - Multi-line copyable regions: put `<copy>` on its own line, any Markdown below it (blank lines, lists, tables, code), then `</copy>` - the region renders normally with one copy control and copies with its line structure intact
 - Click-to-copy: in Read and Split preview, clicking anywhere on copy-marked text copies it - the copy button stays for discoverability and keyboard use
-- Full editor width option: a fourth width setting removes the line-length cap so editor and preview stretch across widescreen windows
+- Widescreen editing everywhere: the line-length cap and the editor width setting are gone - Read, Source, and Split always fill the pane, no blank column on wide displays
 - Resizable split view: drag the new divider between editor and preview (or focus it and use arrow keys; double-click resets to half) in side-by-side and stacked layouts - no more fixed 50/50 squeeze
 
 - Installable package: the app now builds into a single tarball that serves the full interface from the local server - download a release, `npm install -g` it once, and `npx local-notes` opens the complete app with no dev tooling; an automated acceptance test installs the package into a clean location and verifies launch, and tagged releases attach the tarball to a GitHub Release automatically
@@ -40,7 +40,7 @@ All notable changes to this project will be documented in this file. Format foll
 - Find in note: Ctrl+F opens an in-note find bar in every mode (read, source, split) with live match highlighting, current position and total count, next/previous stepping, an optional match-case toggle, and Escape to close - all without touching the file or the dashboard search
 - Rename tracking: a note renamed or moved outside the app while open with no unsaved changes now follows the new name automatically - the editor and address bar update silently and no content is lost; with unsaved changes the existing conflict panel preserves the draft
 - Deleted-file notice: a note deleted outside the app while open now shows the conflict panel immediately (with "Save as new note" recovery) instead of silently keeping stale content until the next save
-- Settings: theme (system/light/dark), editor font size, line height, and editor width apply instantly and persist across restarts; the settings dialog opens at /settings from the gear button, Ctrl+, or the command palette, shows the active workspace path, and identifies any invalid value without losing your other changes
+- Settings: theme (system/light/dark), editor font size, and line height apply instantly and persist across restarts; the settings dialog opens at /settings from the gear button, Ctrl+, or the command palette, shows the active workspace path, and identifies any invalid value without losing your other changes
 - Dashboard sort preferences persist across restarts
 - Resizable panes: drag the dividers to resize the folder and note-list panes (or focus a divider and use arrow keys; Home/End snap to the limits), collapse either pane to a slim rail and restore it at its prior width - all remembered across restarts
 - Safer archiving: archiving a note you are editing now saves the pending draft first; if the draft cannot be saved, the archive stops with a clear error instead of losing the last edits
@@ -60,4 +60,4 @@ All notable changes to this project will be documented in this file. Format foll
 - Editor modes simplified to Read, Source, and Split: the separate rich-text Edit mode and its compatibility checks are gone - every note edits as plain Markdown with the new formatting toolbar, so no note can ever be refused for editing again
 - Dashboard is list-only: the card view and its toggle were removed
 - Search is much faster in large workspaces: typo-tolerant matching now runs as a rescue pass only when a query has no exact hits, cutting worst-case search time from ~280ms to under 60ms across 10,000 notes - misspelled searches still find their notes
-- Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability; Wide editor width now gives the editor and preview more room instead of matching Medium
+- Light theme ships: choosing Light (or System on a light-mode OS) now applies the warm-paper palette instantly - every color pair contrast-verified for readability
