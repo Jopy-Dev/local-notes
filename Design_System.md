@@ -1,7 +1,7 @@
 # Design System: Local-Notes
 
-**Version:** v1.3 - LOCKED  
-**Last updated:** 2026-07-03
+**Version:** v1.8 - LOCKED  
+**Last updated:** 2026-07-06
 
 ## 1. Brand Identity
 
@@ -73,6 +73,8 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | Text disabled | `#858276` | Disabled labels | `text-disabled` | 4.66:1 on root | Active controls |
 | Text source | `#d8d4c7` | Source editor body | `text-source` | 12.45:1 on code | General chrome |
 | Text code | `#d6b77d` | Code/syntax emphasis | `text-code` | 9.60:1 on code | General body text |
+| Syntax accent | `#c49a59` (dark) / `#77571a` (light) | Source-editor heading/link syntax color | `syntax-accent` | 7.3:1 on code dark; 5.5:1 on code light (brand accent misses AA on light code surface - v1.6, REQ-030) | Chrome accents (use `accent`) |
+| Copy-tag marker | `#695940` (both themes) | Literal `<copy>`/`</copy>` tags in source editor | `copy-tag` | Decorative locator only - tag text remains readable via surrounding source color; user-picked v1.8, 2026-07-06 | Body text, critical labels |
 
 ### 2.3 Semantic
 
@@ -108,6 +110,53 @@ All values originate in approved prototypes. Raw color literals are allowed only
 - Border/color as sole state communication. Source: `REQ-030`.
 - Remote color/theme assets. Source: `REQ-026`.
 
+### 2.6 Light Theme (`data-theme="light"`)
+
+Warm-paper light palette; same single amber hue family. Activation: `services/theme.ts` sets `<html data-theme>`; tokens override in `src/frontend/styles/app.css` `[data-theme="light"]` block. Dark tables §2.1-2.3 stay authoritative for default theme. Every ratio machine-verified (WCAG relative luminance). Source: user-approved light token table 2026-07-04.
+
+| Token | Light value | Verified contrast | Notes |
+|---|---|---|---|
+| `accent` | `#8a6222` | 4.83:1 on root; 4.96:1 on editor | Darkened amber; link text passes normal-text 4.5:1 |
+| `accent-hover` | `#7a5519` | accent ink 6.36:1 | Hover darkens (light convention) |
+| `accent-muted` | `#dcc79b` | text primary on it 9.41:1 | Wash bg (find-match); never text |
+| `accent-ink` | `#fdf9ef` | 5.19:1 on accent | Text/icon on accent |
+| `focus` | `#6b4c14` | 6.97:1 on root; 7.47:1 on input | Min 3:1 non-text |
+| `surface-root` | `#f4f1e8` | Primary text 13.79:1 | Warm paper canvas |
+| `surface-titlebar` | `#ece8da` | Pair with primary/secondary text | |
+| `surface-sidebar` | `#efebdf` | Pair with primary/secondary text | |
+| `surface-panel` | `#f1ede2` | Primary 13.31:1; secondary 7.74:1 | |
+| `surface-editor` | `#f7f4ec` | Secondary 8.24:1 | Lighter = writing focus |
+| `surface-code` | `#ece7d6` | Source text 10.66:1 | Mono wells darker |
+| `surface-input` | `#fbf9f2` | Pair with primary/secondary text | Inputs lightest |
+| `surface-raised` | `#fdfbf5` | Muted text 6.38:1 | Popover/modal |
+| `surface-hover` | `#e6e1d0` | Primary 11.90:1 | Transient only |
+| `surface-selected` | `#e3dcc5` | Primary 11.35:1; secondary 6.60:1 | Amber-warmed |
+| `border-subtle` | `#d8d2bf` | 1.34:1 on root (dark parity 1.42) | Never sole state indicator (§11) |
+| `border-strong` | `#b3ab93` | 2.03:1 on root (dark parity 1.95) | Never sole state indicator (§11) |
+| `border-active` | `#a08850` | 3.03:1 on root (beats dark 2.73) | Pair with icon/text |
+| `text-primary` | `#262419` | 13.79:1 on root; 11.35:1 on selected | |
+| `text-secondary` | `#4c4939` | 8.02:1 on root; 6.60:1 on selected | |
+| `text-muted` | `#615d4c` | 5.85:1 on root; 5.65:1 on panel | |
+| `text-disabled` | `#6b6758` | 5.02:1 on root | |
+| `text-source` | `#32302a` | 10.66:1 on code | |
+| `text-code` | `#77571a` | 5.37:1 on code | |
+| `success` / `success-bg` | `#3f6b35` / `#e0e9d6` | 5.52:1 on root; 4.99:1 on bg | |
+| `warning` / `warning-bg` | `#7d5a17` / `#f0e5c6` | 5.56:1 on root; 5.00:1 on bg | |
+| `danger` / `danger-bg` | `#a03a2e` / `#f4ddd6` | 5.92:1 on root; 5.15:1 on bg | |
+| `info` | `#48626f` | 5.72:1 on root | |
+
+Light elevation overrides (§6 tokens):
+
+| Token | Light value |
+|---|---|
+| `shadow-selected` | `inset 2px 0 0 #8a6222` |
+| `shadow-control-active` | `0 0 0 1px #b3ab93` |
+| `shadow-status` | `0 0 0 2px rgb(63 107 53 / 18%)` |
+| `shadow-popover` | `0 18px 50px rgb(76 73 57 / 25%)` |
+
+- `html[data-theme="light"]` sets `color-scheme: light` for native controls/scrollbars.
+- System theme resolves via `matchMedia("(prefers-color-scheme")` in `services/theme.ts`; no FOUC requirement beyond default-dark first paint.
+
 ## 3. Typography
 
 ### 3.1 Families
@@ -134,7 +183,7 @@ All values originate in approved prototypes. Raw color literals are allowed only
 ### 3.3 Rules
 
 - Source: approved prototypes; editor default also required by `REQ-021`.
-- Prose maximum `65ch`; preview medium width defaults to `76ch` outer cap.
+- Editor width (`REQ-021`, v1.6 user feedback round 2b): NO line-length cap and no width setting - editor and preview always fill their pane. The capped column (65-90ch tiers, earlier revisions) left unusable blank space on widescreen displays. Source: user-approved 2026-07-05.
 - Dense desktop deviation: `10px`-`12px` permitted only for redundant metadata/shortcuts; critical labels use `13px` or larger.
 - Editor size user setting: integer `12px`-`24px`; default `14px`.
 - Editor line height user setting: `1.2`-`2.0`; default `1.6`.
@@ -154,9 +203,10 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | `layout-statusbar` | `24px` | Persistent local/file status |
 | `layout-folders` | `220px`; compact `190px` | Folder navigation |
 | `layout-notes` | `320px`; compact `280px` | Virtual note list |
+| `layout-rail-collapsed` | `28px` | Collapsed folder/notes pane rail (`REQ-034`); holds expand affordance + pane icon; focusable; `aria-expanded=false` |
 | `layout-editor` | `minmax(0,1fr)` | Note workspace |
 | `layout-split` | `minmax(320px,1fr)` x 2 | Source + preview at >=1200px |
-| `layout-preview` | `max-width:76ch` | Rendered prose |
+| `layout-preview` | fills pane, no max-width (round 2b) | Rendered prose |
 | `layout-dialog` | `min(520px,100vw-48px)` | Standard dialog |
 | `layout-command` | `min(620px,100vw-48px)` | Command palette |
 | `layout-focus` | Editor + status only | Hide titlebar/folder/note panes; preserve note tools |
@@ -185,12 +235,13 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | `unsupported-sm` | `360px` | Resize guidance; zero overflow |
 | `unsupported-md` | `390px` | Resize guidance; zero overflow |
 | `unsupported-tablet` | `768px` | Resize guidance; zero overflow |
-| `desktop-min` | `1024px` and height `640px` | Full app; compact `190/280/editor` columns |
+| `desktop-min` | `1024px` and height `640px` | Full app; compact `190/280/editor` defaults |
 | `desktop` | `1280px` | Primary optimized target |
 | `desktop-wide` | `1440px` | Product acceptance target |
 | `desktop-2xl` | `1536px` | Wide-layout balance |
 
 - Below `1024px` width or `640px` height: render `<UnsupportedViewport>`, not collapsed mobile navigation.
+- v1.5: pane resize/collapse (`REQ-034`) active at every supported width (`>=1024px`), not `desktop`-gated - display scaling puts real windows under `1280` CSS px (user feedback round 1). Compact column values remain the defaults at `desktop-min`.
 - Mobile/tablet workflow support is outside MVP by user-approved deviation. No hidden mobile menu substitutes for unsupported guidance.
 - No page-level horizontal scrolling at any verification width.
 - Focus Mode uses full editor width at every supported desktop viewport.
@@ -308,17 +359,17 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `<WorkspaceLaunchPanel>` | `workspaceState`, `onChoose`, `onDefault` | empty, selecting, error, ready | Primary action first; dialog focus return | Launch prototype adaptation |
 | `<StatusBar>` | `saveState`, `path`, `encoding`, `lineEnding`, `localOnly` | saved, saving, conflict, error, degraded | `contentinfo`; live save text elsewhere prevents noise | Always visible in focus layout |
 | `<FolderTree>` | `nodes`, `activeKey`, `counts` | loading, empty, ready, partial error | Tree/nav keyboard behavior; current item explicit | Existing folders only |
-| `<DashboardToolbar>` | `query`, `sort`, `direction`, `view` | idle, searching, degraded, error | Search label; sort direction pressed state | `WF-002/004` |
+| `<DashboardToolbar>` | `query`, `sort`, `direction` | idle, searching, degraded, error | Search label; sort direction pressed state | `WF-002/004`; view toggle removed v1.6 |
 | `<NotesVirtualList>` | `items`, `selectedKey`, `hasMore` | loading, empty, partial error, ready, loading-more | List/listbox semantics chosen consistently; virtual focus retention | 10,000-note support |
 | `<NoteListItem>` | `metadata`, `selected`, `indexStatus` | default, hover, focus, selected, metadata-only, truncated | One accessible name; warning copy explicit | List variant |
-| `<NoteCard>` | `metadata`, `selected` | same as list item | Heading + metadata; card action is one focus target | Card variant; preview max 240 chars |
 | `<SearchResult>` | `title`, `snippet`, `ranges`, `indexStatus` | normal, metadata-only, truncated | `<mark>` for match; warning text | Snippet max 180 chars |
 | `<CommandPalette>` | `commands`, `query` | open, filtered, no-result | Modal combobox/listbox; Escape closes; focus returns | `Ctrl+K` |
 | `<EditorHeader>` | `path`, `title`, `saveState`, `mode`, `layout` | editable, read-only, conflict, error | Title label; live save state; actions named | Preserved in Focus Mode |
-| `<EditorModeTabs>` | `mode: read|edit|source|split` | selected, unavailable, source-only | Tab/pressed semantics; shortcut documented | `.txt` hides Markdown-only modes |
+| `<EditorModeTabs>` | `mode: read|source|split` | selected, unavailable | Tab/pressed semantics; shortcut documented | v1.6: Edit tab removed; `.txt` hides Markdown-only modes |
 | `<FocusModeToggle>` | `layout`, `onToggle` | standard, focus, disabled | `aria-pressed`; label changes enter/exit | `Ctrl+Shift+F`; Escape restores |
-| `<SourceEditor>` | `content`, `language`, `readOnly` | loading, editable, source-only, read-only, error | CodeMirror keyboard/a11y contract; visible focus | Mono; default 14px user-controlled |
-| `<VisualMarkdownEditor>` | `document`, `compatible` | loading, editable, validation-failed, source-only | Toolbar labels/shortcuts; content semantics | Enter only after lossless validation |
+| `<SourceEditor>` | `content`, `language`, `readOnly`, `toolbar` | loading, editable, read-only, error | CodeMirror keyboard/a11y contract; textbox carries accessible name; visible focus | Mono; default 14px user-controlled; single editing surface v1.6 |
+| `<MarkdownToolbar>` | `getView`, `readOnly` | ready, disabled | `role=toolbar`; every control labelled; buttons never steal editor selection | v1.6: rewrites Markdown syntax at selection; undo/redo included. v1.7: `Line wrap` view toggle (`aria-pressed`, session-only, active while read-only) |
+| `<ArchiveNoteView>` | `noteKey`, `folders` | loading, read-only, missing, restore dialog, delete confirm | Read-only banner `role=status`; delete behind named confirmation | `SCREEN-008` v1.6; actions: restore/copies/delete |
 | `<MarkdownPreview>` | `html`, `loading` | loading, ready, blocked-image, render-error | Semantic rendered headings/lists; safe link labels | Server-sanitized HTML only |
 | `<PlainTextViewer>` | `content`, `readOnly` | loading, ready, unsupported-encoding, oversized | Literal text; read-only reason announced | No Markdown controls |
 | `<SaveState>` | `saved|unsaved|saving|conflict|error` | all named states | `role=status`; icon + text; no color-only state | `WF-006` |
@@ -328,7 +379,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `<SettingsForm>` | `config`, `errors`, `saving` | loading, ready, invalid, saving, error, success | Grouped fields; first invalid focus; status message | `SCREEN-003`, `WF-010` |
 | `<ReadOnlyBanner>` | `reason: oversized|encoding|permission` | visible, retryable error | `role=status` or alert by severity; reason text | Mutation controls disabled |
 | `<SearchRecoveryPanel>` | `status`, `onRebuild` | degraded, rebuilding, ready, failed | Progress/status announcement; editing-available copy | `SCREEN-007`, `WF-011` |
-| `<PaneDivider>` | `orientation: vertical`; `pane: folder|notes`; `width`, `min`, `max`, `collapsed` | default, hover, dragging, focus, disabled | `role=separator`; `aria-orientation="vertical"`; `aria-valuenow`/`min`/`max`; arrow-key resize, `Home`/`End` snap | `REQ-034`, `WF-012`; disabled below `desktop` breakpoint; reuses `border-subtle`/`border-strong`/`focus` tokens, no new color |
+| `<PaneDivider>` | `orientation: vertical`; `pane: folder|notes`; `width`, `min`, `max`, `collapsed` | default, hover, dragging, focus, disabled, collapsed | `role=separator`; `aria-orientation="vertical"`; `aria-valuenow`/`min`/`max`; arrow-key resize, `Home`/`End` snap; `Enter`/double-click toggles collapse (prior width restored, session-only); collapsed pane renders `layout-rail-collapsed` `28px` rail with focusable expand affordance (`aria-expanded=false`) | `REQ-034`, `WF-012`; disabled below `desktop` breakpoint; reuses `border-subtle`/`border-strong`/`focus` tokens, no new color. Collapse extension: user-approved 2026-07-04 |
 | `<FindInNoteBar>` | `query`, `matchIndex`, `matchCount`, `caseSensitive` | idle, searching, match, no-match, closed | `role="search"` landmark; `role="status"` live region for match count; `Escape` closes and returns focus | `REQ-035`, `WF-013`; shared shell over CodeMirror search (source mode) / ProseMirror decoration (visual mode) |
 | `<ErrorState>` | `title`, `message`, `requestId?`, `actions` | recoverable, blocking | Heading, alert semantics, retry/back | Missing note/API/config errors |
 | `<ConfirmationDialog>` | `tone`, `confirmLabel`, `details` | open, submitting, error | Initial focus on safe action; explicit consequence | External URL, reload, archive |
@@ -338,7 +389,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 
 | Source ID | Surface/workflow | Required primitive | Covered by | Status |
 |---|---|---|---|---|
-| `SCREEN-001` | Dashboard | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, `<NoteCard>`, `<EmptyState>` | App shell + §9 | Covered |
+| `SCREEN-001` | Dashboard | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, `<EmptyState>` | App shell + §9 | Covered |
 | `SCREEN-002` | Note Workspace | `<EditorHeader>`, editors, preview, save state, Focus Mode, status | App shell + §9 | Covered |
 | `SCREEN-003` | Settings | `<SettingsForm>`, `<FormField>`, `<Select>`, `<Switch>`, `<Modal>` | App shell + §9 | Covered |
 | `SCREEN-004` | Workspace Lock Error | `<CliErrorPresenter>` | §9 contract | Covered |
@@ -348,7 +399,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | `WF-001` | Discover notes | `<Skeleton>`, `<NotesVirtualList>`, `<EmptyState>`, `<ErrorState>` | §9 | Covered |
 | `WF-002` | Search notes | `<DashboardToolbar>`, `<SearchResult>`, `<Pagination>`, `<EmptyState>` | App shell + §9 | Covered |
 | `WF-003` | Create note | `<Modal>`, `<FormField>`, `<Input>`, `<Select>` | App shell | Covered |
-| `WF-004` | Sort/change view | `<DashboardToolbar>`, `<Select>`, `<IconButton>`, `<Tabs>` | App shell + §9 | Covered |
+| `WF-004` | Sort notes | `<DashboardToolbar>`, `<Select>`, `<IconButton>` | App shell + §9 | Covered |
 | `WF-005` | Open note | `<Skeleton>`, `<NoteWorkspace>`, `<ReadOnlyBanner>`, `<ErrorState>` | App shell + §9 | Covered |
 | `WF-006` | Edit/autosave | Editors, `<SaveState>`, `<Toast>`, `<ErrorState>` | App shell + §9 | Covered |
 | `WF-007` | Resolve conflict | `<ConflictPanel>`, `<ConfirmationDialog>` | App shell | Covered |
@@ -365,7 +416,7 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 | Route/screen | Primitives | Primary user | Responsive notes |
 |---|---|---|---|
 | Launch/empty workspace (`REQ-001/002`) | `<NavBar>`, `<WorkspaceLaunchPanel>`, `<Button>`, `<Modal>`, `<StatusBar>`, `<UnsupportedViewport>` | Local Operator | Full at >=`1024x640`; resize guidance below |
-| `/` / `SCREEN-001` | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, list/card items, states | Local Operator | `220/320/editor`; `190/280/editor` at 1024-1199 |
+| `/` / `SCREEN-001` | `<AppShell>`, `<FolderTree>`, `<DashboardToolbar>`, `<NotesVirtualList>`, list items, states | Local Operator | `220/320/editor`; `190/280/editor` at 1024-1199 |
 | `/notes/:noteKey` / `SCREEN-002` | Editor header/modes, editors, preview, save/conflict/read-only/focus primitives | Local Operator | Split collapses to equal minmax columns at compact desktop; Focus Mode full width |
 | `/settings` / `SCREEN-003` | `<SettingsForm>`, form primitives, `<Modal>`/page section | Local Operator | Dialog width capped to viewport; desktop full workflow only |
 | CLI / `SCREEN-004` | `<CliErrorPresenter>` | Local Operator | Terminal output; no browser layout |
@@ -454,3 +505,8 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] Asset performance/offline policy documented.
 - [x] Step 11 implementation paths and anti-drift rules documented.
 - [x] PRD/MasterPrompt aligned with Focus Mode before lock.
+- [x] v1.4: light palette (`data-theme="light"`) contrast-verified (§2.6); `wide` editor width `90ch` (§3.3); `layout-rail-collapsed` `28px` (§4.1); `<PaneDivider>` collapse contract (§9.2).
+- [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
+- [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width setting and line-length cap removed entirely - content fills the pane (§3.3, round 2b); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.
+- [x] v1.7 (user feedback round 3): `<MarkdownToolbar>` gains the `Line wrap` view toggle - `WrapTextIcon`, `aria-pressed`, session-only, never edits the document (§9.2); copy block regions generalized - any line-starting `<copy>` region renders inner Markdown normally inside the standard copy highlight (`copy[data-block]` visual unchanged). Source: user-approved 2026-07-06.
+- [x] v1.8 (user feedback round 4): `copy-tag` marker token `#695940` (both themes, §2.2) colors literal `<copy>`/`</copy>` tags in Markdown source via CodeMirror decoration - locator aid, decoration only, `.txt` unstyled. Source: user-picked 2026-07-06.

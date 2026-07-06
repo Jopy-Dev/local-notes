@@ -46,9 +46,10 @@ local-notes CLI
 |---|---|---|
 | React, TypeScript, Vite, Tailwind CSS, Zustand | Frontend | Project concept |
 | Fastify, Zod, Pino | Local server | Project concept |
-| TipTap + Markdown/table/task-list extensions | Compatible Markdown visual editor | Project concept; beta guarded by compatibility service |
-| CodeMirror 6 + Markdown language support | Plain text and Markdown source editor | User approved; required lossless fallback |
+| CodeMirror 6 + Markdown language support | Single editing surface: plain text and Markdown source with formatting toolbar (`REQ-015`, ADR-008; TipTap removed in feedback round 2) | User approved |
 | `@codemirror/search` | Find-in-note match highlight/navigation, source/plain-text mode (`REQ-035`) | Official first-party CodeMirror package; companion to already-approved CodeMirror 6 |
+| `@codemirror/commands` | Toolbar undo/redo dispatch (`REQ-015`) | Official first-party CodeMirror package |
+| `trash` | Delete archived note to OS recycle bin (`REQ-040`, ADR-009) | User approved; MIT; bundles per-OS helper binaries, no network |
 | Orama | Full-text/fuzzy index | Project concept |
 | chokidar | Filesystem watcher | Project concept |
 | `@tanstack/react-virtual` | 10,000-note list virtualization | Project concept |
@@ -111,10 +112,8 @@ tests/
 - Frontend builds through Vite into `dist/client`.
 - CLI output preserves executable shebang.
 - `npm pack` acceptance test installs tarball into isolated temporary prefix and launches package with npm cache offline.
-- Recheck npm name availability immediately before first publish; name collision reopens launch-contract decision.
-- First publish uses npm trusted publishing through GitHub Actions OIDC with provenance; no long-lived npm token.
-- Publish workflow runs from protected release tag, verifies clean lockfile build, `npm pack --dry-run`, package contents allowlist, tests, audits, and scans before `npm publish`.
-- CI rejects lockfile dependencies with lifecycle install scripts unless exact package/version is reviewed and allowlisted.
+- Distribution (ADR-007, supersedes npm publish plan): no npm publish; repository stays private. Version-tag workflow runs verify gates, `npm pack`, and attaches the tarball to a GitHub Release. Install = `npm install -g ./local-notes-<version>.tgz` once (then `local-notes` / `npx local-notes`) or `npx ./local-notes-<version>.tgz`.
+- CI rejects lockfile dependencies with lifecycle install scripts unless exact package/version is reviewed and allowlisted (`scripts/lifecycle-allowlist.json`).
 - Graceful shutdown order: stop accepting requests -> close SSE clients -> close watcher -> flush search cache -> terminate worker -> release workspace lock -> close logs.
 
 ### 1.6 Frontend Navigation
@@ -189,8 +188,6 @@ interface NoteMetadata {
 
 interface NoteDocument extends NoteMetadata {
   content: string;
-  markdownCompatibility: "edit" | "source-only";
-  compatibilityReason: string | null;
   textEncoding: "utf8" | "utf8-bom" | "unsupported";
   lineEnding: "lf" | "crlf" | "none";
 }
@@ -263,8 +260,6 @@ interface ConfigV1 {
   workspace: string;
   editorFontSize: number;
   lineHeight: number;
-  editorWidth: "narrow" | "medium" | "wide";
-  dashboardView: "list" | "card";
   sortBy: "name" | "created" | "modified" | "size";
   sortDirection: "asc" | "desc";
   folderPaneWidth: number;
@@ -280,8 +275,8 @@ interface ConfigV1 {
   - theme enum, default `system`;
   - editor font integer `12..24`, default `14`;
   - line height numeric `1.2..2.0`, default `1.6`;
-  - editor width enum, default `medium`.
-- Workspace layout schema (`REQ-034`): folderPaneWidth integer `190..280` default `220`; notesPaneWidth integer `280..420` default `320`; folderPaneCollapsed and notesPaneCollapsed booleans, default `false`. Fields apply only at `desktop` breakpoint (`>=1280px`) and above; ignored in favor of fixed compact tokens (`Design_System.md` §4.3) at `desktop-min`.
+  - no editor width field (round 2b): editor and preview always fill their pane; unknown keys in older config files strip on parse.
+- Workspace layout schema (`REQ-034`): folderPaneWidth integer `190..280` default `220`; notesPaneWidth integer `280..420` default `320`; folderPaneCollapsed and notesPaneCollapsed booleans, default `false`. Fields apply across the supported viewport range (`>=1024px`, `Design_System.md` §4.3 v1.5).
 - `workspace` is canonical and read-only in MVP.
 - Unsupported version or invalid structural JSON blocks startup; invalid individual appearance fields use exact defaults and produce local warning.
 - Migration registry uses `fromVersion -> toVersion`; migration writes atomically and preserves original on failure.
@@ -338,7 +333,8 @@ interface ConfigV1 {
 - Include case-insensitive `.md` and `.txt`; normalize stored extension to actual lowercase comparison while preserving filename.
 - Skip symlinks/junctions, unsupported files, cache/temp artifacts, and unreadable paths.
 - Dashboard list endpoint returns metadata pages of `500`; frontend appends and virtualizes without user-facing pagination.
-- Metadata preview service caps card preview at 240 characters.
+- Metadata preview caps at 240 characters.
+- List query scopes (round 2): `folder` (comparison-only, WF-001), `recent=true` (modified within 7 days), `archived=true` (archive-tree repository); `/folders` returns direct counts plus workspace/recent/archived totals.
 - Chokidar watches active notes root:
   - `followSymlinks=false`;
   - coalesce path events for `100 ms`;
@@ -404,7 +400,7 @@ interface ConfigV1 {
 - Unsupported encoding returns metadata, empty editable content, `textEncoding="unsupported"`, and read-only reason.
 - Frontend editor store keeps `noteKey`, `loadedVersion`, `draft`, `saveState`, and latest disk metadata.
 - Frontend workspace UI state keeps non-persisted `layout: WorkspaceLayout`; route changes reset to `standard`.
-- Focus layout hides application titlebar, folder navigation, and note list; preserves editor header, title, mode controls, note actions, conflict panel, status bar, draft, selection, scroll, and save state.
+- Focus layout (`REQ-037`, all supported note types) hides application titlebar, folder navigation, and note list; preserves editor header, title, mode controls, note actions, conflict panel, status bar, draft, selection, scroll, and save state.
 - Focus layout toggles through editor toolbar and `Ctrl+Shift+F`; `Escape` restores standard layout when no modal is open.
 - Autosave scheduler waits `750 ms`; only one save request in flight.
 - Edit during save schedules next save after current response.
@@ -418,29 +414,12 @@ interface ConfigV1 {
   - self-originated events carry operation ID and do not create false conflict.
 - `Save as new note` calls create then content write; stale path is never recreated automatically.
 
-### 4.6 Markdown Compatibility and Preview
+### 4.6 Markdown Preview Pipeline
 
-- `MarkdownCompatibilityService` is conservative.
-- Source-only triggers:
-  - HTML comments;
-  - YAML/TOML frontmatter;
-  - footnotes;
-  - reference definitions;
-  - raw HTML other than `<u>` and `<copy>`;
-  - table cells with block or multiple child structures;
-  - parser/serializer exception;
-  - exact normalized source mismatch between original and TipTap round-trip.
-- Compatibility check:
-  1. normalize line endings in memory only;
-  2. scan unsupported constructs;
-  3. TipTap parse -> serialize;
-  4. normalize serialized line endings only;
-  5. require exact normalized source equality, including terminal newline;
-  6. mismatch -> source-only.
-- Never save compatibility probe output.
-- Cache compatibility outcome by `versionToken`; content change invalidates it.
-- TipTap uses Markdown input and `getMarkdown()` output only for compatible notes.
-- CodeMirror handles `.txt` and source-only `.md`.
+- Modes are Read / Source / Split (ADR-008, round 2): CodeMirror is the single editing surface for `.md` and `.txt`; no visual editor, no compatibility service. Every construct edits as source.
+- Source-mode toolbar (`REQ-015`): pure transforms in `src/frontend/editor/markdown-commands.ts` produce original-document change spans + post-edit selection; the toolbar dispatches them into CodeMirror as ordinary undoable edits. Wrap toggles (bold/italic/underline/strike/copy-mark), heading level toggles H1-H3, line-prefix list toggles, link/table/code-block inserts, undo/redo via `@codemirror/commands`.
+- Line-wrap view toggle (`REQ-015`, round 3): toolbar toggle flips `EditorView.lineWrapping` through a CodeMirror compartment; state = `workspaceUi.lineWrap`, session-only, default on, never persisted, no document change; applies to every source surface including read-only notes.
+- Copy block regions (`REQ-036`, rounds 2-3): pre-pass `src/backend/markdown/copy-blocks.ts` lifts every region whose `<copy>` starts a line (alone, with content on the open line, or closing on the same line) through the first `</copy>` ending a line, behind a random per-render placeholder (content cannot spoof it), renders inner Markdown through the full pipeline below, re-injects as `<copy data-block="">`. Round-3 rationale: raw line-starting tags left inner markdown literal and the sanitizer auto-close dropped everything after the first block from the copy element. Mid-line `<copy>` stays on marked's inline path; `data-block` is never accepted from note content; fenced `<copy>` lines stay literal.
 - `POST /api/v1/markdown/render`:
   - parses with GFM tables/task lists;
   - sanitizes server-side;
@@ -472,7 +451,7 @@ interface ConfigV1 {
 - Frontend applies system theme with `matchMedia("(prefers-color-scheme: dark)")`.
 - System preference listener updates without persistence mutation.
 - Dark-first tokens remain advisory until translated into `Design_System.md`.
-- View/sort preferences share config writer; updates serialize through one config mutex.
+- Sort preferences share config writer; updates serialize through one config mutex.
 - Viewport below `1024x640` renders resize guidance before main shell.
 
 ### 4.9 Local Diagnostics
@@ -487,7 +466,8 @@ interface ConfigV1 {
 
 - Divider between folder pane and note list, and between note list and editor, implemented as `<PaneDivider>` (`Design_System.md` §9) with ARIA `separator` role, `aria-orientation="vertical"`, `aria-valuenow`/`aria-valuemin`/`aria-valuemax` mirroring current/min/max width.
 - Drag updates width via pointer events; release commits value. Keyboard: divider focused, arrow keys resize in `8px` increments, `Home`/`End` snap to min/max.
-- Divider active only at `desktop` breakpoint (`>=1280px`) and above. At `desktop-min` (`1024-1279px`) divider renders `disabled` and panes use fixed compact tokens (`Design_System.md` §4.3); no resize request is possible below `desktop`.
+- Divider active across the whole supported viewport range (`>=1024px`, the `REQ-031` minimum). Display scaling routinely puts real windows under `1280` CSS px; the original `desktop`-only gate made resize/collapse unreachable there (user feedback round 1, `Design_System.md` §4.3 v1.5).
+- Split mode adds a third divider between editor and preview (`<SplitDivider>`): drag or arrow keys move the split fraction (`0.2..0.8`, 5% keyboard steps, Home/End snap, double-click resets to half); vertical bar for side-by-side, horizontal for stacked layouts. Fraction is session state - never persisted.
 - Width commits debounce `250ms` then `PUT /api/v1/settings` with only the changed field; collapse/expand commits immediately. `422`/network failure rolls the pane back to its last-persisted width or collapsed state — same optimistic-rollback rule as `WF-010` theme changes (§6.2).
 - Collapsed-pane prior width held in local Zustand session state (not persisted) so restore uses last known width without a settings round-trip; only the collapsed boolean persists in `ConfigV1`.
 - No new endpoint; reuses existing `/api/v1/settings` route and `ConfigV1` schema (§2.7).
@@ -495,8 +475,10 @@ interface ConfigV1 {
 ### 4.11 Find in Note (`REQ-035`)
 
 - Client-side only; operates on the already-loaded editor draft/content in memory. No new API route, no filesystem read, independent of dashboard search (`REQ-009`).
-- Source/plain-text mode (CodeMirror): `@codemirror/search` extension (§1.3) provides match highlight, next/prev navigation, and match count natively; `<FindInNoteBar>` (`Design_System.md` §9) is the UI shell wired to it.
-- Visual/WYSIWYG mode (TipTap): custom ProseMirror `Decoration.inline` plugin highlights matches against current document text. No third-party TipTap search extension added — evaluated candidates carry single-maintainer/low-adoption risk against `arch/core.md` §1.1 dependency admission bar; built in-house on TipTap's existing ProseMirror foundation instead.
+- One shared literal scan module feeds every surface so match counts agree across modes; query always literal, case-insensitive by default with explicit case toggle.
+- Source/plain-text mode (CodeMirror): decoration `StateField` over the shared scan; `basicSetup`'s native `@codemirror/search` panel keymap is shadowed with a highest-precedence `Mod-f` binding so `<FindInNoteBar>` (`Design_System.md` §9) is the only search UI.
+- Read/split preview: CSS Custom Highlight API ranges over the sanitized article's text nodes, segmented per block element — never mutates the sanitized subtree (§7.2). Browsers without the API keep accurate counts and navigation without painted highlights.
+- Split view: source pane owns navigation and count; preview highlights the same query without an active match (rendered text order differs from Markdown source order).
 - Shortcut `Ctrl+F` intercepted via `keydown` + `preventDefault` while a note is open and focus is inside the workspace. `Escape` closes find and returns focus to the point find was invoked from, per existing Escape-closes-transient-layer pattern (`Design_System.md` §11).
 - Match count and current position exposed via `role="status"` live region on the find bar; only the first jump-to-match scrolls the document automatically.
 - Debounce query input `150ms` before re-scanning; abort stale scan on rapid retyping.
@@ -504,11 +486,20 @@ interface ConfigV1 {
 
 ### 4.12 Copyable Text Mark (`REQ-036`)
 
-- TipTap custom inline `Mark` (not a `Node` — cannot span block boundaries), same extension class as the existing `<u>` underline mark; serializes to/from sanitized `<copy>` HTML through the same Markdown compatibility pipeline (§4.6).
-- Toolbar button toggles the mark on the current selection, same interaction pattern as the existing bold/italic/underline toggles (`REQ-015`).
-- Read/split preview: server-sanitized HTML passes `<copy>` through the allowlist (§4.6); the preview component wraps each rendered `<copy>` element with an inline `<IconButton>` (`Design_System.md` §9) client-side — the sanitized HTML itself carries no button markup, only the semantic wrapper.
-- Click handler reads the `<copy>` element's `textContent` (nested Markdown syntax already stripped by rendering) and writes it via the same clipboard mechanism as `Copy Text` (§4.7); failure maps to the existing nonpersistent toast (§4.7).
-- No new runtime dependency; built on the already-approved TipTap + sanitize-html stack.
+- Authored in source mode: toolbar wrap toggle or literal `<copy>...</copy>` (inline) / line-starting `<copy>` region (block form, §4.6, rounds 2-3).
+- Source mode colors the literal tags (round 4): `src/frontend/editor/cm-copy-tag.ts` MatchDecorator marks `<copy>`/`</copy>` with `--color-copy-tag` (`Design_System.md` §2.2); wired in the language compartment so `.txt` stays unstyled; decoration only, never an edit.
+- Read/split preview: server-sanitized HTML passes `<copy>` through the allowlist (§4.6); the preview component mounts an inline `<IconButton>` (`Design_System.md` §9) after each rendered `<copy>` element client-side — the sanitized HTML itself carries no button markup.
+- Click-to-copy (round 2): clicking anywhere in the rendered `<copy>` element copies it; anchors inside still follow link policy first.
+- Clipboard text is line-aware (`src/frontend/editor/copy-mounts.ts`): block children join with newlines, table cells with tabs, `<br>` breaks; nested Markdown is already stripped by rendering. Same clipboard mechanism + toast as `Copy Text` (§4.7).
+
+### 4.13 Archive Browser (`REQ-038`/`REQ-039`/`REQ-040`)
+
+- Sidebar library rows: `Recent` = `GET /notes?recent=true` (7-day modified window, `RECENT_WINDOW_DAYS`); `Archive` = `GET /notes?archived=true` over a second `NoteRepository` rooted at `save-data/archive`. Counts ride on `/folders`.
+- Archive keys are archive-root-relative; only `/archive/*` routes accept them. Active-note routes never resolve them.
+- Archived note opens read-only at `/archive/:noteKey` (`<ArchiveNoteView>`): `.md` renders through the preview pipeline, `.txt` uses the read-only plain editor; no editor state machine, no save pipeline.
+- Restore = `NoteMutationService.restore`: mirror of archive() (same path-lock map, case-fold collision, no overwrite) from archive root into an existing active folder; route registers the operation ID for the watcher add event and upserts the search index.
+- Delete = `NoteMutationService.deleteArchived`: resolves through the path guard, asserts the file, hands the absolute path to the injected trash function (`trash` dependency -> OS recycle bin, ADR-009). Archive tree is unwatched - frontend refreshes the scoped list explicitly after delete.
+- The application never unlinks note content itself; active notes have no delete path.
 
 ## 5. REST and Event Contracts
 
@@ -548,16 +539,19 @@ interface ApiError {
 |---|---|---|---|---|
 | GET | `/health` | none | process/workspace/index status | `503 NOT_READY` |
 | GET | `/bootstrap` | none | config, workspace display path, index status, capabilities | `500 BOOTSTRAP_READ_FAILED` |
-| GET | `/notes` | cursor, limit<=500, sort, direction | metadata page | `400 INVALID_QUERY` |
+| GET | `/notes` | cursor, limit<=500, sort, direction, folder, recent, archived | metadata page (active, recent-scoped, or archive tree) | `400 INVALID_QUERY` |
 | GET | `/notes/:noteKey` | key | `NoteDocument` | `404 NOTE_NOT_FOUND`, `403 PATH_OUTSIDE_WORKSPACE` |
 | POST | `/notes` | filename, extension, folderKey | metadata | `409 NOTE_EXISTS`, `422 INVALID_FILENAME` |
 | PUT | `/notes/:noteKey/content` | raw text body, `If-Match`, `X-Operation-ID` | metadata + new version | `409 NOTE_CONFLICT`, `413 BODY_TOO_LARGE` |
 | POST | `/notes/:noteKey/move` | destinationFolderKey, operationId | new metadata/key | `409 NOTE_EXISTS`, `404 FOLDER_NOT_FOUND` |
 | POST | `/notes/:noteKey/archive` | optional validated replacement filename, operationId | archived relative path | `409 ARCHIVE_COLLISION` |
-| GET | `/folders` | none | existing active folder tree | `500 FOLDER_SCAN_FAILED` |
+| GET | `/folders` | none | active folder tree + direct counts + workspace/recent/archived totals | `500 FOLDER_SCAN_FAILED` |
+| GET | `/archive/:noteKey` | archive-root key | read-only `NoteDocument` | `404 NOTE_NOT_FOUND`, `403 PATH_OUTSIDE_WORKSPACE` |
+| POST | `/archive/:noteKey/restore` | destinationFolderKey, operationId | restored metadata (active key) | `409 NOTE_EXISTS`, `404 FOLDER_NOT_FOUND` |
+| DELETE | `/archive/:noteKey` | archive-root key | deleted status | `404 NOTE_NOT_FOUND` |
 | GET | `/search` | q, offset multiple of 200, limit=200 | results + total + hasMore | `503 SEARCH_DEGRADED` |
 | POST | `/search/rebuild` | none | accepted status | `409 REBUILD_RUNNING` |
-| POST | `/markdown/render` | raw Markdown body, `X-Note-Key` | sanitized HTML + compatibility | `413 BODY_TOO_LARGE`, `422 INVALID_MARKDOWN` |
+| POST | `/markdown/render` | raw Markdown body, `X-Note-Key` | sanitized HTML | `413 BODY_TOO_LARGE`, `422 INVALID_MARKDOWN` |
 | GET | `/assets/:assetKey` | encoded workspace-relative asset path | image bytes | `404 ASSET_NOT_FOUND`, `403 ASSET_BLOCKED` |
 | GET | `/settings` | none | `ConfigV1` | `500 CONFIG_READ_FAILED` |
 | PUT | `/settings` | partial appearance/view/sort fields; workspace excluded | `ConfigV1` | `422 INVALID_SETTING` |
@@ -597,13 +591,14 @@ interface ApiError {
 
 | ID | Route/surface | Owner | Data source | Required states | Visual source |
 |---|---|---|---|---|---|
-| `SCREEN-001` | `/` | `DashboardPage` | notes/search/folders APIs + SSE | loading, empty, populated, partial error, search no-result | Future `Design_System.md`; `PRODUCT.md` advisory |
-| `SCREEN-002` | `/notes/:noteKey` | `NoteWorkspacePage` | note/render/assets APIs + SSE | loading, read, edit, source, split, focus, oversized, missing, error | Future `Design_System.md` |
-| `SCREEN-003` | `/settings` | `SettingsPage` | settings API | loading, ready, invalid field, persistence error | Future `Design_System.md` |
+| `SCREEN-001` | `/` | `DashboardPage` | notes/search/folders APIs + SSE | loading, empty, populated, partial error, search no-result | `Design_System.md` v1.3 LOCKED; `PRODUCT.md` advisory |
+| `SCREEN-002` | `/notes/:noteKey` | `NoteWorkspacePage` | note/render/assets APIs + SSE | loading, read, edit, source, split, focus, oversized, missing, error | `Design_System.md` v1.3 LOCKED |
+| `SCREEN-003` | `/settings` | `SettingsPage` | settings API | loading, ready, invalid field, persistence error | `Design_System.md` v1.3 LOCKED |
 | `SCREEN-004` | CLI terminal | `WorkspaceLockPresenter` | lock service | active owner, stale recovery failure | CLI copy standard |
 | `SCREEN-005` | CLI terminal | `StartupErrorPresenter` | bootstrap/server errors | config, workspace, port, unexpected | CLI copy standard |
-| `SCREEN-006` | Note workspace conflict panel | `ConflictPanel` | editor store + note API | changed, source missing, resolving, resolution error | Future conflict primitive |
-| `SCREEN-007` | `/recovery/search` | `SearchRecoveryPage` | search status/rebuild + SSE | degraded, rebuilding, ready, failed | Future recovery primitive |
+| `SCREEN-006` | Note workspace conflict panel | `ConflictPanel` | editor store + note API | changed, source missing, resolving, resolution error | `Design_System.md` §9 `<ConflictPanel>` + `<ConfirmationDialog>` |
+| `SCREEN-007` | `/recovery/search` | `SearchRecoveryPage` | search status/rebuild + SSE | degraded, rebuilding, ready, failed | `Design_System.md` §9 `<SearchRecoveryPanel>` |
+| `SCREEN-008` | `/archive/:noteKey` | `ArchiveNoteView` | archive content/restore/delete APIs | loading, read-only, missing, restore dialog, delete confirm | `Design_System.md` §9 composition (round 2) |
 
 ### 6.2 Workflow Map
 
@@ -620,6 +615,8 @@ interface ApiError {
 | `WF-009` | `ArchiveAction` | confirm -> archiving -> archived/collision/error | archive path guard | none | no optimistic removal; update after rename | `WF-009.archive.spec` |
 | `WF-010` | `SettingsForm` | current -> validating -> applied/error | config schema | none | optimistic theme only; persisted values rollback | `WF-010.settings.spec` |
 | `WF-011` | `SearchRecoveryPage` | degraded -> rebuilding -> ready/error | rebuild limiter + single-flight guard | none | one rebuild; editing unaffected | `WF-011.rebuild.spec` |
+| `WF-014` | `ArchiveNoteView` restore panel | choose folder -> validating -> restored/error | restore schema + path guard + collision | none | no optimistic move; navigate to restored key on success | `archive-routes.spec` |
+| `WF-015` | `ArchiveNoteView` delete confirm | confirm -> deleting -> deleted/error | explicit confirmation + path guard | none | no optimistic removal; explicit list refresh (archive unwatched) | `archive-routes.spec` + `archive-note-view.spec` |
 
 ## 7. Security and Error Handling
 
@@ -729,7 +726,7 @@ interface ApiError {
 | `REQ-004` | platform adapters + CI matrix | path/lock abstractions | platform acceptance | `REQ-004.platform.e2e` |
 | `REQ-005` | `NoteRepository.scan` + dashboard | `NoteMetadata` | extension/path guard | `REQ-005.discovery.integration` |
 | `REQ-006` | watcher pipeline + SSE | file event union | event schema | `REQ-006.watcher.integration` |
-| `REQ-007` | dashboard list/card + virtualizer | view preference | config schema | `REQ-007.views.component` |
+| `REQ-007` | dashboard list + virtualizer | `NoteMetadata` page | list query schema | `REQ-007.views.component` |
 | `REQ-008` | metadata sort service | sort preference | sort enum | `REQ-008.sort.unit` |
 | `REQ-009` | search worker + command UI | search result DTO | query schema | `REQ-009.search.performance` |
 | `REQ-010` | incremental index, 512 MiB budget ledger, recovery | index status/allocation | worker messages | `REQ-010.index.integration` |
@@ -737,7 +734,7 @@ interface ApiError {
 | `REQ-012` | move route/panel | note path | move schema | `REQ-012.move.api` |
 | `REQ-013` | archive route/action | archive file | archive schema | `REQ-013.archive.api` |
 | `REQ-014` | read route + `TextFileCodec` + preview/plain viewer | `NoteDocument` | note key/encoding/asset guard | `REQ-014.read.e2e` |
-| `REQ-015` | TipTap/source/split controllers | editor draft | compatibility service | `REQ-015.markdown.e2e` |
+| `REQ-015` | CodeMirror source editor + markdown-commands toolbar (§4.6) | editor draft | pure transform unit suite | `REQ-015.markdown.e2e` |
 | `REQ-016` | CodeMirror plain-text editor | editor draft | extension guard | `REQ-016.text.e2e` |
 | `REQ-017` | autosave scheduler + write route | save state/version | content schema | `REQ-017.autosave.e2e` |
 | `REQ-018` | SSE conflict detector + panel | conflict/source-missing state | expected version | `REQ-018.conflict.e2e` |
@@ -757,8 +754,12 @@ interface ApiError {
 | `REQ-032` | plain-file/atomic/config migration | note/config files | durability suite | `REQ-032.compatibility.integration` |
 | `REQ-033` | no-audit architecture + local ops logs | no behavioral store | repository scan | `REQ-033.auditability.test` |
 | `REQ-034` | `<PaneDivider>` + AppShell layout state (§4.10) | `ConfigV1` pane fields | settings schema (§2.7) | `REQ-034.panes.e2e` |
-| `REQ-035` | `<FindInNoteBar>` + CodeMirror search / TipTap decoration (§4.11) | editor draft (in-memory, no persisted model) | none (client-only) | `REQ-035.find.e2e` |
-| `REQ-036` | TipTap copyable-text `Mark` + `<IconButton>` affordance (§4.12) | serializes to sanitized `<copy>` HTML in note content | sanitizer allowlist (§4.6) | `REQ-036.copymark.e2e` |
+| `REQ-035` | `<FindInNoteBar>` + CodeMirror decorations / preview highlights (§4.11) | editor draft (in-memory, no persisted model) | none (client-only) | `REQ-035.find.e2e` |
+| `REQ-036` | copy-blocks pre-pass + copy-mounts affordance (§4.6, §4.12) | sanitized `<copy>` HTML in note content | sanitizer allowlist (§4.6) | `REQ-036.copymark.e2e` |
+| `REQ-037` | AppShell focus layout + workspace UI state (§4.5) | `layout: WorkspaceLayout` (UI state only, route reset) | layout state machine | `REQ-037.focus.e2e` |
+| `REQ-038` | recent scope on notes route + library row (§4.13) | `NoteMetadata` page | list query schema | `notes-routes.spec` recent cases |
+| `REQ-039` | archive repository + `<ArchiveNoteView>` + restore (§4.13) | archive-tree `NoteMetadata`/`NoteDocument` | restore schema + path guard | `archive-routes.spec` |
+| `REQ-040` | `NoteMutationService.deleteArchived` + trash (§4.13) | archived file -> OS recycle bin | confirmation + path guard | `archive-routes.spec` + `note-mutations.spec` |
 
 ### 9.2 Screens
 
@@ -771,6 +772,7 @@ interface ApiError {
 | `SCREEN-005` | CLI or startup error | `StartupErrorPresenter` | startup errors | `SCREEN-005.startup.e2e` |
 | `SCREEN-006` | conflict panel | `ConflictPanel` | editor store/note API | `SCREEN-006.conflict.e2e` |
 | `SCREEN-007` | `/recovery/search` | `SearchRecoveryPage` | search API/SSE | `SCREEN-007.recovery.e2e` |
+| `SCREEN-008` | `/archive/:noteKey` | `ArchiveNoteView` | archive APIs | `archive-note-view.spec` |
 
 ### 9.3 Workflows
 
@@ -779,7 +781,7 @@ interface ApiError {
 | `WF-001` | discovery + virtual list | Local Operator | none | reads | `WF-001.discovery.spec` |
 | `WF-002` | search command/results | Local Operator | none | search | `WF-002.search.spec` |
 | `WF-003` | create panel/API | Local Operator | none | mutations | `WF-003.create.spec` |
-| `WF-004` | view/sort toolbar | Local Operator | none | mutations | `WF-004.preferences.spec` |
+| `WF-004` | sort toolbar | Local Operator | none | mutations | `WF-004.preferences.spec` |
 | `WF-005` | open workspace | Local Operator | none | reads | `WF-005.open.spec` |
 | `WF-006` | editor autosave | Local Operator | none | mutations | `WF-006.autosave.spec` |
 | `WF-007` | conflict resolution | Local Operator | none | mutations | `WF-007.conflict.spec` |
@@ -789,6 +791,8 @@ interface ApiError {
 | `WF-011` | search rebuild | Local Operator | none | rebuild | `WF-011.rebuild.spec` |
 | `WF-012` | pane resize/collapse controller (§4.10) | Local Operator | none | mutations (settings `PUT`) | `WF-012.panes.spec` |
 | `WF-013` | find-in-note controller (§4.11) | Local Operator | none | none (client-only) | `WF-013.find.spec` |
+| `WF-014` | archive restore panel (§4.13) | Local Operator | none | mutations | `archive-routes.spec` |
+| `WF-015` | archive delete confirm (§4.13) | Local Operator | none | mutations | `archive-routes.spec` |
 
 ### 9.4 Metrics
 
@@ -805,7 +809,7 @@ interface ApiError {
 
 - Step 11: scaffold only after MasterPrompt approval and security/design gates.
 - Step 12: pin Node/dependency majors; create ADRs for stack, local security/rate limit, and desktop-only viewport deviations.
-- Step 14 before editor build: compile-check TipTap Markdown and Orama `save`/`load` APIs against pinned versions.
+- Step 14 before editor build: compile-check CodeMirror and Orama `save`/`load` APIs against pinned versions.
 - Step 14 before preview build: sanitizer corpus includes OWASP-style XSS, SVG-as-image, malicious links, and path escapes.
 - Step 15: package tarball test, three-OS matrix, network-disabled E2E, 10,000-note performance, atomic fault injection.
 
@@ -813,6 +817,6 @@ interface ApiError {
 
 - Fastify supports explicit `host: "127.0.0.1"` and route/global integer `bodyLimit`.
 - Vite supports traditional backend integration and production manifest/static output.
-- TipTap Markdown parses/serializes Markdown but is beta; documented limitations justify source fallback.
+- `trash` moves paths to the per-OS recycle bin (Windows/macOS/Linux) with bundled helper binaries; no network access.
 - Node worker threads are stable for CPU-intensive indexing.
 - Orama supports Node runtime, fuzzy/full-text search, mutation, and serializable index data.

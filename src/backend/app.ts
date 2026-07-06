@@ -1,0 +1,147 @@
+import { randomUUID } from "node:crypto";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import Fastify from "fastify";
+import type { FastifyInstance } from "fastify";
+import { BODY_LIMIT_BYTES } from "../shared/constants/server.js";
+import { AppError } from "../shared/errors/codes.js";
+import type { ConfigService } from "./config/config-service.js";
+import { registerErrorHandling } from "./error-handling.js";
+import { registerArchiveRoutes } from "./routes/archive.js";
+import { registerContentRoutes } from "./routes/content.js";
+import { registerMarkdownRoutes } from "./routes/markdown.js";
+import { registerEventsRoute } from "./routes/events.js";
+import { registerMutationRoutes } from "./routes/mutations.js";
+import { registerNotesRoutes } from "./routes/notes.js";
+import { registerSearchRoutes } from "./routes/search.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
+import { registerSystemRoutes } from "./routes/system.js";
+import type { EventBus } from "./events/event-bus.js";
+import type { OperationRegistry } from "./events/operation-registry.js";
+import { registerBoundary } from "./security/boundary.js";
+import { registerSpa } from "./spa.js";
+import type { NoteContentService } from "./filesystem/note-content.js";
+import type { MarkdownRenderService } from "./markdown/render-service.js";
+import type { NoteMutationService } from "./filesystem/note-mutations.js";
+import type { NoteRepository } from "./filesystem/note-repository.js";
+import type { SearchService } from "./search/search-service.js";
+
+/*
+ * App composer: boundary hook -> error handling -> route modules -> static
+ * SPA. Behavior contracts live in security/boundary.ts, error-handling.ts,
+ * and routes/* - this file only assembles them.
+ */
+export interface BuildAppOptions {
+  capability: string;
+  staticRoot?: string;
+  workspaceRoot?: string;
+  configService?: ConfigService;
+  noteRepository?: NoteRepository;
+  /* Archive tree repository + read-only content service (round 2). */
+  archiveRepository?: NoteRepository;
+  archiveContentService?: NoteContentService;
+  eventBus?: EventBus;
+  searchService?: SearchService;
+  mutationService?: NoteMutationService;
+  contentService?: NoteContentService;
+  markdownService?: MarkdownRenderService;
+  operationRegistry?: OperationRegistry;
+  logger?: boolean | object;
+}
+
+export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
+  const workspaceRoot = options.workspaceRoot ?? join(homedir(), ".local-notes");
+  const app = Fastify({
+    logger: options.logger ?? false,
+    bodyLimit: BODY_LIMIT_BYTES,
+    trustProxy: false,
+    genReqId: () => randomUUID(),
+    // MasterPrompt.md 7.1: static server never falls through to filesystem paths.
+    ignoreTrailingSlash: false,
+  });
+
+  // Raw note drafts arrive as text/plain (5.1); fatal UTF-8 decode rejects
+  // invalid bytes before any route logic runs.
+  app.addContentTypeParser("text/plain", { parseAs: "buffer" }, (_request, body, done) => {
+    try {
+      done(null, new TextDecoder("utf-8", { fatal: true }).decode(body as Buffer));
+    } catch {
+      done(new AppError("INVALID_QUERY", "Body must be valid UTF-8 text."));
+    }
+  });
+
+  registerBoundary(app, options.capability);
+  registerErrorHandling(app);
+  registerRouteModules(app, options, workspaceRoot);
+
+  if (options.staticRoot) {
+    await registerSpa(app, options.staticRoot);
+  }
+
+  return app;
+}
+
+// Route-module wiring: one registration per Step 14 wave, gated on the
+// service each module needs (test builds pass only what they exercise).
+function registerRouteModules(
+  app: FastifyInstance,
+  options: BuildAppOptions,
+  workspaceRoot: string,
+): void {
+  registerSystemRoutes(app, {
+    workspaceRoot,
+    configService: options.configService,
+    indexState: options.searchService ? () => options.searchService!.status().state : undefined,
+  });
+  registerReadModules(app, options);
+  registerWriteModules(app, options);
+}
+
+function registerReadModules(app: FastifyInstance, options: BuildAppOptions): void {
+  if (options.configService) {
+    registerSettingsRoutes(app, { configService: options.configService, bus: options.eventBus });
+  }
+  if (options.noteRepository) {
+    registerNotesRoutes(app, {
+      repository: options.noteRepository,
+      archiveRepository: options.archiveRepository,
+    });
+  }
+  if (options.eventBus) {
+    registerEventsRoute(app, { bus: options.eventBus });
+  }
+  if (options.searchService && options.noteRepository) {
+    registerSearchRoutes(app, {
+      searchService: options.searchService,
+      repository: options.noteRepository,
+    });
+  }
+  if (options.markdownService) {
+    registerMarkdownRoutes(app, { markdownService: options.markdownService });
+  }
+}
+
+function registerWriteModules(app: FastifyInstance, options: BuildAppOptions): void {
+  if (options.mutationService) {
+    registerMutationRoutes(app, {
+      mutationService: options.mutationService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
+    });
+  }
+  if (options.archiveContentService && options.mutationService) {
+    registerArchiveRoutes(app, {
+      archiveContentService: options.archiveContentService,
+      mutationService: options.mutationService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
+    });
+  }
+  if (options.contentService) {
+    registerContentRoutes(app, {
+      contentService: options.contentService,
+      searchService: options.searchService,
+      operationRegistry: options.operationRegistry,
+    });
+  }
+}

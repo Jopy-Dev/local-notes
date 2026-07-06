@@ -6,3 +6,178 @@ paths = ["node_modules", "dist", "*.gen.ts", "__fixtures__", ".qa", ".claude-des
 
 # Suppression = [[waivers]] table ONLY. Inline `# slop:ignore` is a no-op in slop 0.8.0+
 # (arch/security.md 9.7.2). Every waiver pairs with a KNOWN_ISSUES.md entry.
+
+[[waivers]]
+id = "icons-registry-2026-07-03"
+path = "src/frontend/components/icons.tsx"
+rule = "hotspots"
+reason = "icon registry one-time bulk growth; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "use-shell-state-2026-07-03"
+path = "src/frontend/pages/useShellState.ts"
+rule = "hotspots"
+reason = "rolling-window recompute re-flags top scorer; file already split twice (CCX 13), untouched in Wave 3; KNOWN_ISSUES.md Suppressions"
+expires = "2026-07-31"
+
+[[waivers]]
+id = "cli-composition-root-2026-07-03"
+path = "src/cli/index.ts"
+rule = "hotspots"
+reason = "composition root: gains one wiring line per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "app-composition-root-2026-07-03"
+path = "src/backend/app.ts"
+rule = "hotspots"
+reason = "composition root: gains one route registration per wave by design, CCX 12 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "shell-dialogs-hotspot-2026-07-04"
+path = "src/frontend/components/shell/ShellDialogs.tsx"
+rule = "structural.hotspots"
+reason = "dialog aggregator gains one dialog set per wave by design; 134 LOC, CCX 14 healthy, top-scorer recompute after Wave 5 confirmations; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-data-hotspot-2026-07-04"
+path = "src/frontend/stores/editorData.ts"
+rule = "structural.hotspots"
+reason = "React adapter over EditorController: Wave 6 verdict wiring extracted to editor/visual-verdict.ts (CCX 38->32); remainder is controller delegation + REQ-017 navigation parking, cohesive by design; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "markdown-preview-hotspot-2026-07-04"
+path = "src/frontend/editor/MarkdownPreview.tsx"
+rule = "structural.hotspots"
+reason = "Wave 6 preview surface split twice (preview-support.ts: render hook + asset hydration + copy mounts; CCX 44->17 healthy); growth stat is committed Wave 6 history in the 14-day window, flag is top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "source-editor-hotspot-2026-07-04"
+path = "src/frontend/editor/SourceEditor.tsx"
+rule = "structural.hotspots"
+reason = "CM host split twice (cm-theme.ts theme, cm-find.ts find field + sync hook; CCX 21->17 healthy); growth stat is committed Wave 5+6 history in the 14-day window; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-controller-wmc-2026-07-04"
+path = "src/frontend/editor/editor-controller.ts"
+rule = "structural.class.complexity"
+reason = "AutosaveScheduler extracted per original waiver condition (WMC 57->52); REQ-018 rename-follow + clean-delete handling raises inherent state-machine branching to WMC 60; fully covered by tests/unit/editor-controller.spec.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "editor-controller-hotspot-2026-07-04"
+path = "src/frontend/editor/editor-controller.ts"
+rule = "structural.hotspots"
+reason = "growth stat is Wave 5 creation + Wave 6 REQ-018 work inside the 14-day window; AutosaveScheduler already extracted; top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "settings-dialog-hotspot-2026-07-04"
+path = "src/frontend/components/shell/SettingsDialog.tsx"
+rule = "structural.hotspots"
+reason = "Wave 7 replaced the Step 11 mock with the real SCREEN-003 form (one-time +189 LOC inside the 14-day window); option lists + draft diff extracted to settings-form-model.ts (CCX 33->21); KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "config-service-hotspot-2026-07-04"
+path = "src/backend/config/config-service.ts"
+rule = "structural.hotspots"
+reason = "Wave 7 added ConfigService.update (partial merge + mutex, one-time +116 LOC inside the 14-day window); CCX 21 driven by REQ-032 per-field fallback loop, cohesive by design; rolling-window top-scorer recompute; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-hotspot-2026-07-05"
+path = "src/backend/search/search-service.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework inside the 14-day window; entry assembly extracted to index-entries.ts; remainder is status lifecycle + crash restart policy, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "workspace-data-hotspot-2026-07-05"
+path = "src/frontend/stores/workspaceData.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 WF-004 sort wiring; optimistic-persist + effectiveSort extracted to workspace-preferences.ts; growth stat is committed Wave 8 history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-index-hotspot-2026-07-05"
+path = "src/backend/search/search-index.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 worker rework + METRIC-003 two-phase retrieval growth in the 14-day window; ranking/snippet/engine helpers already live in sibling modules; CCX 39 is the budget-ledger + retrieval branching, cohesive by design; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-worker-spec-hotspot-2026-07-05"
+path = "tests/integration/search-worker.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 real-thread suite creation is the growth stat (one coherent worker-protocol suite, CCX 21 healthy); dist build already shared via dist-build.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "perf-benchmark-spec-hotspot-2026-07-05"
+path = "tests/integration/perf-benchmark.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 REQ-031 benchmark suite creation is the growth stat (10k fixture seeding + metric evidence in one coherent spec, CCX 21 healthy); KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "a11y-spec-hotspot-2026-07-05"
+path = "tests/e2e/a11y.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 suite creation is the growth stat; round-2 edit (violation targets + CodeMirror-only SCREEN-002 selector) re-flags the rolling-window top scorer; CCX 20 healthy for one coherent sweep; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "notes-virtual-list-spec-hotspot-2026-07-05"
+path = "tests/dom/notes-virtual-list.spec.tsx"
+rule = "structural.hotspots"
+reason = "Wave 8 suite creation is the growth stat; round-2 card-view REMOVAL shrank the file yet re-flags the recomputed top scorer after seven visual-editor suites were deleted; CCX 18 healthy; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "markdown-render-spec-hotspot-2026-07-05"
+path = "tests/unit/markdown-render.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 6 corpus history is the growth stat; round-2 removed the compatibility-scan block (file shrank) and the deletion of seven visual-editor suites re-ranked the rolling window; CCX 18 healthy for one coherent XSS/link/image corpus; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "preview-support-hotspot-2026-07-05"
+path = "src/frontend/editor/preview-support.ts"
+rule = "structural.hotspots"
+reason = "Wave 6 creation + round-2 copy work is the growth stat; copy text walker + mounts already extracted to copy-mounts.ts (file shrank, CCX 21 healthy); committed-history stat cannot shrink by further edits; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-wmc-2026-07-05"
+path = "src/backend/filesystem/note-mutations.ts"
+rule = "structural.class.complexity"
+reason = "round-2 restore + recycle-bin delete join create/move/archive; all methods share the lexically-ordered path-lock map (2.5) so splitting the archive family out would need a shared lock coordinator for less cohesion; WMC 46 fully covered by tests/unit/note-mutations.spec.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-hotspot-2026-07-05"
+path = "src/backend/filesystem/note-mutations.ts"
+rule = "structural.hotspots"
+reason = "round-2 archive-browser feature growth (restore + deleteArchived) inside the 14-day window; cohesive with the existing mutation family per the WMC waiver; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "note-mutations-spec-hotspot-2026-07-05"
+path = "tests/unit/note-mutations.spec.ts"
+rule = "structural.hotspots"
+reason = "round-2 restore/delete suites join the create/move/archive spec (one coherent mutation suite, CCX 25); growth stat is committed feature history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "search-service-spec-hotspot-2026-07-05"
+path = "tests/unit/search-service.spec.ts"
+rule = "structural.hotspots"
+reason = "Wave 8 crash-policy suite split to search-crash-policy.spec.ts; growth stat is committed Wave 8 spec history in the 14-day window; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"

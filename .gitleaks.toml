@@ -11,3 +11,11 @@ paths = [
   '''node_modules/''',
   '''dist/''',
 ]
+# Test fixtures use literal noteKey values (base64url of a relative path,
+# e.g. "cmVuYW1lZC5tZA" = "renamed.md") - not credentials. Line-scoped to the
+# noteKey/oldKey field (object form and JSX prop form) so real secret shapes
+# stay detectable. KNOWN_ISSUES.md Suppressions: gitleaks-notekey-fixtures-2026-07-04.
+regexTarget = "line"
+regexes = [
+  '''(?:oldKey|noteKey)(?:: |=)"[A-Za-z0-9_-]{6,64}"''',
+]

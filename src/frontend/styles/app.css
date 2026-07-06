@@ -37,6 +37,11 @@
   --color-text-disabled: #858276;
   --color-text-source: #d8d4c7;
   --color-text-code: #d6b77d;
+  /* Source-editor syntax accent (REQ-030): heading/link color on
+   * surface-code. Dark reuses the brand accent (7.3:1 on #141411). */
+  --color-syntax-accent: #c49a59;
+  /* Copy-tag marker in source (round 4): user-picked, both themes. */
+  --color-copy-tag: #695940;
 
   /* 2.3 Semantic */
   --color-success: #83a87a;
@@ -113,6 +118,203 @@
   --z-toast: 50;
 }
 
+/* Light theme (Design_System.md 2.6, v1.4): warm-paper palette override.
+ * services/theme.ts sets <html data-theme>; Tailwind v4 utilities reference
+ * var(--color-*) so runtime override needs no rebuild. Raw literals allowed
+ * here per 12 (token definition block). */
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* 2.6 Brand */
+  --color-accent: #8a6222;
+  --color-accent-hover: #7a5519;
+  --color-accent-muted: #dcc79b;
+  --color-accent-ink: #fdf9ef;
+  --color-focus: #6b4c14;
+
+  /* 2.6 Surfaces */
+  --color-surface-root: #f4f1e8;
+  --color-surface-titlebar: #ece8da;
+  --color-surface-sidebar: #efebdf;
+  --color-surface-panel: #f1ede2;
+  --color-surface-editor: #f7f4ec;
+  --color-surface-code: #ece7d6;
+  --color-surface-input: #fbf9f2;
+  --color-surface-raised: #fdfbf5;
+  --color-surface-hover: #e6e1d0;
+  --color-surface-selected: #e3dcc5;
+
+  /* 2.6 Borders */
+  --color-border-subtle: #d8d2bf;
+  --color-border-strong: #b3ab93;
+  --color-border-active: #a08850;
+
+  /* 2.6 Text */
+  --color-text-primary: #262419;
+  --color-text-secondary: #4c4939;
+  --color-text-muted: #615d4c;
+  --color-text-disabled: #6b6758;
+  --color-text-source: #32302a;
+  --color-text-code: #77571a;
+  /* REQ-030: brand accent #8a6222 is 4.4:1 on surface-code #ece7d6 - just
+   * under AA. Syntax accent drops to the code amber (5.5:1). */
+  --color-syntax-accent: #77571a;
+  /* Copy-tag marker in source (round 4): user-picked, both themes. */
+  --color-copy-tag: #695940;
+
+  /* 2.6 Semantic */
+  --color-success: #3f6b35;
+  --color-success-bg: #e0e9d6;
+  --color-warning: #7d5a17;
+  --color-warning-bg: #f0e5c6;
+  --color-danger: #a03a2e;
+  --color-danger-bg: #f4ddd6;
+  --color-info: #48626f;
+
+  /* 2.6 Elevation overrides */
+  --shadow-selected: inset 2px 0 0 #8a6222;
+  --shadow-control-active: 0 0 0 1px #b3ab93;
+  --shadow-status: 0 0 0 2px rgb(63 107 53 / 18%);
+  --shadow-popover: 0 18px 50px rgb(76 73 57 / 25%);
+}
+
+/* Component layer: token-composed surfaces that need CSS features
+ * (gradients, color-mix, ::backdrop) Tailwind utilities cannot express cleanly.
+ * Tokens only - no raw color literals (Design_System.md 12). */
+@layer components {
+  /* Rendered Markdown preview (REQ-014, Design_System.md 3): server-sanitized
+   * HTML gets prose styling here because it carries no utility classes. */
+  .markdown-preview {
+    color: var(--color-text-secondary);
+    /* REQ-021 editor appearance settings apply without restart. No width
+     * cap: content fills the pane (user feedback round 2b). */
+    font-size: var(--editor-font-size, var(--text-body));
+    line-height: var(--editor-line-height, 1.6);
+  }
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3,
+  .markdown-preview h4,
+  .markdown-preview h5,
+  .markdown-preview h6 {
+    color: var(--color-text-primary);
+    font-weight: 650;
+    margin: 1.2em 0 0.45em;
+    line-height: 1.25;
+  }
+  .markdown-preview h1 { font-size: var(--text-display); }
+  .markdown-preview h2 { font-size: var(--text-title); }
+  .markdown-preview h3 { font-size: var(--text-h3); }
+  .markdown-preview p { margin: 0.55em 0; line-height: var(--editor-line-height, 1.6); }
+  .markdown-preview ul,
+  .markdown-preview ol { margin: 0.55em 0; padding-inline-start: 1.4em; }
+  .markdown-preview li { margin: 0.2em 0; }
+  .markdown-preview li > input[type="checkbox"] { margin-inline-end: 0.45em; }
+  .markdown-preview blockquote {
+    border-inline-start: 3px solid var(--color-border-strong);
+    color: var(--color-text-muted);
+    margin: 0.7em 0;
+    padding-inline-start: 0.9em;
+  }
+  .markdown-preview pre,
+  .markdown-preview code {
+    background-color: var(--color-surface-code);
+    color: var(--color-text-code);
+    font-family: var(--font-mono);
+    border-radius: var(--radius-sm);
+  }
+  .markdown-preview code { padding: 0.1em 0.35em; font-size: 0.92em; }
+  .markdown-preview pre { padding: 0.7em 0.9em; overflow-x: auto; margin: 0.7em 0; }
+  .markdown-preview pre code { padding: 0; }
+  .markdown-preview table {
+    border-collapse: collapse;
+    margin: 0.7em 0;
+  }
+  .markdown-preview th,
+  .markdown-preview td {
+    border: 1px solid var(--color-border-subtle);
+    padding: 0.35em 0.7em;
+    text-align: start;
+  }
+  .markdown-preview th { color: var(--color-text-primary); font-weight: 650; }
+  .markdown-preview a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .markdown-preview hr { border: 0; border-top: 1px solid var(--color-border-subtle); margin: 1em 0; }
+  .markdown-preview img { max-width: 100%; }
+  /* REQ-036: the marked text itself is click-to-copy in previews (round 2). */
+  .markdown-preview copy {
+    background-color: var(--color-surface-selected);
+    border-radius: var(--radius-xs);
+    padding: 0.05em 0.25em;
+    cursor: pointer;
+  }
+  .markdown-preview copy:hover {
+    background-color: var(--color-surface-hover);
+  }
+  /* Multi-line copy region (round 2): block wrapper injected server-side. */
+  .markdown-preview copy[data-block] {
+    display: block;
+    margin: 0.55em 0;
+    padding: 0.4em 0.65em;
+    border: 1px solid var(--color-border-subtle);
+  }
+  /* Find-in-note highlights (REQ-035): shared classes for CodeMirror +
+     ProseMirror decorations; ::highlight() pair paints the read/split
+     preview via the CSS Custom Highlight API without DOM mutation. */
+  .find-match {
+    background-color: var(--color-accent-muted);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-primary);
+  }
+  .find-match-active {
+    background-color: var(--color-accent);
+    border-radius: var(--radius-xs);
+    color: var(--color-surface-root);
+  }
+  ::highlight(find-match) {
+    background-color: var(--color-accent-muted);
+    color: var(--color-text-primary);
+  }
+  ::highlight(find-match-active) {
+    background-color: var(--color-accent);
+    color: var(--color-surface-root);
+  }
+
+  .markdown-preview [data-blocked] {
+    background-color: var(--color-warning-bg);
+    border: 1px dashed var(--color-border-active);
+    border-radius: var(--radius-xs);
+    color: var(--color-warning);
+    font-size: var(--text-sm);
+    padding: 0.05em 0.35em;
+  }
+
+  .launch-grid-bg {
+    background-color: var(--color-surface-root);
+    background-image:
+      linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
+    background-position: -1px -1px;
+    background-size: 32px 32px;
+  }
+
+  .launch-welcome {
+    background: color-mix(in srgb, var(--color-surface-panel) 96%, transparent);
+  }
+
+  .launch-doc-front {
+    border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border-strong));
+  }
+
+  dialog::backdrop {
+    background: color-mix(in srgb, var(--color-surface-code) 68%, transparent);
+  }
+}
+
 /* Base layer: Quiet Workbench canvas + focus + reduced motion (2, 7, 11) */
 @layer base {
   html {
@@ -120,11 +322,21 @@
     color-scheme: dark;
   }
 
+  /* App shell owns scrolling inside panes; page never scrolls at supported
+   * sizes (4.3: zero page-level horizontal scroll). Below the supported
+   * contract the resize-guidance surface may scroll. */
   body {
+    overflow: hidden;
     background-color: var(--color-surface-root);
     color: var(--color-text-secondary);
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
+  }
+
+  @media (max-width: 1023px), (max-height: 639px) {
+    body {
+      overflow: auto;
+    }
   }
 
   /* 11: 2px focus ring, 1px offset, never removed */
