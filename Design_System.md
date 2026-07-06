@@ -1,6 +1,6 @@
 # Design System: Local-Notes
 
-**Version:** v1.7 - LOCKED  
+**Version:** v1.8 - LOCKED  
 **Last updated:** 2026-07-06
 
 ## 1. Brand Identity
@@ -74,6 +74,7 @@ All values originate in approved prototypes. Raw color literals are allowed only
 | Text source | `#d8d4c7` | Source editor body | `text-source` | 12.45:1 on code | General chrome |
 | Text code | `#d6b77d` | Code/syntax emphasis | `text-code` | 9.60:1 on code | General body text |
 | Syntax accent | `#c49a59` (dark) / `#77571a` (light) | Source-editor heading/link syntax color | `syntax-accent` | 7.3:1 on code dark; 5.5:1 on code light (brand accent misses AA on light code surface - v1.6, REQ-030) | Chrome accents (use `accent`) |
+| Copy-tag marker | `#695940` (both themes) | Literal `<copy>`/`</copy>` tags in source editor | `copy-tag` | Decorative locator only - tag text remains readable via surrounding source color; user-picked v1.8, 2026-07-06 | Body text, critical labels |
 
 ### 2.3 Semantic
 
@@ -508,3 +509,4 @@ Implementation target: `src/frontend/components/ui/*` for primitives; feature co
 - [x] v1.5: resize/collapse active at every supported width `>=1024px` (§4.3, user feedback round 1); `<SplitDivider>` editor/preview split resizer - drag/arrow keys, fraction `0.2..0.8`, double-click reset, session-only (§9.2 addendum).
 - [x] v1.6 (user feedback round 2): modes Read/Source/Split - `<VisualMarkdownEditor>` removed, `<MarkdownToolbar>` added to `<SourceEditor>` (§9.2); card view + `<NoteCard>` + toolbar view toggle removed; editor width setting and line-length cap removed entirely - content fills the pane (§3.3, round 2b); `syntax-accent` token pair for source-editor heading/link contrast on code surfaces (§2.2); `<ArchiveNoteView>` for `SCREEN-008` with read-only banner, restore dialog, recycle-bin delete confirmation.
 - [x] v1.7 (user feedback round 3): `<MarkdownToolbar>` gains the `Line wrap` view toggle - `WrapTextIcon`, `aria-pressed`, session-only, never edits the document (§9.2); copy block regions generalized - any line-starting `<copy>` region renders inner Markdown normally inside the standard copy highlight (`copy[data-block]` visual unchanged). Source: user-approved 2026-07-06.
+- [x] v1.8 (user feedback round 4): `copy-tag` marker token `#695940` (both themes, §2.2) colors literal `<copy>`/`</copy>` tags in Markdown source via CodeMirror decoration - locator aid, decoration only, `.txt` unstyled. Source: user-picked 2026-07-06.

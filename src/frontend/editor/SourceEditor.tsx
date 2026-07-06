@@ -5,6 +5,7 @@ import { keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { cspNonce } from "../services/csp-nonce";
 import { useWorkspaceUi } from "../stores/workspaceUi";
+import { copyTagHighlight } from "./cm-copy-tag";
 import { cmFind, findField, useCmFind } from "./cm-find";
 import { quietWorkbenchSyntaxHighlighting, quietWorkbenchTheme } from "./cm-theme";
 import { MarkdownToolbar } from "./MarkdownToolbar";
@@ -80,7 +81,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
           // Packaged CSP has no 'unsafe-inline'; CodeMirror's injected styles
           // carry the per-response nonce (MasterPrompt.md 7.1).
           ...(nonce ? [EditorView.cspNonce.of(nonce)] : []),
-          languageCompartment.of(language === "markdown" ? markdown() : []),
+          languageCompartment.of(language === "markdown" ? [markdown(), copyTagHighlight()] : []),
           readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
           wrapCompartment.of(useWorkspaceUi.getState().lineWrap ? EditorView.lineWrapping : []),
           EditorView.updateListener.of((update) => {
@@ -108,7 +109,9 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
     view.dispatch({
       effects: [
         readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
-        languageCompartment.reconfigure(language === "markdown" ? markdown() : []),
+        languageCompartment.reconfigure(
+          language === "markdown" ? [markdown(), copyTagHighlight()] : [],
+        ),
         wrapCompartment.reconfigure(lineWrap ? EditorView.lineWrapping : []),
       ],
     });

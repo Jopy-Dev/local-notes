@@ -474,6 +474,7 @@ Acceptance:
 - An empty mark copies an empty string; no error state.
 - Mark serializes as sanitized `<copy>` HTML. Together with `<u>` (`REQ-015`), these are the only two raw HTML tags interpreted in saved Markdown source.
 - `<copy>` lines inside fenced code blocks stay literal and never form a region.
+- Source mode colors literal `<copy>`/`</copy>` tags with the copy-tag marker color so regions are easy to locate (feedback round 4); view decoration only, `.txt` notes unstyled.
 - `.txt` notes do not interpret `<copy>`; literal `<copy>` text in a `.txt` file displays and saves as plain text with no affordance.
 - The copy affordance never triggers a filesystem write, network request, or dashboard search.
 
