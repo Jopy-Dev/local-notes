@@ -527,12 +527,26 @@ Acceptance:
 - Given cancellation, nothing changes.
 - Given delete failure, the archived note remains listed and readable.
 
+#### `REQ-041` Native spellcheck in editing surfaces
+
+- Editable source surfaces (`.md` source mode, `.txt` editor) enable browser-native spellcheck: misspelled words show the browser's wavy underline; right-click offers the browser's suggestion menu (feedback round 5).
+- Applying a suggestion replaces only the corrected word as an ordinary undoable edit; persistence flows through autosave (`REQ-017`).
+- Read-only surfaces (archive note view, oversized/invalid-encoding read-only) keep spellcheck inactive.
+- Browser autocorrect and autocapitalize stay off; the application never changes document text without user action.
+- View-layer affordance only: dictionary, language, and underline rendering follow browser/OS settings; no dictionary ships with the application and no network use (`REQ-026`).
+
+Acceptance:
+
+- Given an editable note, the editing surface exposes an active spellcheck input surface; applying a browser suggestion is an ordinary undoable edit.
+- Given a read-only note, spellcheck is inactive on the source surface.
+- Given a spellcheck correction, only the replaced word differs and the save flows through normal autosave.
+
 ## 5. Page / Screen Inventory
 
 | ID | Surface | Purpose | Related requirements |
 |---|---|---|---|
 | `SCREEN-001` | Dashboard | Discover, search, sort, create, open, move, and archive notes; Recent and Archive library scopes | `REQ-005`-`REQ-013`, `REQ-034`, `REQ-038`, `REQ-039` |
-| `SCREEN-002` | Note Workspace | Read, edit, preview, copy, move, and archive one note | `REQ-014`-`REQ-020`, `REQ-034`, `REQ-035`, `REQ-036`, `REQ-037` |
+| `SCREEN-002` | Note Workspace | Read, edit, preview, copy, move, and archive one note | `REQ-014`-`REQ-020`, `REQ-034`, `REQ-035`, `REQ-036`, `REQ-037`, `REQ-041` |
 | `SCREEN-003` | Settings | Configure appearance and inspect active workspace | `REQ-021`, `REQ-022` |
 | `SCREEN-004` | Workspace Lock Error | Explain active workspace ownership conflict | `REQ-003` |
 | `SCREEN-005` | Startup Error | Report initialization, configuration, or port failure | `REQ-001`, `REQ-002` |
@@ -701,4 +715,5 @@ Acceptance:
 | In-note search | `REQ-035` |
 | Copyable text snippets | `REQ-036` |
 | Library scopes and archive browser | `REQ-038`-`REQ-040` |
+| Editing spellcheck | `REQ-041` |
 | Future roadmap | Section 8 |
