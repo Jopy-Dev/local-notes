@@ -419,6 +419,7 @@ interface ConfigV1 {
 - Modes are Read / Source / Split (ADR-008, round 2): CodeMirror is the single editing surface for `.md` and `.txt`; no visual editor, no compatibility service. Every construct edits as source.
 - Source-mode toolbar (`REQ-015`): pure transforms in `src/frontend/editor/markdown-commands.ts` produce original-document change spans + post-edit selection; the toolbar dispatches them into CodeMirror as ordinary undoable edits. Wrap toggles (bold/italic/underline/strike/copy-mark), heading level toggles H1-H3, line-prefix list toggles, link/table/code-block inserts, undo/redo via `@codemirror/commands`.
 - Line-wrap view toggle (`REQ-015`, round 3): toolbar toggle flips `EditorView.lineWrapping` through a CodeMirror compartment; state = `workspaceUi.lineWrap`, session-only, default on, never persisted, no document change; applies to every source surface including read-only notes.
+- Native spellcheck (`REQ-041`, round 5): editable CodeMirror surfaces set `EditorView.contentAttributes` `spellcheck="true"` + `autocorrect`/`autocapitalize` off, reconfigured through the read-only compartment; read-only surfaces set `spellcheck="false"`. Browser owns dictionary, wavy underline, and right-click suggestion menu; suggestions land as ordinary undoable edits through the normal change/autosave path. No app dictionary, no network (`REQ-026`).
 - Copy block regions (`REQ-036`, rounds 2-3): pre-pass `src/backend/markdown/copy-blocks.ts` lifts every region whose `<copy>` starts a line (alone, with content on the open line, or closing on the same line) through the first `</copy>` ending a line, behind a random per-render placeholder (content cannot spoof it), renders inner Markdown through the full pipeline below, re-injects as `<copy data-block="">`. Round-3 rationale: raw line-starting tags left inner markdown literal and the sanitizer auto-close dropped everything after the first block from the copy element. Mid-line `<copy>` stays on marked's inline path; `data-block` is never accepted from note content; fenced `<copy>` lines stay literal.
 - `POST /api/v1/markdown/render`:
   - parses with GFM tables/task lists;
@@ -760,6 +761,7 @@ interface ApiError {
 | `REQ-038` | recent scope on notes route + library row (§4.13) | `NoteMetadata` page | list query schema | `notes-routes.spec` recent cases |
 | `REQ-039` | archive repository + `<ArchiveNoteView>` + restore (§4.13) | archive-tree `NoteMetadata`/`NoteDocument` | restore schema + path guard | `archive-routes.spec` |
 | `REQ-040` | `NoteMutationService.deleteArchived` + trash (§4.13) | archived file -> OS recycle bin | confirmation + path guard | `archive-routes.spec` + `note-mutations.spec` |
+| `REQ-041` | `<SourceEditor>` contentAttributes spellcheck wiring (§4.6) | editor draft (browser-owned dictionary) | none (client-only, attribute contract) | `source-spellcheck.spec` |
 
 ### 9.2 Screens
 

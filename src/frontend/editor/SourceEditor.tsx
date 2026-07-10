@@ -26,6 +26,19 @@ const wrapCompartment = new Compartment();
 // echo back through onChange as if the user typed them.
 const externalSync = Annotation.define<boolean>();
 
+// REQ-041: browser-native spellcheck on editable surfaces only. Autocorrect
+// and autocapitalize stay off - the document never changes without an edit.
+function editingSurface(readOnly: boolean) {
+  return [
+    EditorState.readOnly.of(readOnly),
+    EditorView.contentAttributes.of({
+      spellcheck: readOnly ? "false" : "true",
+      autocorrect: "off",
+      autocapitalize: "off",
+    }),
+  ];
+}
+
 interface SourceEditorProps {
   value: string;
   language: "markdown" | "plain";
@@ -82,7 +95,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
           // carry the per-response nonce (MasterPrompt.md 7.1).
           ...(nonce ? [EditorView.cspNonce.of(nonce)] : []),
           languageCompartment.of(language === "markdown" ? [markdown(), copyTagHighlight()] : []),
-          readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
+          readOnlyCompartment.of(editingSurface(readOnly)),
           wrapCompartment.of(useWorkspaceUi.getState().lineWrap ? EditorView.lineWrapping : []),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return;
@@ -108,7 +121,7 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
     if (!view) return;
     view.dispatch({
       effects: [
-        readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
+        readOnlyCompartment.reconfigure(editingSurface(readOnly)),
         languageCompartment.reconfigure(
           language === "markdown" ? [markdown(), copyTagHighlight()] : [],
         ),

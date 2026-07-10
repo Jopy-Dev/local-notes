@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Added
+
+- Spellcheck while you type: misspelled words in the source editor now get the browser's familiar red wavy underline, and a right-click offers spelling suggestions - powered by your browser's own dictionary, fully offline, and applying a suggestion is a normal undoable edit; read-only notes stay quiet
+
 ## [1.0.0] - 2026-07-06
 
 First release: the complete local notes workspace as an installable package.
