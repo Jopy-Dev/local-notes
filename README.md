@@ -16,7 +16,7 @@ Project concept authority: `project prompt.txt`
 
 ## Status
 
-- Release: `v1.0.0` GitHub Release tarball (ADR-007); install `npm install -g ./local-notes-1.0.0.tgz`, then `npx local-notes`
+- Release: `v1.1.0` GitHub Release tarball (ADR-007); install `npm install -g ./local-notes-1.1.0.tgz`, then `npx local-notes`
 - Workflow: Step 15 (feature-complete local build in daily use)
 - Storage: human-readable `.md` and `.txt` files under `~/.local-notes/`
 - Network: fully offline; no cloud services, accounts, telemetry, analytics, or external APIs
