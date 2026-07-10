@@ -23,8 +23,9 @@ function assertHost(request: FastifyRequest): void {
 function assertApiAccess(request: FastifyRequest, capability: string): void {
   if (!request.url.startsWith(API_PREFIX)) return;
   const token = request.headers[CAPABILITY_HEADER];
-  const value = Array.isArray(token) ? token[0] : token;
-  if (!verifyCapability(value, capability)) {
+  // Node joins duplicated headers into "a, b" - a joined, missing, or
+  // otherwise non-string value fails verification closed.
+  if (!verifyCapability(typeof token === "string" ? token : undefined, capability)) {
     throw new AppError("LOCAL_ACCESS_REQUIRED", "Local access token missing or invalid.");
   }
   const method = request.method.toUpperCase();
