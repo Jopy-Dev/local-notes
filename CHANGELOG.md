@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Changed
+
+- Dependency vulnerability scanning now runs fully on the development machine: the previously firewalled Trivy database downloads again, and a fresh scan of all shipped dependencies found zero known vulnerabilities
+
 ## [1.1.0] - 2026-07-10
 
 ### Added

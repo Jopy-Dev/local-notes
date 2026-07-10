@@ -100,6 +100,28 @@ describe("AtomicFileWriter.write", () => {
     },
   );
 
+  it("pre-rename recheck catches a file changed inside the flush->rename window (2.5 step 6)", async () => {
+    const first = Buffer.from("v1", "utf8");
+    await writer.write({ absPath: target(), relPath: REL, bytes: first });
+    const versionToken = computeVersionToken(first, REL);
+    const racy = new AtomicFileWriter({
+      onBeforeRename: async () => {
+        // External program rewrites the target after our temp is flushed.
+        writeFileSync(target(), "external overwrite");
+      },
+    });
+    await expect(
+      racy.write({
+        absPath: target(),
+        relPath: REL,
+        bytes: Buffer.from("v2", "utf8"),
+        expectedVersion: versionToken,
+      }),
+    ).rejects.toMatchObject({ code: "NOTE_CONFLICT" });
+    expect(readFileSync(target(), "utf8")).toBe("external overwrite");
+    expect(readdirSync(dir)).toEqual(["a.md"]);
+  });
+
   it("serializes concurrent writes to the same path (no interleaved corruption)", async () => {
     const payloads = ["one", "two", "three", "four"].map((value) => Buffer.from(value, "utf8"));
     await Promise.all(

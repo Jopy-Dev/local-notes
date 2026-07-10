@@ -26,6 +26,7 @@
     "test": "vitest run",
     "test:package": "node scripts/test-package.mjs",
     "scan:predeploy": "bash scripts/scan-predeploy.sh",
+    "test:coverage": "vitest run --coverage",
     "verify:local": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
@@ -53,6 +54,7 @@
     "@types/react-dom": "19.2.3",
     "@types/sanitize-html": "2.16.1",
     "@vitejs/plugin-react": "6.0.3",
+    "@vitest/coverage-v8": "4.1.9",
     "codemirror": "6.0.2",
     "eslint": "10.6.0",
     "eslint-plugin-tailwindcss": "4.0.6",

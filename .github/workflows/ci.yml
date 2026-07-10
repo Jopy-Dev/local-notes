@@ -45,7 +45,8 @@ jobs:
       - run: npm run lint
       # Chromium for the REQ-030 axe sweep (tests/e2e/a11y.spec.ts)
       - run: npx playwright install --with-deps chromium
-      - run: npm test
+      # Coverage thresholds enforce the Step 15 gate (vitest.config.ts)
+      - run: npm run test:coverage
       - run: npm run build
       # dependency-review-action removed: unsupported on private repos without GHAS.
       # Coverage: npm audit gate above + Dependabot alerts. Re-add when repo goes public

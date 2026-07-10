@@ -107,8 +107,13 @@ describe("validateNoteFilename (REQ-011)", () => {
     ["trailing space before extension", "notes .md"],
     ["invalid char", "no:tes.md"],
     ["empty", ""],
+    ["extension only, no stem", ".md"],
   ])("rejects %s", (_label, name) => {
     expect(validateNoteFilename(name).ok).toBe(false);
+  });
+
+  it("exposes the canonical real root for callers that join display paths", async () => {
+    expect(guard.root.toLowerCase()).toContain("ln-guard-");
   });
 
   it("enforces 120-char maximum including extension", () => {

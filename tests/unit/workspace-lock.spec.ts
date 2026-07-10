@@ -104,4 +104,45 @@ describe("acquireWorkspaceLock", () => {
     await lock.release();
     expect(existsSync(join(dir, ".lock"))).toBe(true);
   });
+
+  it("default liveness probe sees this very process as alive (no seam)", async () => {
+    writeFileSync(
+      join(dir, ".lock"),
+      JSON.stringify({
+        instanceId: "self-owned",
+        pid: process.pid,
+        hostname: hostname(),
+        startedAt: new Date().toISOString(),
+        appVersion: "0.1.0",
+        workspaceRealPath: dir,
+      }),
+    );
+    await expect(acquireWorkspaceLock({ rootDir: dir, appVersion: "0.1.0" })).rejects.toMatchObject(
+      { message: WORKSPACE_LOCK_MESSAGE },
+    );
+  });
+
+  it("default liveness probe treats an impossible pid as dead and recovers (no seam)", async () => {
+    writeFileSync(
+      join(dir, ".lock"),
+      JSON.stringify({
+        instanceId: "stale-impossible",
+        // Outside any real pid range: process.kill(pid, 0) throws -> dead.
+        pid: 2147483647,
+        hostname: hostname(),
+        startedAt: new Date().toISOString(),
+        appVersion: "0.1.0",
+        workspaceRealPath: dir,
+      }),
+    );
+    const lock = await acquireWorkspaceLock({ rootDir: dir, appVersion: "0.1.0" });
+    expect(JSON.parse(readFileSync(join(dir, ".lock"), "utf8")).pid).toBe(process.pid);
+    await lock.release();
+  });
+
+  it("release after the lock file vanished is a safe no-op", async () => {
+    const lock = await acquireWorkspaceLock({ rootDir: dir, appVersion: "0.1.0" });
+    rmSync(join(dir, ".lock"), { force: true });
+    await expect(lock.release()).resolves.toBeUndefined();
+  });
 });
