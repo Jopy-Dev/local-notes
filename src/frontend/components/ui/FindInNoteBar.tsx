@@ -33,11 +33,37 @@ type FindBarProps = Omit<FindController, "open" | "request" | "onMatches">;
 
 export function FindInNoteBar(props: FindBarProps) {
   const [input, setInput] = useState(props.query);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputValueRef = useRef(input);
+  inputValueRef.current = input;
+  const selectPending = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const onQueryChangeRef = useRef(props.onQueryChange);
   onQueryChangeRef.current = props.onQueryChange;
 
   useEffect(() => () => clearTimeout(timer.current), []);
+
+  // Prefill on open (round 9): a seeded query arrives selected so typing
+  // replaces it while stepping keeps it.
+  useEffect(() => {
+    if (inputRef.current && inputRef.current.value !== "") inputRef.current.select();
+  }, []);
+
+  // External seeding while open (Ctrl+F on a new selection): adopt the
+  // query. The debounced commit echoes the typed value back with equal
+  // content - the equality guard keeps mid-typing state intact.
+  useEffect(() => {
+    if (props.query === inputValueRef.current) return;
+    clearTimeout(timer.current);
+    setInput(props.query);
+    selectPending.current = props.query !== "";
+  }, [props.query]);
+
+  useEffect(() => {
+    if (!selectPending.current) return;
+    selectPending.current = false;
+    inputRef.current?.select();
+  }, [input]);
 
   function changeInput(value: string) {
     setInput(value);
@@ -62,6 +88,7 @@ export function FindInNoteBar(props: FindBarProps) {
         <SearchIcon size={14} />
       </span>
       <Input
+        ref={inputRef}
         aria-label="Find in note"
         value={input}
         onChange={(event) => changeInput(event.target.value)}

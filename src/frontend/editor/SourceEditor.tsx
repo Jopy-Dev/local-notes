@@ -47,7 +47,7 @@ interface SourceEditorProps {
   toolbar?: boolean;
   find?: FindRequest | null;
   onFindMatches?: (total: number) => void;
-  onOpenFind?: () => void;
+  onOpenFind?: (selection?: string) => void;
 }
 
 export function SourceEditor({ value, language, readOnly, onChange, ...props }: SourceEditorProps) {
@@ -77,8 +77,11 @@ export function SourceEditor({ value, language, readOnly, onChange, ...props }: 
             keymap.of([
               {
                 key: "Mod-f",
-                run: () => {
-                  onOpenFindRef.current?.();
+                run: (view) => {
+                  // Round 9: the editor selection seeds the find query -
+                  // sliced from the doc, not the DOM (viewport-independent).
+                  const { from, to } = view.state.selection.main;
+                  onOpenFindRef.current?.(view.state.sliceDoc(from, to));
                   return true;
                 },
               },

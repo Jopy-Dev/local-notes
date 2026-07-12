@@ -24,7 +24,7 @@ interface EditorContentProps {
   onToast: (message: string) => void;
   find: FindRequest | null;
   onFindMatches: (total: number) => void;
-  onOpenFind: () => void;
+  onOpenFind: (selection?: string) => void;
 }
 
 /* Resizable split (user feedback round 1): the divider drags the fraction of
@@ -93,15 +93,15 @@ function SplitSurface(props: EditorContentProps) {
   const [fraction, setFraction] = useState(SPLIT_FRACTION_DEFAULT);
   const vertical = props.splitLayout === "side";
 
-  // Split: the source pane owns find navigation and counts; the preview
-  // highlights the same query without an active match (its text ordering
-  // is the rendered document, not the Markdown source).
+  // Split: the source pane owns find counts; the preview tracks the same
+  // active index so next/previous navigates both panes (round 9). Rendered
+  // text order can drift from source order - applyPreviewFind clamps.
   const preview = (
     <MarkdownPreview
       source={draft}
       noteKey={document.noteKey}
       onToast={props.onToast}
-      find={props.find ? { ...props.find, activeIndex: -1 } : null}
+      find={props.find}
     />
   );
   const editor = (

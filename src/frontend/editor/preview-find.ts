@@ -85,25 +85,35 @@ export function applyPreviewFind(
     clearPreviewFind();
     return { total: 0, activeElement: null };
   }
-  const matches: Range[] = [];
-  let active: Range | null = null;
-  let activeElement: Element | null = null;
+  const { ranges, total } = collectMatchRanges(container, request);
+  // Split view (round 9): the shared index counts SOURCE matches; rendered
+  // text can hold fewer (markdown syntax never renders). Clamping to the
+  // last rendered match keeps active tracking near the source position
+  // instead of dropping it. Negative index = explicit no-active request.
+  const activeIndex =
+    request.activeIndex < 0 ? -1 : Math.min(request.activeIndex, ranges.length - 1);
+  const active = activeIndex >= 0 ? (ranges[activeIndex] ?? null) : null;
+  paint(
+    ranges.filter((range) => range !== active),
+    active,
+  );
+  return { total, activeElement: active ? active.startContainer.parentElement : null };
+}
+
+function collectMatchRanges(
+  container: HTMLElement,
+  request: FindRequest,
+): { ranges: Range[]; total: number } {
+  const ranges: Range[] = [];
   let total = 0;
   for (const segment of collectSegments(container)) {
     const scan = scanMatches(segment.text, request.query, request.caseSensitive);
-    scan.ranges.forEach((match, index) => {
-      if (matches.length >= FIND_HIGHLIGHT_CAP) return;
+    for (const match of scan.ranges) {
+      if (ranges.length >= FIND_HIGHLIGHT_CAP) break;
       const range = domRange(segment, match.from, match.to);
-      if (!range) return;
-      if (total + index === request.activeIndex) {
-        active = range;
-        activeElement = range.startContainer.parentElement;
-      } else {
-        matches.push(range);
-      }
-    });
+      if (range) ranges.push(range);
+    }
     total += scan.total;
   }
-  paint(matches, active);
-  return { total, activeElement };
+  return { ranges, total };
 }

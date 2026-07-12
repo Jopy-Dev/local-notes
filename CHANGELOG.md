@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Added
+
+- Find in note picks up your selection: select any text and press Ctrl+F - the find bar opens with that text as the query, already highlighted so typing replaces it; works from the source editor and the preview, and pressing Ctrl+F on a new selection while the bar is open searches for the new text
+
+### Fixed
+
+- Next and previous match now navigate the split view preview: the active match is highlighted and scrolled into view in both panes together, instead of only the source side moving
+
 ## [1.4.0] - 2026-07-12
 
 ### Changed

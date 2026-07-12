@@ -453,6 +453,8 @@ Acceptance:
 - Open note provides find-in-note across the currently loaded content, independent of dashboard search (`REQ-009`).
 - Find highlights all matches in the active editor mode and shows current match position and total match count.
 - User may step to next and previous match and close find without altering draft content.
+- Next/previous moves the active match on every visible surface, split preview pane included.
+- Given a text selection when `Ctrl+F` fires, the selection's first line seeds the query, pre-selected in the find input; no selection opens find unchanged.
 - Find never triggers a filesystem read, write, or dashboard search request.
 - Find is available in read, edit, source, and split modes; case-insensitive by default.
 - Find remains available in Focus Mode alongside the note tools `REQ-037` already preserves there.
