@@ -423,6 +423,7 @@ interface ConfigV1 {
 - Copy block regions (`REQ-036`, rounds 2-3): pre-pass `src/backend/markdown/copy-blocks.ts` lifts every region whose `<copy>` starts a line (alone, with content on the open line, or closing on the same line) through the first `</copy>` ending a line, behind a random per-render placeholder (content cannot spoof it), renders inner Markdown through the full pipeline below, re-injects as `<copy data-block="">`. Round-3 rationale: raw line-starting tags left inner markdown literal and the sanitizer auto-close dropped everything after the first block from the copy element. Mid-line `<copy>` stays on marked's inline path; `data-block` is never accepted from note content; fenced `<copy>` lines stay literal.
 - `POST /api/v1/markdown/render`:
   - parses with GFM tables/task lists;
+  - breaks mode (round 6): single source newline inside paragraph renders `<br>`; blank-line paragraph separation and fenced code unchanged; applies to copy-block inner render;
   - sanitizes server-side;
   - allows `<u>` and `<copy>` (both attribute-less) but removes scripts, handlers, dangerous attributes, and unsafe schemes;
   - rewrites supported workspace-relative note links to internal routes;
@@ -442,8 +443,8 @@ interface ConfigV1 {
 
 ### 4.7 Copy
 
-- Copy Markdown reads current draft for `.md`.
-- Copy Text uses sanitized preview DOM `textContent`; `.txt` uses literal draft.
+- Copy Markdown reads current draft for `.md` through `markdownForClipboard` (`src/frontend/editor/copy-actions.ts`, round 6): strips `<copy>`/`</copy>` outside fenced/inline code, drops tag-only lines; applies to workspace and archive copies.
+- Copy Text uses sanitized preview DOM `textContent` with `<br>` restored to newlines (round 6 breaks-mode parity); `.txt` uses literal draft.
 - Clipboard failure maps to visible nonpersistent toast.
 
 ### 4.8 Settings and Theme

@@ -3,7 +3,7 @@ import type { RefObject } from "react";
 import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
 import type { FindController } from "../components/ui/FindInNoteBar";
-import { copyPlainText, copyToClipboard } from "../editor/copy-actions";
+import { copyPlainText, copyToClipboard, markdownForClipboard } from "../editor/copy-actions";
 import { closeSettingsRoute, navigate, openSettingsRoute } from "../services/navigation";
 import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
@@ -198,7 +198,7 @@ export function useShellState(
 
   function copyMarkdown() {
     if (!editor.document) return;
-    copyWithToast(copyToClipboard(editor.draft), "Markdown copied");
+    copyWithToast(copyToClipboard(markdownForClipboard(editor.draft)), "Markdown copied");
   }
 
   function copyText() {

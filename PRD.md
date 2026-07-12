@@ -246,6 +246,7 @@ Acceptance:
 - Existing UTF-8 BOM and consistent `LF` or `CRLF` line endings are preserved on save.
 - Invalid UTF-8 files remain discoverable and open read-only with `Unsupported encoding`.
 - `.md` read mode renders headings, lists, tables, task lists, links, images, code blocks, and block quotes.
+- Single source newline inside a paragraph renders as a line break (feedback round 6); blank line still separates paragraphs; fenced code untouched.
 - Images render only from workspace-relative local paths.
 - Remote URLs, `file://` URLs, data URLs, and image paths escaping workspace show blocked-image placeholder.
 - Workspace-relative note and file links open inside Local-Notes when target is allowed and supported.
@@ -337,13 +338,14 @@ Acceptance:
 #### `REQ-020` Copy actions
 
 - Markdown note provides `Copy Markdown` and `Copy Text`.
-- `Copy Markdown` copies source.
-- `Copy Text` copies readable plain text with Markdown syntax removed.
+- `Copy Markdown` copies source without app `<copy>`/`</copy>` markers (feedback round 6): marked regions keep inner markdown, tag-only lines drop, fenced and inline code keep literal tags.
+- `Copy Text` copies readable plain text with Markdown syntax removed; source line breaks within a paragraph are preserved.
 - Plain-text note provides `Copy Text` only.
 
 Acceptance:
 
 - Copy success and clipboard-denied failure receive clear feedback.
+- Given note containing copy regions, `Copy Markdown` output contains no `<copy>` or `</copy>` outside code.
 
 #### `REQ-037` Focus mode
 

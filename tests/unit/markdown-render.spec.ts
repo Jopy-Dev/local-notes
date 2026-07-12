@@ -171,6 +171,30 @@ describe("generalized copy regions (REQ-036, round 3)", () => {
   });
 });
 
+describe("paragraph line breaks (REQ-014, round 6)", () => {
+  it("renders a source newline inside a paragraph as a line break", () => {
+    const html = render("First line.\nSecond line.\nThird line.");
+    expect(html).toMatch(/First line\.<br \/?>Second line\.<br \/?>Third line\./);
+  });
+
+  it("keeps blank-line paragraph separation unchanged", () => {
+    const html = render("Para one.\n\nPara two.");
+    expect(html).toContain("<p>Para one.</p>");
+    expect(html).toContain("<p>Para two.</p>");
+  });
+
+  it("renders newlines inside a block copy region as line breaks", () => {
+    const html = render("<copy>alpha\nbeta</copy>");
+    expect(html).toMatch(/<copy data-block="">[\s\S]*alpha<br \/?>beta[\s\S]*<\/copy>/);
+  });
+
+  it("leaves fenced code newlines untouched", () => {
+    const html = render("```\nline one\nline two\n```");
+    expect(html).not.toContain("line one<br");
+    expect(html).toContain("line one\nline two");
+  });
+});
+
 describe("image policy (REQ-014)", () => {
   it("rewrites workspace-relative raster images to the guarded asset route", () => {
     const html = render("![shot](images/shot.png)");

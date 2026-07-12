@@ -9,7 +9,10 @@ import { classifyImage, classifyLink } from "./link-policy.js";
  * never code (7.2) - link/image re-classification lives in link-policy.ts and
  * only the sanitized output reaches the preview.
  */
-const marked = new Marked({ gfm: true, async: false });
+// breaks: a source newline inside a paragraph renders as <br> so the preview
+// follows the editor's line structure (REQ-014, feedback round 6). Copy Text
+// parity: plainTextFromHtml turns <br> back into "\n".
+const marked = new Marked({ gfm: true, breaks: true, async: false });
 
 export interface RenderedMarkdown {
   html: string;
