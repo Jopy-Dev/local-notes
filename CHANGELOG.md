@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-13
+
 ### Added
 
 - Find in note picks up your selection: select any text and press Ctrl+F - the find bar opens with that text as the query, already highlighted so typing replaces it; works from the source editor and the preview, and pressing Ctrl+F on a new selection while the bar is open searches for the new text
