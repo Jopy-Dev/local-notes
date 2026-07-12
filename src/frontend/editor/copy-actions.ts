@@ -1,9 +1,11 @@
-import { renderMarkdownPreview } from "../services/contentApi";
+import { plainTextFromSource } from "./copy-text";
+
+export { plainTextFromSource } from "./copy-text";
 
 /*
  * Copy actions (MasterPrompt.md 4.7, REQ-020): Copy Markdown reads the
- * current draft; Copy Text reads the sanitized preview DOM's textContent so
- * Markdown syntax is stripped by the same pipeline the preview trusts.
+ * current draft minus the app's copy tags; Copy Text strips Markdown syntax
+ * per source line, preserving the note's line structure (round 7).
  * Clipboard failure returns false for toast feedback - never a throw.
  */
 const COPY_OPEN = "<copy>";
@@ -55,34 +57,11 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-export function plainTextFromHtml(html: string): string {
-  // Server-sanitized HTML parsed detached; nothing executes (REQ-028).
-  const parsed = new DOMParser().parseFromString(html, "text/html");
-  // Round 6: breaks-mode rendering emits <br> for source newlines; textContent
-  // would drop them and join lines, so restore each as a newline.
-  for (const br of Array.from(parsed.body.querySelectorAll("br"))) {
-    br.replaceWith("\n");
-  }
-  // textContent alone runs blocks together; keep readable line structure.
-  for (const block of Array.from(
-    parsed.body.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, tr, blockquote, pre"),
-  )) {
-    block.after("\n");
-  }
-  const text = parsed.body.textContent ?? "";
-  return text.replaceAll(/\n{3,}/g, "\n\n").trim();
-}
-
 export async function copyPlainText(
   draft: string,
-  noteKey: string,
+  _noteKey: string,
   extension: ".md" | ".txt",
 ): Promise<boolean> {
   if (extension === ".txt") return copyToClipboard(draft);
-  try {
-    const preview = await renderMarkdownPreview(draft, noteKey);
-    return await copyToClipboard(plainTextFromHtml(preview.html));
-  } catch {
-    return false;
-  }
+  return copyToClipboard(plainTextFromSource(draft));
 }
