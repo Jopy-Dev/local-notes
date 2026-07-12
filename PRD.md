@@ -271,6 +271,7 @@ Acceptance:
 - Source mode provides a formatting toolbar whose controls rewrite Markdown syntax at the selection: bold, italic, underline, strike-through, copyable-text mark, headings H1-H3, bullet lists, numbered lists, task lists, links, tables, code blocks, undo, and redo.
 - Toolbar operations are ordinary undoable text edits; the document remains plain Markdown at all times.
 - The toolbar carries a line-wrap view toggle (feedback round 3): soft wrapping in source surfaces turns off and on for the session; view preference only, never persisted, never modifies the document.
+- The line-wrap toggle also governs the rendered preview (feedback round 8): wrap off keeps each rendered line unwrapped behind horizontal scroll in Read and Split preview; code blocks and explicit line breaks unaffected.
 - Underline serializes as sanitized `<u>` HTML.
 - Split mode supports side-by-side, preview above, and preview below with a draggable divider.
 - Saved file remains Markdown text without proprietary format.
