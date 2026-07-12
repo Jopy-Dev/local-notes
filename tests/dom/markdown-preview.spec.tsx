@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MarkdownPreview } from "../../src/frontend/editor/MarkdownPreview";
+import { useWorkspaceUi } from "../../src/frontend/stores/workspaceUi";
 
 vi.mock("../../src/frontend/services/contentApi.js", () => ({
   renderMarkdownPreview: vi.fn(async () => ({
@@ -89,5 +90,33 @@ describe("MarkdownPreview copy affordance (REQ-036)", () => {
       mark.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(writeText).toHaveBeenCalledWith("npm run dev");
+  });
+});
+
+describe("MarkdownPreview line wrap (REQ-015, round 8)", () => {
+  afterEach(() => {
+    useWorkspaceUi.setState({ lineWrap: true });
+  });
+
+  it("unwraps rendered lines when the session line-wrap toggle is off", async () => {
+    useWorkspaceUi.setState({ lineWrap: false });
+    await renderPreview();
+    const article = document.querySelector('article[aria-label="Rendered note"]');
+    expect(article?.className).toContain("whitespace-nowrap");
+  });
+
+  it("wraps normally while the toggle is on (default)", async () => {
+    await renderPreview();
+    const article = document.querySelector('article[aria-label="Rendered note"]');
+    expect(article?.className).not.toContain("whitespace-nowrap");
+  });
+
+  it("follows a toggle flip live without remount", async () => {
+    await renderPreview();
+    await act(async () => {
+      useWorkspaceUi.getState().toggleLineWrap();
+    });
+    const article = document.querySelector('article[aria-label="Rendered note"]');
+    expect(article?.className).toContain("whitespace-nowrap");
   });
 });

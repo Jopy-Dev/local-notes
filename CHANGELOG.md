@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-12
+
+### Changed
+
+- The line-wrap toggle now applies to the preview too: turn wrapping off and Read/Split preview keeps every line unwrapped with horizontal scrolling - same toolbar button, same session-only behavior; code blocks and manual line breaks are unaffected
+
 ## [1.3.0] - 2026-07-12
 
 ### Changed
