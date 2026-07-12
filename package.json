@@ -1,6 +1,6 @@
 {
   "name": "local-notes",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Offline, filesystem-first notes workspace served by a local Node.js/Fastify server with a React/Vite browser interface.",
   "type": "module",
