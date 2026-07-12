@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-12
+
+### Changed
+
+- Copy Text now mirrors your note's layout: the copied text keeps exactly the lines and blank lines you wrote - no more extra blank line after every heading, paragraph, and list item - while still removing Markdown syntax (heading marks, list bullets, bold/italic marks, link targets); works offline straight from the open note
+
 ## [1.2.0] - 2026-07-12
 
 ### Changed
