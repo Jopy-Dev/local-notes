@@ -10,6 +10,7 @@ import type { FindRequest } from "./find-in-note";
 import { applyPreviewFind, clearPreviewFind } from "./preview-find";
 import { copyMarkText, useCopyMounts } from "./copy-mounts";
 import { hydrateAssetImages, useRenderedHtml } from "./preview-support";
+import { useWorkspaceUi } from "../stores/workspaceUi";
 
 /*
  * <MarkdownPreview> per Design_System.md 9.2 (REQ-014): renders ONLY the
@@ -28,6 +29,10 @@ interface MarkdownPreviewProps {
 
 export function MarkdownPreview({ source, noteKey, onToast, ...props }: MarkdownPreviewProps) {
   const { html, status, retry } = useRenderedHtml(source, noteKey);
+  // Round 8 (REQ-015): the session line-wrap toggle governs the preview too -
+  // wrap off keeps each rendered line unwrapped behind horizontal scroll.
+  // white-space inherits, so pre/code (own value) and <br> breaks still hold.
+  const lineWrap = useWorkspaceUi((state) => state.lineWrap);
   const articleRef = useRef<HTMLElement | null>(null);
   const [pendingExternal, setPendingExternal] = useState<string | null>(null);
   const copyMounts = useCopyMounts(articleRef, html);
@@ -130,7 +135,7 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
         ref={articleRef}
         aria-label="Rendered note"
         onClick={onClick}
-        className="markdown-preview min-h-0 min-w-0 overflow-auto bg-surface-editor px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]"
+        className={`markdown-preview min-h-0 min-w-0 overflow-auto bg-surface-editor px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]${lineWrap ? "" : " whitespace-nowrap"}`}
         dangerouslySetInnerHTML={htmlProp ?? undefined}
       />
       {copyMounts.map((mount, index) =>
