@@ -13,7 +13,7 @@ interface ShellHotkeyHandlers {
   openSettings: () => void;
   toggleSplit: () => void;
   toggleFocusMode: () => void;
-  openFind: () => void;
+  openFind: (selection?: string) => void;
   onEscape: () => void;
 }
 
@@ -25,7 +25,9 @@ interface Binding {
 
 const modifierBindings: readonly Binding[] = [
   { key: "f", shift: true, run: (handlers) => handlers.toggleFocusMode() },
-  { key: "f", run: (handlers) => handlers.openFind() },
+  // Round 9: a selection at Ctrl+F time seeds the find query. Outside the
+  // source editor the DOM selection is the only selection source.
+  { key: "f", run: (handlers) => handlers.openFind(window.getSelection()?.toString()) },
   { key: "k", run: (handlers) => handlers.openCommand() },
   { key: "p", run: (handlers) => handlers.focusSearch() },
   { key: "n", run: (handlers) => handlers.openNewNote() },
@@ -36,6 +38,9 @@ const modifierBindings: readonly Binding[] = [
 export function useShellHotkeys(handlers: ShellHotkeyHandlers) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      // The source editor handles Mod-f itself (with its own selection);
+      // a prevented event must not open find a second time (round 9).
+      if (event.defaultPrevented) return;
       if (event.key === "Escape") {
         handlers.onEscape();
         return;

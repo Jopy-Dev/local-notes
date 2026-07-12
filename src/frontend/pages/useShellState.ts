@@ -4,6 +4,7 @@ import type { SplitLayout } from "../components/shell/EditorContent";
 import type { EditorMode } from "../components/ui/EditorModeTabs";
 import type { FindController } from "../components/ui/FindInNoteBar";
 import { copyPlainText, copyToClipboard, markdownForClipboard } from "../editor/copy-actions";
+import { queryFromSelection } from "../editor/find-in-note";
 import { closeSettingsRoute, navigate, openSettingsRoute } from "../services/navigation";
 import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
@@ -52,7 +53,7 @@ export interface ShellState extends DashboardData {
   copyText: () => void;
   copyLocalPath: () => void;
   find: FindController;
-  openFind: () => void;
+  openFind: (selection?: string) => void;
   dialog: DialogKind;
   setDialog: (dialog: DialogKind) => void;
   focusSearch: () => void;
@@ -142,10 +143,17 @@ export function useShellState(
     );
   }
 
-  // PRD REQ-035: find unavailable until the note's content loads.
-  function openFind() {
+  // PRD REQ-035: find unavailable until the note's content loads. A text
+  // selection at invoke time seeds the query (round 9) - first line only,
+  // trimmed, capped by queryFromSelection.
+  function openFind(selection?: string) {
     if (!editor.document) return;
     findReturnFocus.current = window.document.activeElement as HTMLElement | null;
+    const seeded = queryFromSelection(selection);
+    if (seeded !== "") {
+      setFindQuery(seeded);
+      setFindIndex(0);
+    }
     setFindOpen(true);
   }
 

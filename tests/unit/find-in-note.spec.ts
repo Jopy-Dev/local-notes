@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FIND_HIGHLIGHT_CAP,
+  FIND_QUERY_MAX_LENGTH,
+  queryFromSelection,
   scanMatches,
 } from "../../src/frontend/editor/find-in-note.js";
 
@@ -45,5 +47,30 @@ describe("scanMatches", () => {
 
   it("returns no ranges when nothing matches", () => {
     expect(scanMatches("plain content", "missing")).toEqual({ ranges: [], total: 0 });
+  });
+});
+
+/*
+ * Ctrl+F prefill (round 9): a text selection seeds the find query. Only the
+ * first line is used (find never matches across lines), whitespace trimmed,
+ * length capped so a whole-document selection cannot flood the input.
+ */
+describe("queryFromSelection", () => {
+  it("uses the trimmed selection as the query", () => {
+    expect(queryFromSelection("  project idea ")).toBe("project idea");
+  });
+
+  it("keeps only the first line of a multi-line selection", () => {
+    expect(queryFromSelection("first line\nsecond line\r\nthird")).toBe("first line");
+  });
+
+  it("returns empty for undefined, empty, and whitespace-only selections", () => {
+    expect(queryFromSelection(undefined)).toBe("");
+    expect(queryFromSelection("")).toBe("");
+    expect(queryFromSelection("   \n  ")).toBe("");
+  });
+
+  it("caps the query length", () => {
+    expect(queryFromSelection("x".repeat(500)).length).toBe(FIND_QUERY_MAX_LENGTH);
   });
 });

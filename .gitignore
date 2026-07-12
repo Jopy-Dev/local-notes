@@ -34,3 +34,4 @@ Desktop.ini
 # AI tooling (machine-local)
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/
