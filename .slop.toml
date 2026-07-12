@@ -176,6 +176,20 @@ reason = "round-2 restore/delete suites join the create/move/archive spec (one c
 expires = "2026-08-15"
 
 [[waivers]]
+id = "archive-note-view-hotspot-2026-07-12"
+path = "src/frontend/components/shell/ArchiveNoteView.tsx"
+rule = "structural.hotspots"
+reason = "growth stat is the round-2 file creation (SCREEN-008) inside the 14-day window; round-6 touch is a 4-line copy wiring change that re-flags the recomputed top scorer; CCX 21 healthy for one read-only archive surface; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
+id = "pages-package-distance-2026-07-12"
+path = "src/frontend/pages"
+rule = "structural.packages"
+reason = "route-level composition layer: I=0.75 (Ca=2, Ce=6) expected at the top of the dependency graph, A=1.00 is a hook/interface-export artifact; D'=0.75 pre-exists on dev (round-6 commit touched the package and re-activated enforcement, added no package edge); same class as cli/app composition-root waivers; KNOWN_ISSUES.md Suppressions"
+expires = "2026-08-15"
+
+[[waivers]]
 id = "search-service-spec-hotspot-2026-07-05"
 path = "tests/unit/search-service.spec.ts"
 rule = "structural.hotspots"
