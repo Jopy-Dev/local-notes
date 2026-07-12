@@ -444,7 +444,7 @@ interface ConfigV1 {
 ### 4.7 Copy
 
 - Copy Markdown reads current draft for `.md` through `markdownForClipboard` (`src/frontend/editor/copy-actions.ts`, round 6): strips `<copy>`/`</copy>` outside fenced/inline code, drops tag-only lines; applies to workspace and archive copies.
-- Copy Text uses sanitized preview DOM `textContent` with `<br>` restored to newlines (round 6 breaks-mode parity); `.txt` uses literal draft.
+- Copy Text (round 7) = `plainTextFromSource` (`src/frontend/editor/copy-text.ts`): per-line Markdown syntax strip over the draft, source line/blank-line structure preserved verbatim; syntax-only lines (fences, table separators, hr/setext rules) drop; no render request, works offline from the open draft; `.txt` uses literal draft. Preview-DOM `textContent` path removed - identical HTML for "heading+text" vs "heading+blank+text" makes DOM-derived line structure impossible.
 - Clipboard failure maps to visible nonpersistent toast.
 
 ### 4.8 Settings and Theme

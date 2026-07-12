@@ -4,43 +4,51 @@ import {
   copyPlainText,
   copyToClipboard,
   markdownForClipboard,
-  plainTextFromHtml,
+  plainTextFromSource,
 } from "../../src/frontend/editor/copy-actions.js";
-import { renderMarkdownPreview } from "../../src/frontend/services/contentApi.js";
-
-vi.mock("../../src/frontend/services/contentApi.js", () => ({
-  renderMarkdownPreview: vi.fn(),
-}));
 
 /*
- * Copy actions (MasterPrompt.md 4.7, REQ-020): Copy Text strips Markdown
- * syntax by reading the sanitized preview DOM's textContent; clipboard
- * failure surfaces as a false result for toast feedback, never a throw.
+ * Copy actions (MasterPrompt.md 4.7, REQ-020, round 7): Copy Text strips
+ * Markdown syntax per source line and preserves the source's exact line and
+ * blank-line structure - blank lines appear in the copy only where the note
+ * has them. Clipboard failure surfaces as a false result, never a throw.
  */
-describe("plainTextFromHtml", () => {
-  it("strips markup and keeps readable text", () => {
-    const html = "<h1>Title</h1><p>Text with <strong>bold</strong> and <a href=\"/notes/x\">a link</a>.</p>";
-    expect(plainTextFromHtml(html).replace(/\s+/g, " ").trim()).toBe(
-      "Title Text with bold and a link.",
+describe("plainTextFromSource", () => {
+  it("mirrors the source line structure of the approved round-7 sample", () => {
+    const source = [
+      "# Lets Brainstorm, Webapp Project Idea.",
+      'I am thinking of a project Idea about HOA Management system for my village. "The system is optimized for a single village, a single currency, a single language (English)"',
+      "",
+      '### 1. Accounts "RBAC"',
+      "",
+      '**- User "Homeowner":**',
+      '- View "Properties, Invoices" assigned to them. (Properties are the houses/units they have inside the village)',
+      "- Pay Invoices.",
+      '- Edit own profile "Only Password" If they need to update email need to submit a support ticket.',
+      "",
+      "**- Staff:**",
+      '- Can register a User "Homeowner", (internal dashboard only -- no public sign-up).',
+      "- Manage support tickets.",
+      '- Manage user "Homeowner" accounts. (Only Edit Email).',
+    ].join("\n");
+    expect(plainTextFromSource(source)).toBe(
+      [
+        "Lets Brainstorm, Webapp Project Idea.",
+        'I am thinking of a project Idea about HOA Management system for my village. "The system is optimized for a single village, a single currency, a single language (English)"',
+        "",
+        '1. Accounts "RBAC"',
+        "",
+        '- User "Homeowner":',
+        'View "Properties, Invoices" assigned to them. (Properties are the houses/units they have inside the village)',
+        "Pay Invoices.",
+        'Edit own profile "Only Password" If they need to update email need to submit a support ticket.',
+        "",
+        "- Staff:",
+        'Can register a User "Homeowner", (internal dashboard only -- no public sign-up).',
+        "Manage support tickets.",
+        'Manage user "Homeowner" accounts. (Only Edit Email).',
+      ].join("\n"),
     );
-  });
-
-  it("keeps copy-mark inner text without the tag", () => {
-    expect(plainTextFromHtml("<p>Use <copy>npm run dev</copy> now.</p>")).toContain("npm run dev");
-  });
-
-  // Round 6: the render pipeline emits <br> for source newlines (breaks mode);
-  // Copy Text must keep the same line structure it produced before.
-  it("converts <br> line breaks to newlines", () => {
-    expect(plainTextFromHtml("<p>First line.<br />Second line.<br />Third line.</p>")).toBe(
-      "First line.\nSecond line.\nThird line.",
-    );
-  });
-
-  it("keeps blank-line paragraph separation with <br> breaks present", () => {
-    // Same shape the pipeline emitted before breaks mode: paragraphs stay
-    // separated by a blank line, <br> only breaks lines inside one paragraph.
-    expect(plainTextFromHtml("<p>a<br />b</p>\n<p>c</p>")).toBe("a\nb\n\nc");
   });
 });
 
@@ -94,6 +102,54 @@ describe("markdownForClipboard", () => {
   });
 });
 
+describe("plainTextFromSource constructs", () => {
+  it("preserves consecutive blank lines exactly as the source has them", () => {
+    expect(plainTextFromSource("a\n\n\nb")).toBe("a\n\n\nb");
+  });
+
+  it("drops fence delimiters and keeps fenced content literal", () => {
+    expect(plainTextFromSource("before\n```\nconst x = 1; // # not a heading\n```\nafter")).toBe(
+      "before\nconst x = 1; // # not a heading\nafter",
+    );
+  });
+
+  it("keeps link and image text without targets", () => {
+    expect(plainTextFromSource("See [the guide](docs/guide.md) and ![shot](img/x.png).")).toBe(
+      "See the guide and shot.",
+    );
+  });
+
+  it("unwraps inline code and keeps literal copy tags inside it", () => {
+    expect(plainTextFromSource("Type `<copy>` then `npm run dev`.")).toBe(
+      "Type <copy> then npm run dev.",
+    );
+  });
+
+  it("strips copy tags, underline tags, and emphasis pairs", () => {
+    expect(
+      plainTextFromSource("<copy>**bold** and <u>under</u> and ~~gone~~ and *it* and _em_</copy>"),
+    ).toBe("bold and under and gone and it and em");
+  });
+
+  it("keeps unpaired emphasis markers as literal text", () => {
+    expect(plainTextFromSource("2*3 equals 6 and snake_case stays")).toBe(
+      "2*3 equals 6 and snake_case stays",
+    );
+  });
+
+  it("flattens table rows to cell text and drops separator rows", () => {
+    expect(plainTextFromSource("| A | B |\n| --- | --- |\n| 1 | 2 |")).toBe("A B\n1 2");
+  });
+
+  it("strips blockquote markers and task boxes", () => {
+    expect(plainTextFromSource("> quoted line\n- [x] done task")).toBe("quoted line\ndone task");
+  });
+
+  it("drops horizontal rules", () => {
+    expect(plainTextFromSource("above\n\n---\n\nbelow")).toBe("above\n\n\nbelow");
+  });
+});
+
 describe("copyToClipboard", () => {
   it("resolves true on clipboard success", async () => {
     Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
@@ -109,27 +165,17 @@ describe("copyToClipboard", () => {
 });
 
 describe("copyPlainText", () => {
-  it("copies the literal draft for .txt without rendering", async () => {
+  it("copies the literal draft for .txt without transformation", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    await expect(copyPlainText("raw draft", "key", ".txt")).resolves.toBe(true);
-    expect(writeText).toHaveBeenCalledWith("raw draft");
-    expect(renderMarkdownPreview).not.toHaveBeenCalled();
+    await expect(copyPlainText("raw # draft", "key", ".txt")).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith("raw # draft");
   });
 
-  it("copies the sanitized preview text for .md", async () => {
+  it("copies syntax-stripped source text for .md preserving line structure", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    vi.mocked(renderMarkdownPreview).mockResolvedValue({
-      html: "<h1>Title</h1><p>Body <strong>bold</strong></p>",
-    } as Awaited<ReturnType<typeof renderMarkdownPreview>>);
     await expect(copyPlainText("# Title\n\nBody **bold**", "key", ".md")).resolves.toBe(true);
-    expect(writeText).toHaveBeenCalledWith("Title\nBody bold");
-  });
-
-  it("resolves false when the render request fails", async () => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn() } });
-    vi.mocked(renderMarkdownPreview).mockRejectedValue(new Error("offline"));
-    await expect(copyPlainText("# Title", "key", ".md")).resolves.toBe(false);
+    expect(writeText).toHaveBeenCalledWith("Title\n\nBody bold");
   });
 });

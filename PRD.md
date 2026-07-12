@@ -339,13 +339,14 @@ Acceptance:
 
 - Markdown note provides `Copy Markdown` and `Copy Text`.
 - `Copy Markdown` copies source without app `<copy>`/`</copy>` markers (feedback round 6): marked regions keep inner markdown, tag-only lines drop, fenced and inline code keep literal tags.
-- `Copy Text` copies readable plain text with Markdown syntax removed; source line breaks within a paragraph are preserved.
+- `Copy Text` copies readable plain text with Markdown syntax removed; output mirrors source line structure exactly (feedback round 7): blank lines only where the note has them, per-line syntax strip (headings, list markers, quotes, emphasis, links to their text, code fences dropped with content kept, tables to cell text, `<u>`/`<copy>` tags removed, literal tags inside inline code kept).
 - Plain-text note provides `Copy Text` only.
 
 Acceptance:
 
 - Copy success and clipboard-denied failure receive clear feedback.
 - Given note containing copy regions, `Copy Markdown` output contains no `<copy>` or `</copy>` outside code.
+- Given any note, `Copy Text` line count and blank-line placement match the source minus dropped syntax-only lines (fences, table separators, rules).
 
 #### `REQ-037` Focus mode
 
