@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-12
+
 ### Changed
 
 - Preview follows your line breaks: pressing Enter once in the source now shows as a new line in Read and Split preview instead of joining into one long paragraph - a blank line still starts a new paragraph, and Copy Text keeps the same line structure it always had
