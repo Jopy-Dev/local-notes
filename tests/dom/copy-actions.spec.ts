@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   copyPlainText,
   copyToClipboard,
+  markdownForClipboard,
   plainTextFromHtml,
 } from "../../src/frontend/editor/copy-actions.js";
 import { renderMarkdownPreview } from "../../src/frontend/services/contentApi.js";
@@ -26,6 +27,70 @@ describe("plainTextFromHtml", () => {
 
   it("keeps copy-mark inner text without the tag", () => {
     expect(plainTextFromHtml("<p>Use <copy>npm run dev</copy> now.</p>")).toContain("npm run dev");
+  });
+
+  // Round 6: the render pipeline emits <br> for source newlines (breaks mode);
+  // Copy Text must keep the same line structure it produced before.
+  it("converts <br> line breaks to newlines", () => {
+    expect(plainTextFromHtml("<p>First line.<br />Second line.<br />Third line.</p>")).toBe(
+      "First line.\nSecond line.\nThird line.",
+    );
+  });
+
+  it("keeps blank-line paragraph separation with <br> breaks present", () => {
+    // Same shape the pipeline emitted before breaks mode: paragraphs stay
+    // separated by a blank line, <br> only breaks lines inside one paragraph.
+    expect(plainTextFromHtml("<p>a<br />b</p>\n<p>c</p>")).toBe("a\nb\n\nc");
+  });
+});
+
+/*
+ * Round 6 (REQ-020): Copy Markdown excludes the app's <copy>/</copy> markers -
+ * they are a copy affordance, not note content. Marked regions keep their
+ * inner markdown; code examples keep literal tags.
+ */
+describe("markdownForClipboard", () => {
+  it("strips inline copy tags and keeps the marked text", () => {
+    expect(markdownForClipboard("Run <copy>npm run dev</copy> now.")).toBe("Run npm run dev now.");
+  });
+
+  it("removes tag-only lines of a block region entirely", () => {
+    expect(markdownForClipboard("before\n<copy>\n## Heading\n- item\n</copy>\nafter")).toBe(
+      "before\n## Heading\n- item\nafter",
+    );
+  });
+
+  it("keeps content sharing a line with a tag", () => {
+    expect(markdownForClipboard("<copy>First line\nlast line</copy>")).toBe(
+      "First line\nlast line",
+    );
+  });
+
+  it("keeps a same-line region's content on its line", () => {
+    expect(markdownForClipboard("<copy>## The system provides:</copy>")).toBe(
+      "## The system provides:",
+    );
+  });
+
+  it("returns source without copy tags byte-identical otherwise", () => {
+    const source = "# Title\r\n\r\nPlain **bold** text.\t end";
+    expect(markdownForClipboard(source)).toBe(source);
+  });
+
+  it("keeps literal tags inside fenced code blocks", () => {
+    const source = "```\n<copy>\nexample\n</copy>\n```";
+    expect(markdownForClipboard(source)).toBe(source);
+  });
+
+  it("keeps literal tags inside inline code spans", () => {
+    const source = "Type `<copy>` to open a region.";
+    expect(markdownForClipboard(source)).toBe(source);
+  });
+
+  it("strips a tag outside a code span on the same line", () => {
+    expect(markdownForClipboard("Use `<copy>` like <copy>this</copy>.")).toBe(
+      "Use `<copy>` like this.",
+    );
   });
 });
 

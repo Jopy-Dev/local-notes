@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { ArchiveIcon, CopyIcon, MoreIcon, MoveNoteIcon, TrashIcon } from "../icons";
 import { MarkdownPreview } from "../../editor/MarkdownPreview";
 import { SourceEditor } from "../../editor/SourceEditor";
-import { copyPlainText, copyToClipboard } from "../../editor/copy-actions";
+import { copyPlainText, copyToClipboard, markdownForClipboard } from "../../editor/copy-actions";
 import { ApiRequestError } from "../../services/api";
 import { deleteArchivedNote, loadArchivedNote, restoreArchivedNote } from "../../services/archiveApi";
 import { navigate } from "../../services/navigation";
@@ -134,7 +134,10 @@ export function ArchiveNoteView({ noteKey, folders, onToast }: ArchiveNoteViewPr
                   icon={<CopyIcon size={14} />}
                   onClick={() => {
                     setMenuOpen(false);
-                    copyWithToast(copyToClipboard(document.content), "Markdown copied");
+                    copyWithToast(
+                      copyToClipboard(markdownForClipboard(document.content)),
+                      "Markdown copied",
+                    );
                   }}
                 >
                   Copy Markdown
