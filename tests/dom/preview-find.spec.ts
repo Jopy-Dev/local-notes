@@ -57,6 +57,31 @@ describe("applyPreviewFind", () => {
     expect(result.activeElement?.closest("#second")).not.toBeNull();
   });
 
+  it("clamps an overflowing active index to the last rendered match", () => {
+    // Split view (round 9): the shared index counts SOURCE matches; the
+    // rendered text can hold fewer (markdown syntax). Clamp keeps a nearby
+    // active match instead of dropping tracking entirely.
+    const container = containerOf("<p>first note</p><p id='last'>second note</p>");
+    const result = applyPreviewFind(container, {
+      query: "note",
+      activeIndex: 5,
+      caseSensitive: false,
+    });
+    expect(result.activeElement).not.toBeNull();
+    expect(result.activeElement?.closest("#last")).not.toBeNull();
+  });
+
+  it("marks no active match for a negative active index", () => {
+    const container = containerOf("<p>note</p>");
+    const result = applyPreviewFind(container, {
+      query: "note",
+      activeIndex: -1,
+      caseSensitive: false,
+    });
+    expect(result.total).toBe(1);
+    expect(result.activeElement).toBeNull();
+  });
+
   it("clears to zero on a null request", () => {
     const container = containerOf("<p>note</p>");
     applyPreviewFind(container, { query: "note", activeIndex: 0, caseSensitive: false });

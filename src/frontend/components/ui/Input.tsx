@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, Ref } from "react";
 
 /*
  * <Input> per Design_System.md 9.1: external label required (FormField or
@@ -6,6 +6,8 @@ import type { InputHTMLAttributes } from "react";
  */
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
+  // React 19 ref-as-prop; InputHTMLAttributes does not carry it.
+  ref?: Ref<HTMLInputElement>;
 }
 
 export function Input({ invalid = false, className, ...rest }: InputProps) {

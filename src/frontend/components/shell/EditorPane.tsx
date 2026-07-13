@@ -44,7 +44,7 @@ interface EditorPaneProps {
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   find: FindController;
-  onOpenFind: () => void;
+  onOpenFind: (selection?: string) => void;
   onToast: (message: string) => void;
   onCopyMarkdown: () => void;
   onCopyText: () => void;

@@ -7,6 +7,19 @@
  */
 export const FIND_HIGHLIGHT_CAP = 500;
 
+/*
+ * Ctrl+F prefill (round 9): a selection seeds the find query. The scan is
+ * per-line on every surface, so only the selection's first line is usable;
+ * the cap keeps a whole-document selection from flooding the input.
+ */
+export const FIND_QUERY_MAX_LENGTH = 200;
+
+export function queryFromSelection(selection: string | undefined): string {
+  if (!selection) return "";
+  const firstLine = selection.split(/\r?\n/, 1)[0] ?? "";
+  return firstLine.trim().slice(0, FIND_QUERY_MAX_LENGTH);
+}
+
 export interface FindRequest {
   query: string;
   activeIndex: number;
