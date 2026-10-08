@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- Reloading the page (or opening a saved link) while viewing an archived note now shows the note instead of a "not found" error
+
 ## [1.5.3] - 2026-10-08
 
 ### Fixed
