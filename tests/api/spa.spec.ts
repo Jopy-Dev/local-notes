@@ -20,7 +20,8 @@ const TEMPLATE = [
   "<body><div id=\"root\"></div></body></html>",
 ].join("\n");
 
-const CLIENT_ROUTES = ["/", "/notes/d2VsY29tZS5tZA", "/settings", "/recovery/search"];
+// /archive/:noteKey (round 2 archive browser) reloads and deep-links too.
+const CLIENT_ROUTES = ["/", "/notes/d2VsY29tZS5tZA", "/archive/b2xkLm1k", "/settings", "/recovery/search"];
 
 function nonceOf(res: { headers: Record<string, unknown> }): string {
   const csp = String(res.headers["content-security-policy"]);
@@ -114,6 +115,15 @@ describe("packaged SPA serving", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe("body{}");
+  });
+
+  it("rejects malformed archive keys with 404 instead of serving the shell", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/archive/../escape",
+      headers: { host: LOCAL_HOST_HEADER },
+    });
+    expect(res.statusCode).toBe(404);
   });
 
   it("rejects malformed note keys with 404 instead of serving the shell", async () => {
