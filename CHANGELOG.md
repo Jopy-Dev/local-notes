@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-10-08
+
+### Changed
+
+- Updated bundled libraries to their latest patch/minor releases (React 19.3, Markdown parser, editor, and list components) - no change in how the app behaves
+
 ### Fixed
 
 - Reloading the page (or opening a saved link) while viewing an archived note now shows the note instead of a "not found" error
