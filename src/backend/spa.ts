@@ -38,9 +38,13 @@ export async function registerSpa(app: FastifyInstance, staticRoot: string): Pro
   for (const route of CLIENT_ROUTES) {
     app.get(route, sendShell);
   }
-  app.get("/notes/:noteKey", (request, reply) => {
-    const { noteKey } = request.params as { noteKey: string };
-    if (!NOTE_KEY_PATTERN.test(noteKey)) return reply.callNotFound();
-    return sendShell(request, reply);
-  });
+  // Keyed client routes: /archive (round 2, SCREEN-008) must reload and
+  // deep-link like /notes - same opaque-key check, same nonce shell.
+  for (const prefix of ["/notes", "/archive"]) {
+    app.get(`${prefix}/:noteKey`, (request, reply) => {
+      const { noteKey } = request.params as { noteKey: string };
+      if (!NOTE_KEY_PATTERN.test(noteKey)) return reply.callNotFound();
+      return sendShell(request, reply);
+    });
+  }
 }
