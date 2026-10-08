@@ -47,13 +47,13 @@ describe("raw HTML allowlist", () => {
   it("keeps attribute-less <u> and <copy>", () => {
     const html = render("Text with <u>underline</u> and <copy>snippet</copy>.");
     expect(html).toContain("<u>underline</u>");
-    expect(html).toContain("<copy>snippet</copy>");
+    expect(html).toContain('<copy data-copy-source="snippet">snippet</copy>');
   });
 
   it("strips attributes from <u> and <copy>", () => {
     const html = render('A <u onclick="alert(1)">u</u> and <copy class="x">c</copy>.');
     expect(html).toContain("<u>u</u>");
-    expect(html).toContain("<copy>c</copy>");
+    expect(html).toContain('<copy data-copy-source="c">c</copy>');
     expect(html).not.toContain("onclick");
     expect(html).not.toContain("class=");
   });
@@ -102,22 +102,24 @@ describe("multi-line copy regions (REQ-036, round 2)", () => {
 
   it("renders inner markdown inside a block copy wrapper", () => {
     const html = render(`before\n\n${block}\n\nafter`);
-    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain('<copy data-block="" data-copy-source="');
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain("<li>item one</li>");
-    expect(html).toMatch(/<copy data-block="">[\s\S]*<\/copy>/);
+    expect(html).toMatch(/<copy data-block="" data-copy-source="[^"]*">[\s\S]*<\/copy>/);
   });
 
   it("sanitizes active content inside a block copy region", () => {
     const html = render("<copy>\ntext <script>alert(1)</script>\n</copy>");
-    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain('<copy data-block="" data-copy-source="');
     expect(html).not.toContain("<script");
-    expect(html).not.toContain("alert(1)");
+    // Round 10: the escaped attribute holds the typed source verbatim (inert
+    // text for the clipboard); rendered content must not carry the script.
+    expect(html.replace(/ data-copy-source="[^"]*"/g, "")).not.toContain("alert(1)");
   });
 
   it("never accepts data-block from note content", () => {
     const html = render('Inline <copy data-block="x">snippet</copy> here.');
-    expect(html).toContain("<copy>snippet</copy>");
+    expect(html).toContain('<copy data-copy-source="snippet">snippet</copy>');
     expect(html).not.toContain('data-block="x"');
   });
 
@@ -129,7 +131,7 @@ describe("multi-line copy regions (REQ-036, round 2)", () => {
 
   it("keeps single-line copy marks inline", () => {
     const html = render("Use <copy>npm run dev</copy> here.");
-    expect(html).toContain("<copy>npm run dev</copy>");
+    expect(html).toContain('<copy data-copy-source="npm run dev">npm run dev</copy>');
     expect(html).not.toContain("data-block");
   });
 
@@ -142,26 +144,26 @@ describe("multi-line copy regions (REQ-036, round 2)", () => {
 describe("generalized copy regions (REQ-036, round 3)", () => {
   it("a whole-line copy mark renders its inner markdown", () => {
     const html = render("<copy>## The system provides:</copy>");
-    expect(html).toContain('<copy data-block="">');
+    expect(html).toContain('<copy data-block="" data-copy-source="');
     expect(html).toContain("<h2>The system provides:</h2>");
   });
 
   it("a region opening with content on the same line keeps every block inside the copy element", () => {
     const source = "<copy>First line\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n</copy>";
     const html = render(source);
-    expect(html).toMatch(/<copy data-block="">[\s\S]*First line[\s\S]*<table>[\s\S]*<\/copy>/);
+    expect(html).toMatch(/<copy data-block="" data-copy-source="[^"]*">[\s\S]*First line[\s\S]*<table>[\s\S]*<\/copy>/);
     expect(html).not.toContain("<td></td>");
   });
 
   it("content before the closing tag on its line joins the region", () => {
     const html = render("<copy>first line\nlast line</copy>");
-    expect(html).toMatch(/<copy data-block="">[\s\S]*first line[\s\S]*last line[\s\S]*<\/copy>/);
+    expect(html).toMatch(/<copy data-block="" data-copy-source="[^"]*">[\s\S]*first line[\s\S]*last line[\s\S]*<\/copy>/);
   });
 
   it("a line carrying several inline copy marks stays inline", () => {
     const html = render("<copy>one</copy> and <copy>two</copy>");
-    expect(html).toContain("<copy>one</copy>");
-    expect(html).toContain("<copy>two</copy>");
+    expect(html).toContain('<copy data-copy-source="one">one</copy>');
+    expect(html).toContain('<copy data-copy-source="two">two</copy>');
     expect(html).not.toContain("data-block");
   });
 
@@ -185,7 +187,7 @@ describe("paragraph line breaks (REQ-014, round 6)", () => {
 
   it("renders newlines inside a block copy region as line breaks", () => {
     const html = render("<copy>alpha\nbeta</copy>");
-    expect(html).toMatch(/<copy data-block="">[\s\S]*alpha<br \/?>beta[\s\S]*<\/copy>/);
+    expect(html).toMatch(/<copy data-block="" data-copy-source="[^"]*">[\s\S]*alpha<br \/?>beta[\s\S]*<\/copy>/);
   });
 
   it("leaves fenced code newlines untouched", () => {

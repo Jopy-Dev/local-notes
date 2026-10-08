@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-08
+
+### Changed
+
+- Copyable text now copies exactly what you typed between the tags, like selecting it in Notepad: bullets, numbers, indentation, blank lines, and Markdown marks all come along unchanged
+- Clicking (or middle-clicking) a link inside copyable text now copies the text instead of asking to open the link
+
+### Fixed
+
+- Ctrl+F always puts you in the find box with the current search text selected, ready to type over - even when find is already open, you are reading the preview, or you are already in the find box
+- Starting Local-Notes no longer prints a framework deprecation warning in the terminal (appeared since 1.5.1)
+- Unusual addresses such as `//index.html` or hidden files like `/.env` now get the normal "not found" answer instead of an unexpected-error response, and no longer write an error entry to the local log
+
+## [1.5.1] - 2026-10-08
+
+### Security
+
+- Updated the local server components (Fastify 5.12.5, @fastify/static 10.1.5) and the Markdown sanitizer (sanitize-html 2.18.0) to close published advisories, including a static-file guard bypass through non-canonical paths such as `//index.html`
+
+### Fixed
+
+- Deleting an archived note whose name contains brackets or braces (for example `report[1].md`) now sends only that note to the recycle bin; on macOS and Linux it could previously also send a similarly named sibling note
+
 ## [1.5.0] - 2026-07-13
 
 ### Added

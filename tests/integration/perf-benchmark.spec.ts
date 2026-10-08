@@ -27,11 +27,13 @@ const NOTE_COUNT = 10_000;
 const SETUP_TIMEOUT_MS = 300_000;
 /*
  * PRD ties METRIC-002/003 budgets to documented release reference hardware
- * (local runs assert them strictly). Shared CI runners are ~2x slower and
- * noisy, so CI keeps a 2x ceiling as a regression tripwire - the tolerance-1
- * defect this bench caught (281ms local, ~650ms scaled) still trips it.
+ * (local runs assert them strictly). Shared CI runners are slower and noisy
+ * (2026-10 measurement: ~4-5x the reference machine, p95 224-278ms vs ~57ms
+ * local on identical code), so CI keeps a 4x ceiling as a regression
+ * tripwire - the tolerance-1 defect this bench caught (281ms local, well over
+ * 1s on current runners) still trips it.
  */
-const CI_HARDWARE_FACTOR = process.env.CI ? 2 : 1;
+const CI_HARDWARE_FACTOR = process.env.CI ? 4 : 1;
 const SEARCH_P95_BUDGET_MS = 100 * CI_HARDWARE_FACTOR;
 const STARTUP_BUDGET_MS = 2_000 * CI_HARDWARE_FACTOR;
 

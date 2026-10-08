@@ -28,11 +28,12 @@ afterEach(() => {
 
 const noop = () => {};
 
-function renderBar(query: string, onQueryChange: (query: string) => void = noop) {
+function renderBar(query: string, onQueryChange: (query: string) => void = noop, focusRequest = 1) {
   act(() => {
     root.render(
       <FindInNoteBar
         query={query}
+        focusRequest={focusRequest}
         caseSensitive={false}
         activeIndex={0}
         total={0}
@@ -88,5 +89,34 @@ describe("find bar query prefill", () => {
     renderBar("vil", onQueryChange);
     expect(input().value).toBe("vil");
     vi.useRealTimers();
+  });
+});
+
+describe("every Ctrl+F lands in the find input (round 10)", () => {
+  it("re-invoking find while open focuses the input and selects the existing query", () => {
+    renderBar("alpha", noop, 1);
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    input().setSelectionRange(5, 5);
+    expect(document.activeElement).toBe(outside);
+
+    renderBar("alpha", noop, 2);
+
+    expect(document.activeElement).toBe(input());
+    expect(input().selectionStart).toBe(0);
+    expect(input().selectionEnd).toBe("alpha".length);
+    outside.remove();
+  });
+
+  it("re-invoking find with the caret already in the input selects the whole query", () => {
+    renderBar("alpha", noop, 1);
+    input().focus();
+    input().setSelectionRange(2, 2);
+
+    renderBar("alpha", noop, 2);
+
+    expect(input().selectionStart).toBe(0);
+    expect(input().selectionEnd).toBe("alpha".length);
   });
 });

@@ -76,6 +76,26 @@ describe("packaged SPA serving", () => {
     expect(res.statusCode).toBe(404);
   });
 
+  // GHSA-8pvw-jcv7-9cmj: non-canonical spellings must not slip past the
+  // allowedPath guard and leak the raw template.
+  for (const url of ["//index.html", "/./index.html", "/assets/../index.html", "/%2e/index.html", "/index%2ehtml"]) {
+    it(`never serves the raw template at non-canonical ${url}`, async () => {
+      const res = await app.inject({ method: "GET", url, headers: { host: LOCAL_HOST_HEADER } });
+      expect(res.body).not.toContain("__CSP_NONCE__");
+      expect(res.statusCode).toBe(404);
+    });
+  }
+
+  // Static-layer refusals (non-canonical paths, denied dotfiles) are not
+  // server faults: same 404 envelope as any unknown path, existence hidden.
+  for (const url of ["//assets/index-abc.css", "//nope", "/.env", "/.hidden/x"]) {
+    it(`maps static refusal at ${url} to the 404 envelope`, async () => {
+      const res = await app.inject({ method: "GET", url, headers: { host: LOCAL_HOST_HEADER } });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().error.code).toBe("NOT_FOUND");
+    });
+  }
+
   it("returns the envelope 404 for unknown non-API paths", async () => {
     const res = await app.inject({
       method: "GET",

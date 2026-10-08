@@ -71,15 +71,18 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
 
   function onClick(event: React.MouseEvent<HTMLElement>) {
     const target = event.target as HTMLElement;
-    const anchor = target.closest("a");
-    if (!anchor) {
-      // REQ-036 (round 2): clicking the marked text copies it - the same
-      // action as the affordance button next to it, which stays for
-      // discoverability and keyboard access.
-      const copyMark = target.closest("copy");
-      if (copyMark) copyMarkedText(copyMarkText(copyMark));
+    // REQ-036: clicking the marked text copies it - the same action as the
+    // affordance button next to it, which stays for discoverability and
+    // keyboard access. Round 10: a link inside the region is just more of
+    // the region's text, so it copies too - no confirmation, no navigation.
+    const copyMark = target.closest("copy");
+    if (copyMark) {
+      event.preventDefault();
+      copyMarkedText(copyMarkText(copyMark));
       return;
     }
+    const anchor = target.closest("a");
+    if (!anchor) return;
     event.preventDefault();
     const kind = anchor.getAttribute("data-link");
     const href = anchor.getAttribute("href") ?? "";
@@ -92,6 +95,13 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
     if (kind === "external" && /^https?:/i.test(href)) {
       setPendingExternal(href);
     }
+  }
+
+  // Round 10: middle-click on a link inside a copy region must not open a
+  // browser tab natively - those links are region text, not navigation.
+  function onAuxClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("a") && target.closest("copy")) event.preventDefault();
   }
 
   if (status === "error") {
@@ -135,6 +145,7 @@ export function MarkdownPreview({ source, noteKey, onToast, ...props }: Markdown
         ref={articleRef}
         aria-label="Rendered note"
         onClick={onClick}
+        onAuxClick={onAuxClick}
         className={`markdown-preview min-h-0 min-w-0 overflow-auto bg-surface-editor px-4.5 py-3 [scrollbar-color:var(--color-border-strong)_transparent] [scrollbar-width:thin]${lineWrap ? "" : " whitespace-nowrap"}`}
         dangerouslySetInnerHTML={htmlProp ?? undefined}
       />

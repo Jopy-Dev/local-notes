@@ -67,8 +67,8 @@ expires = "2026-08-15"
 id = "editor-controller-wmc-2026-07-04"
 path = "src/frontend/editor/editor-controller.ts"
 rule = "structural.class.complexity"
-reason = "AutosaveScheduler extracted per original waiver condition (WMC 57->52); REQ-018 rename-follow + clean-delete handling raises inherent state-machine branching to WMC 60; fully covered by tests/unit/editor-controller.spec.ts; KNOWN_ISSUES.md Suppressions"
-expires = "2026-08-15"
+reason = "AutosaveScheduler extracted per original waiver condition (WMC 57->52); REQ-018 rename-follow + clean-delete handling raises inherent state-machine branching to WMC 60 (61 at 2026-10-08 re-review); fully covered by tests/unit/editor-controller.spec.ts; KNOWN_ISSUES.md Suppressions"
+expires = "2026-12-08"
 
 [[waivers]]
 id = "editor-controller-hotspot-2026-07-04"
@@ -159,7 +159,7 @@ id = "note-mutations-wmc-2026-07-05"
 path = "src/backend/filesystem/note-mutations.ts"
 rule = "structural.class.complexity"
 reason = "round-2 restore + recycle-bin delete join create/move/archive; all methods share the lexically-ordered path-lock map (2.5) so splitting the archive family out would need a shared lock coordinator for less cohesion; WMC 46 fully covered by tests/unit/note-mutations.spec.ts; KNOWN_ISSUES.md Suppressions"
-expires = "2026-08-15"
+expires = "2026-12-08"
 
 [[waivers]]
 id = "note-mutations-hotspot-2026-07-05"

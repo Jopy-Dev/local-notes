@@ -65,7 +65,7 @@ Status: Waves 0-5 live — Fastify core + capability boundary, filesystem founda
 
 ## 5. Integration Points
 
-None external at runtime (offline contract, `REQ-026`). Build/CI integrations: GitHub Actions (`verify` job + `release.yml` tag workflow attaching the `npm pack` tarball to a GitHub Release per ADR-007 — no npm publish, repo private), Dependabot.
+None external at runtime (offline contract, `REQ-026`). Build/CI integrations: GitHub Actions (`verify` job with the `scripts/check-audit.mjs` production audit gate over the reviewed `scripts/audit-allowlist.json` per ADR-010 + `release.yml` tag workflow attaching the `npm pack` tarball to a GitHub Release per ADR-007 — no npm publish, repo private), Dependabot.
 
 ## 6. Role Boundaries
 
@@ -82,13 +82,14 @@ Single human role Local Operator + system actor Local Process (PRD §3). No RBAC
 | 401 loop / blank app after open | capability flow, bootstrap fragment | `REQ-027`, ADR-003, §4.1 | `src/backend/security/`, `src/frontend/services/` API client | capability unit suite, `REQ-027.boundary.security` | `LOCAL_ACCESS_REQUIRED` 401, no token in logs |
 | Save stuck `Saving` / `Conflict` wrongly / data loss report | autosave scheduler, version tokens, atomic writer, SSE self-suppression | `REQ-017/018/023`, §2.5, §4.5 | `src/frontend/stores/` editor store, `src/backend/routes/` content PUT, `AtomicFileWriter` | `WF-006.autosave.spec`, `WF-007.conflict.spec`, `REQ-023.atomic.integration` (fault injection) | `NOTE_CONFLICT` 409, `X-Operation-ID` mismatch, pino `write` op |
 | Toolbar writes wrong Markdown / selection jumps | markdown-commands transforms, toolbar dispatch | `REQ-015`, §4.6 | `src/frontend/editor/markdown-commands.ts`, `MarkdownToolbar.tsx` | `tests/unit/markdown-commands.spec.ts` | none (client-only) |
-| Archive list empty / restore or delete fails | archive repository, restore/delete service, recycle bin | `REQ-039/040`, §4.13 | `src/backend/routes/archive.ts`, `NoteMutationService`, `shell/ArchiveNoteView.tsx` | `tests/api/archive-routes.spec.ts`, mutation unit suite | `NOTE_EXISTS` 409, `NOTE_NOT_FOUND` 404 |
+| Archive list empty / restore or delete fails / delete recycles extra files | archive repository, restore/delete service, recycle bin (`trash` literal path, `glob: false`) | `REQ-039/040`, §4.13 | `src/backend/routes/archive.ts`, `NoteMutationService`, `shell/ArchiveNoteView.tsx` | `tests/api/archive-routes.spec.ts`, mutation unit suite, `tests/unit/system-trash.spec.ts` | `NOTE_EXISTS` 409, `NOTE_NOT_FOUND` 404 |
 | Preview shows raw/blocked content, image missing | render/sanitize pipeline, asset guard | `REQ-014/028`, §4.6 | `src/backend/routes/` markdown render + assets | `REQ-028.xss.security` corpus | `ASSET_BLOCKED` 403, sanitizer strip |
-| `<copy>` affordance missing/copies wrong text | copy mark, preview wrapper, clipboard | `REQ-036`, §4.12, §4.7 | `src/frontend/editor/` copy mark, preview component | `REQ-036.copymark.e2e` | toast failure copy |
+| `<copy>` affordance missing/copies wrong text / link in copy region navigates | copy mark, `data-copy-source` (server, exact source), preview click order, clipboard | `REQ-036`, §4.6, §4.12, §4.7 | `src/backend/markdown/copy-sources.ts`, `render-pipeline.ts`, `src/frontend/editor/copy-mounts.ts`, `MarkdownPreview.tsx` | `tests/unit/copy-source.spec.ts`, `tests/dom/copy-region-links.spec.tsx`, `tests/dom/copy-mark-text.spec.ts` | toast failure copy |
 | Settings not persisting / theme flicker / pane snap-back | config mutex, optimistic rollback, pane state | `REQ-021/034`, §2.7, §4.10 | `src/backend/config/`, `src/frontend/stores/` workspace UI state | `WF-010.settings.spec`, `WF-012.panes.spec` | `INVALID_SETTING` 422, `settings.changed` SSE |
-| Find-in-note wrong count / editor lag | find controller, decoration plugin, 500-match cap | `REQ-035`, §4.11 | `src/frontend/editor/` find plugin, `<FindInNoteBar>` | `WF-013.find.spec` | none (client-only) |
+| Find-in-note wrong count / editor lag / Ctrl+F not landing in find box | find controller, decoration plugin, 500-match cap, `focusRequest` | `REQ-035`, §4.11 | `src/frontend/editor/` find plugin, `<FindInNoteBar>`, `useShellHotkeys`, `useShellState` | `WF-013.find.spec`, `tests/dom/find-in-note-bar.spec.tsx`, `tests/dom/shell-find-hotkey.spec.tsx` | none (client-only) |
 | App slow at 10k notes / memory growth | virtualization, index budget, pagination | `REQ-031`, §4.2-4.3 | `<NotesVirtualList>`, worker budget ledger | `REQ-031.performance`, soak test | perf report, `metadata-only` labels |
-| CI red | workflow gates | `.github/workflows/ci.yml`, ADR-006 | workflow file, slop/gitleaks configs | rerun with `gh run view --log-failed` | job step logs |
+| Static path returns 500 / `INTERNAL` instead of 404 | error taxonomy mapping, static-file refusals (`@fastify/static` 403/404 for non-canonical or dotfile paths) | `MasterPrompt.md` §5.1, §7.3 | `src/backend/error-handling.ts`, `src/backend/spa.ts` | `tests/api/spa.spec.ts` | pino level 50 `Forbidden` entries, `INTERNAL` 500 envelope |
+| CI red | workflow gates | `.github/workflows/ci.yml`, ADR-006, ADR-010 | workflow file, slop/gitleaks configs, `scripts/check-audit.mjs` + `scripts/audit-allowlist.json` | rerun with `gh run view --log-failed` | job step logs |
 | Wrong file permissions / symlink escape report | path guard, POSIX modes | `REQ-027`, §2.2, §2.4 | `src/backend/filesystem/WorkspacePathGuard` | traversal + symlink race suite | `PATH_OUTSIDE_WORKSPACE` 403 |
 
 ## 8. PII Inventory

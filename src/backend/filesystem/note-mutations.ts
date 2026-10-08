@@ -23,7 +23,9 @@ const ARCHIVE_REL_ROOT = "save-data/archive";
 /* Injectable for tests; production uses the real recycle bin. */
 export type TrashFn = (path: string) => Promise<void>;
 const systemTrash: TrashFn = async (path) => {
-  await trash(path);
+  // trash globs by default: a filename like `report[1].md` would also match
+  // `report1.md` on POSIX paths. Hand over the literal path only.
+  await trash(path, { glob: false });
 };
 
 function caseFold(name: string): string {
