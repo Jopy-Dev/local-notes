@@ -32,7 +32,7 @@ Single Node.js process + one worker thread. No database, no network beyond loopb
 | Config | `src/backend/config/` | `ConfigV1` Zod schema, defaults, migration registry, config mutex |
 | Logging | `src/backend/logging/` | pino setup, rotation (10 MiB/file), retention (30d / 100 MiB) |
 | Security | `src/backend/security/` | capability generation/comparison, rate-limit buckets, origin/host checks |
-| Frontend app | `src/frontend/app/` | `App` + `AppRouter` (History API, routes `/`, `/notes/:noteKey`, `/settings`, `/recovery/search`) |
+| Frontend app | `src/frontend/app/` | `App` + `AppRouter` (History API, routes `/`, `/notes/:noteKey`, `/archive/:noteKey`, `/settings`, `/recovery/search`; `src/backend/spa.ts` serves the nonce shell for each) |
 | Pages | `src/frontend/pages/` | route-level composition + state hooks |
 | UI primitives | `src/frontend/components/ui/` | LOCKED Step 11 primitive library (Design_System.md §9) |
 | Feature components | `src/frontend/components/` | shell/launch compositions built from primitives |

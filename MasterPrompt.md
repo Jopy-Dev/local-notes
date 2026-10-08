@@ -122,6 +122,7 @@ tests/
 - `AppRouter` wraps browser History API and parses exact routes:
   - `/`
   - `/notes/:noteKey`
+  - `/archive/:noteKey` (round 2, `SCREEN-008`; server shell route added for reload/deep link)
   - `/settings`
   - `/recovery/search`
 - Unknown client path redirects to `/` without server request.
