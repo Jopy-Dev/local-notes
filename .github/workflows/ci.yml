@@ -32,7 +32,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm audit --omit=dev --audit-level=high
+      # Production audit gate with reviewed allowlist (scripts/audit-allowlist.json)
+      - run: node scripts/check-audit.mjs
       # Lifecycle-script allowlist gate (MasterPrompt.md 1.5, Wave 8)
       - run: node scripts/check-lifecycle-scripts.mjs
       - name: Install slop + fd/rg binaries (slop file discovery + content search)
@@ -49,5 +50,5 @@ jobs:
       - run: npm run test:coverage
       - run: npm run build
       # dependency-review-action removed: unsupported on private repos without GHAS.
-      # Coverage: npm audit gate above + Dependabot alerts. Re-add when repo goes public
+      # Coverage: check-audit gate above + Dependabot alerts. Re-add when repo goes public
       # at first npm publish (MasterPrompt.md 1.5).

@@ -1,0 +1,10 @@
+{
+  "comment": "Production advisories (high/critical) accepted by review. scripts/check-audit.mjs fails on any unlisted advisory, on an entry past its expiry, and on an entry npm audit no longer reports. Each entry pairs with a KNOWN_ISSUES.md Suppressions row.",
+  "accepted": {
+    "GHSA-vfj7-8cjw-p6xm": {
+      "package": "braces",
+      "reason": "No patched braces release exists (<=3.0.3, latest). Reached only via trash -> globby -> fast-glob -> micromatch; the app calls trash(path, { glob: false }), so globby/braces never run. KNOWN_ISSUES id braces-no-fix-2026-10-08 (2026-10-08)",
+      "expires": "2026-12-08"
+    }
+  }
+}
