@@ -24,7 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm audit --omit=dev --audit-level=high
+      # Production audit gate with reviewed allowlist (scripts/audit-allowlist.json)
+      - run: node scripts/check-audit.mjs
       - run: node scripts/check-lifecycle-scripts.mjs
       - run: npm run typecheck
       - run: npm run lint

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Security
+
+- Updated the local server components (Fastify 5.12.5, @fastify/static 10.1.5) and the Markdown sanitizer (sanitize-html 2.18.0) to close published advisories, including a static-file guard bypass through non-canonical paths such as `//index.html`
+
+### Fixed
+
+- Deleting an archived note whose name contains brackets or braces (for example `report[1].md`) now sends only that note to the recycle bin; on macOS and Linux it could previously also send a similarly named sibling note
+
 ## [1.5.0] - 2026-07-13
 
 ### Added
