@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-08
+
 ### Security
 
 - Updated the local server components (Fastify 5.12.5, @fastify/static 10.1.5) and the Markdown sanitizer (sanitize-html 2.18.0) to close published advisories, including a static-file guard bypass through non-canonical paths such as `//index.html`
