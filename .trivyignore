@@ -1,2 +1,6 @@
 # Trivy fs suppressions (arch/scan-policy.md 26.7): every entry pairs with a
-# KNOWN_ISSUES.md row. Empty = no suppressions.
+# KNOWN_ISSUES.md row.
+
+# braces <=3.0.3 (= GHSA-vfj7-8cjw-p6xm), no fix released; unreachable via
+# trash(path, { glob: false }). KNOWN_ISSUES braces-no-fix-2026-10-08, ADR-010.
+CVE-2026-93687 exp:2026-12-08

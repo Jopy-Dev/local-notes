@@ -41,6 +41,9 @@ and `.github/workflows/release.yml`. It runs `npm audit --omit=dev --json` and f
 - an allowlist entry is past its `expires` date;
 - an allowlist entry is no longer reported, so a fixed advisory must be removed.
 
+The local pre-deploy Trivy scan suppresses the same advisory under its CVE alias in
+`.trivyignore`, using the same `exp:` date.
+
 Each allowlist entry names the package, the reachability argument, and its paired
 `KNOWN_ISSUES.md` Suppressions row. The script adds no dependency, in the same style as
 `scripts/check-lifecycle-scripts.mjs`.
