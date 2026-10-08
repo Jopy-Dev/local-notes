@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Changed
+
+- Internal maintenance: retired 25 expired code-quality waivers that no longer apply and added a stack health record (runtime and library support dates) - no change in how the app behaves
+
 ## [1.5.4] - 2026-10-08
 
 ### Changed
