@@ -1,6 +1,12 @@
 import { Marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 import { extractMultilineCopyBlocks, injectCopyBlock } from "./copy-blocks.js";
+import {
+  annotateInlineCopySources,
+  collectInlineCopySources,
+  COPY_SOURCE_ATTR,
+  escapeAttribute,
+} from "./copy-sources.js";
 import { classifyImage, classifyLink } from "./link-policy.js";
 
 /*
@@ -28,13 +34,21 @@ export function renderMarkdown(source: string, noteRelativePath: string): Render
   let html = renderSanitized(extraction.source, noteRelativePath);
   for (const block of extraction.blocks) {
     const inner = renderSanitized(block.content, noteRelativePath);
-    html = injectCopyBlock(html, block.token, `<copy data-block="">${inner}</copy>`);
+    // Round 10: the region copies its exact source text (Notepad-style).
+    const wrapper = `<copy data-block="" ${COPY_SOURCE_ATTR}="${escapeAttribute(block.content)}">`;
+    html = injectCopyBlock(html, block.token, `${wrapper}${inner}</copy>`);
   }
   return { html };
 }
 
 function renderSanitized(source: string, noteRelativePath: string): string {
-  const raw = marked.parse(source) as string;
+  const tokens = marked.lexer(source);
+  const copySources = collectInlineCopySources(tokens);
+  const raw = marked.parser(tokens);
+  return annotateInlineCopySources(sanitize(raw, noteRelativePath), copySources);
+}
+
+function sanitize(raw: string, noteRelativePath: string): string {
   return sanitizeHtml(raw, {
     allowedTags: [
       "h1", "h2", "h3", "h4", "h5", "h6",

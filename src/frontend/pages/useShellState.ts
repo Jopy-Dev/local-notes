@@ -5,6 +5,7 @@ import type { EditorMode } from "../components/ui/EditorModeTabs";
 import type { FindController } from "../components/ui/FindInNoteBar";
 import { copyPlainText, copyToClipboard, markdownForClipboard } from "../editor/copy-actions";
 import { queryFromSelection } from "../editor/find-in-note";
+import { isInFindBar } from "../components/ui/FindInNoteBar";
 import { closeSettingsRoute, navigate, openSettingsRoute } from "../services/navigation";
 import { getWorkspaceDisplayPath } from "../services/workspace";
 import { useEditorData } from "../stores/editorData";
@@ -84,6 +85,8 @@ export function useShellState(
   const [findCase, setFindCase] = useState(false);
   const [findIndex, setFindIndex] = useState(0);
   const [findTotal, setFindTotal] = useState(0);
+  // Bumps on every Ctrl+F so the open bar re-focuses + re-selects (round 10).
+  const [findFocusRequest, setFindFocusRequest] = useState(0);
   // Escape restores focus to where find was invoked from (Design_System 11).
   const findReturnFocus = useRef<HTMLElement | null>(null);
 
@@ -148,13 +151,16 @@ export function useShellState(
   // trimmed, capped by queryFromSelection.
   function openFind(selection?: string) {
     if (!editor.document) return;
-    findReturnFocus.current = window.document.activeElement as HTMLElement | null;
+    // Re-invoking from inside the bar keeps the original return target.
+    const active = window.document.activeElement as HTMLElement | null;
+    if (!isInFindBar(active)) findReturnFocus.current = active;
     const seeded = queryFromSelection(selection);
     if (seeded !== "") {
       setFindQuery(seeded);
       setFindIndex(0);
     }
     setFindOpen(true);
+    setFindFocusRequest((current) => current + 1);
   }
 
   function closeFind() {
@@ -172,6 +178,7 @@ export function useShellState(
     caseSensitive: findCase,
     activeIndex: findIndex,
     total: findTotal,
+    focusRequest: findFocusRequest,
     request: useMemo(
       () =>
         findOpen && findQuery.trim() !== ""

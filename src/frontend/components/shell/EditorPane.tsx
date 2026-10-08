@@ -141,6 +141,7 @@ export function EditorPane(props: EditorPaneProps) {
           caseSensitive={props.find.caseSensitive}
           activeIndex={props.find.activeIndex}
           total={props.find.total}
+          focusRequest={props.find.focusRequest}
           onQueryChange={props.find.onQueryChange}
           onToggleCase={props.find.onToggleCase}
           onNext={props.find.onNext}

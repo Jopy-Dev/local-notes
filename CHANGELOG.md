@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Changed
+
+- Copyable text now copies exactly what you typed between the tags, like selecting it in Notepad: bullets, numbers, indentation, blank lines, and Markdown marks all come along unchanged
+- Clicking (or middle-clicking) a link inside copyable text now copies the text instead of asking to open the link
+
 ### Fixed
+
+- Ctrl+F always puts you in the find box with the current search text selected, ready to type over - even when find is already open, you are reading the preview, or you are already in the find box
 
 - Unusual addresses such as `//index.html` or hidden files like `/.env` now get the normal "not found" answer instead of an unexpected-error response, and no longer write an error entry to the local log
 
