@@ -95,12 +95,15 @@ export function useShellState(
   useEffect(() => {
     if (routeNoteKey) void useEditorData.getState().openNote(routeNoteKey);
     else void useEditorData.getState().closeNote();
-    // A different note is a different find context.
+  }, [routeNoteKey]);
+
+  // A different note (active or archived) is a different find context.
+  useEffect(() => {
     setFindOpen(false);
     setFindQuery("");
     setFindIndex(0);
     setFindTotal(0);
-  }, [routeNoteKey]);
+  }, [routeNoteKey, archiveNoteKey]);
 
   // REQ-017/018: closing the tab with an unsaved, failed, or conflicted
   // draft warns first — the draft lives only in memory.
@@ -146,11 +149,12 @@ export function useShellState(
     );
   }
 
-  // PRD REQ-035: find unavailable until the note's content loads. A text
+  // PRD REQ-035: find unavailable until the note's content loads - the
+  // archive view (read-only) renders its bar only once loaded. A text
   // selection at invoke time seeds the query (round 9) - first line only,
   // trimmed, capped by queryFromSelection.
   function openFind(selection?: string) {
-    if (!editor.document) return;
+    if (!editor.document && !archiveNoteKey) return;
     // Re-invoking from inside the bar keeps the original return target.
     const active = window.document.activeElement as HTMLElement | null;
     if (!isInFindBar(active)) findReturnFocus.current = active;

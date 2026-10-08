@@ -12,6 +12,8 @@ import { useWorkspaceData } from "../../stores/workspaceData";
 import { Button } from "../ui/Button";
 import { ConfirmationDialog } from "../ui/ConfirmationDialog";
 import { EditorHeader } from "../ui/EditorHeader";
+import { FindInNoteBar } from "../ui/FindInNoteBar";
+import type { FindController } from "../ui/FindInNoteBar";
 import { FormField } from "../ui/FormField";
 import { IconButton } from "../ui/IconButton";
 import { Modal } from "../ui/Modal";
@@ -31,11 +33,14 @@ interface ArchiveNoteViewProps {
   noteKey: string;
   folders: readonly string[];
   onToast: (message: string) => void;
+  // Find (REQ-035): the shell controller drives the same bar as the editor.
+  find?: FindController;
+  onOpenFind?: (selection?: string) => void;
 }
 
 type ArchiveDialog = "restore" | "delete" | null;
 
-export function ArchiveNoteView({ noteKey, folders, onToast }: ArchiveNoteViewProps) {
+export function ArchiveNoteView({ noteKey, folders, onToast, find, onOpenFind }: ArchiveNoteViewProps) {
   const [document, setDocument] = useState<NoteDocument | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -186,15 +191,38 @@ export function ArchiveNoteView({ noteKey, folders, onToast }: ArchiveNoteViewPr
         <ArchiveIcon size={14} />
         <span>Archived note - read-only. Move it back to a folder to edit.</span>
       </div>
+      {find?.open ? (
+        <FindInNoteBar
+          query={find.query}
+          caseSensitive={find.caseSensitive}
+          activeIndex={find.activeIndex}
+          total={find.total}
+          focusRequest={find.focusRequest}
+          onQueryChange={find.onQueryChange}
+          onToggleCase={find.onToggleCase}
+          onNext={find.onNext}
+          onPrevious={find.onPrevious}
+          onClose={find.onClose}
+        />
+      ) : null}
       <div className="grid min-h-0 flex-1">
         {document.extension === ".md" ? (
-          <MarkdownPreview source={document.content} noteKey={document.noteKey} onToast={onToast} />
+          <MarkdownPreview
+            source={document.content}
+            noteKey={document.noteKey}
+            onToast={onToast}
+            find={find?.request ?? null}
+            {...(find ? { onFindMatches: find.onMatches } : {})}
+          />
         ) : (
           <SourceEditor
             value={document.content}
             language="plain"
             readOnly
             onChange={() => undefined}
+            find={find?.request ?? null}
+            {...(find ? { onFindMatches: find.onMatches } : {})}
+            {...(onOpenFind ? { onOpenFind } : {})}
           />
         )}
       </div>

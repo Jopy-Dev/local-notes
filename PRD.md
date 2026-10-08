@@ -457,7 +457,7 @@ Acceptance:
 - Given a text selection when `Ctrl+F` fires, the selection's first line seeds the query, pre-selected in the find input; no selection opens find unchanged.
 - Every `Ctrl+F` lands focus in the find input with its current query fully selected for override (feedback round 10), whether find was closed, already open, or focus was already inside the input; a selection inside the find input never re-seeds the query.
 - Find never triggers a filesystem read, write, or dashboard search request.
-- Find is available in read, edit, source, and split modes; case-insensitive by default.
+- Find is available in read, edit, source, and split modes, and on read-only archived notes (`SCREEN-008`); case-insensitive by default.
 - Find remains available in Focus Mode alongside the note tools `REQ-037` already preserves there.
 - Match highlighting is capped at `500` matches per note; total match count stays accurate beyond the cap.
 
