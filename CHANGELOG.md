@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-08
+
 ### Changed
 
 - Copyable text now copies exactly what you typed between the tags, like selecting it in Notepad: bullets, numbers, indentation, blank lines, and Markdown marks all come along unchanged
