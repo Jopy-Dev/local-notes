@@ -429,6 +429,7 @@ interface ConfigV1 {
   - allows `<u>` and `<copy>` (both attribute-less) but removes scripts, handlers, dangerous attributes, and unsafe schemes;
   - rewrites supported workspace-relative note links to internal routes;
   - marks `http`/`https` links for confirmation;
+  - copy sources (round 10): each block region wrapper carries `data-copy-source` = its extracted source; inline marks get the concatenated `raw` of marked's sibling tokens between the `<copy>`/`</copy>` html tokens (`src/backend/markdown/copy-sources.ts`), attached to bare sanitized `<copy>` tags in document order only when counts agree. Attribute is HTML-escaped and injected after sanitizing; note-authored attributes on `<copy>` are always stripped;
   - replaces blocked schemes/escape targets with inert text;
   - rewrites workspace-relative images to guarded asset endpoint;
   - blocks remote, data, `file://`, and escape images.
@@ -483,6 +484,7 @@ interface ConfigV1 {
 - Read/split preview: CSS Custom Highlight API ranges over the sanitized article's text nodes, segmented per block element — never mutates the sanitized subtree (§7.2). Browsers without the API keep accurate counts and navigation without painted highlights.
 - Split view: source pane owns the count; both panes track the shared active index (round 9). Rendered text can hold fewer matches than source (markdown syntax never renders) — `applyPreviewFind` clamps the index to the last rendered match; negative index = explicit no-active.
 - Shortcut `Ctrl+F` intercepted via `keydown` + `preventDefault` while a note is open and focus is inside the workspace. `Escape` closes find and returns focus to the point find was invoked from, per existing Escape-closes-transient-layer pattern (`Design_System.md` §11).
+- Every `Ctrl+F` (round 10) bumps `FindController.focusRequest`; `<FindInNoteBar>` focuses its input and selects the whole query on each bump, open or not. Invoked from inside the bar (`isInFindBar`), the selection never seeds and the return-focus target is kept.
 - Selection prefill (round 9): text selected at `Ctrl+F` seeds the query — source editor passes the CodeMirror doc slice (viewport-independent), any other surface the DOM selection. `queryFromSelection` = first line, trimmed, 200-char cap. Seeded query arrives selected in the input so typing replaces it; re-invoking `Ctrl+F` on a new selection re-seeds an open bar. Shell listener skips events the source editor already handled (`defaultPrevented`).
 - Match count and current position exposed via `role="status"` live region on the find bar; only the first jump-to-match scrolls the document automatically.
 - Debounce query input `150ms` before re-scanning; abort stale scan on rapid retyping.
@@ -493,8 +495,8 @@ interface ConfigV1 {
 - Authored in source mode: toolbar wrap toggle or literal `<copy>...</copy>` (inline) / line-starting `<copy>` region (block form, §4.6, rounds 2-3).
 - Source mode colors the literal tags (round 4): `src/frontend/editor/cm-copy-tag.ts` MatchDecorator marks `<copy>`/`</copy>` with `--color-copy-tag` (`Design_System.md` §2.2); wired in the language compartment so `.txt` stays unstyled; decoration only, never an edit.
 - Read/split preview: server-sanitized HTML passes `<copy>` through the allowlist (§4.6); the preview component mounts an inline `<IconButton>` (`Design_System.md` §9) after each rendered `<copy>` element client-side — the sanitized HTML itself carries no button markup.
-- Click-to-copy (round 2): clicking anywhere in the rendered `<copy>` element copies it; anchors inside still follow link policy first.
-- Clipboard text is line-aware (`src/frontend/editor/copy-mounts.ts`): block children join with newlines, table cells with tabs, `<br>` breaks; nested Markdown is already stripped by rendering. Same clipboard mechanism + toast as `Copy Text` (§4.7).
+- Click-to-copy (round 2): clicking anywhere in the rendered `<copy>` element copies it. Round 10: the copy check runs before link policy - an anchor inside `<copy>` copies the region (`preventDefault`, no confirmation, no navigation) and `auxclick` inside a mark is prevented so middle-click opens no tab.
+- Clipboard text = `data-copy-source` (round 10, exact source between tags, §4.6) via `copyMarkText` (`src/frontend/editor/copy-mounts.ts`); fallback for unmapped marks = line-aware rendered walk (block children newline-joined, table cells tab-separated, `<br>` breaks). Same clipboard mechanism + toast as `Copy Text` (§4.7).
 
 ### 4.13 Archive Browser (`REQ-038`/`REQ-039`/`REQ-040`)
 

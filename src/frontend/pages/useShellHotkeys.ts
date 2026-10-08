@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isInFindBar } from "../components/ui/FindInNoteBar";
 
 /*
  * App-shell keyboard contract (Design_System.md 11): Ctrl+K palette,
@@ -26,8 +27,13 @@ interface Binding {
 const modifierBindings: readonly Binding[] = [
   { key: "f", shift: true, run: (handlers) => handlers.toggleFocusMode() },
   // Round 9: a selection at Ctrl+F time seeds the find query. Outside the
-  // source editor the DOM selection is the only selection source.
-  { key: "f", run: (handlers) => handlers.openFind(window.getSelection()?.toString()) },
+  // source editor the DOM selection is the only selection source - except
+  // inside the find bar itself (round 10), where Ctrl+F only re-selects.
+  {
+    key: "f",
+    run: (handlers) =>
+      handlers.openFind(isInFindBar(document.activeElement) ? "" : window.getSelection()?.toString()),
+  },
   { key: "k", run: (handlers) => handlers.openCommand() },
   { key: "p", run: (handlers) => handlers.focusSearch() },
   { key: "n", run: (handlers) => handlers.openNewNote() },

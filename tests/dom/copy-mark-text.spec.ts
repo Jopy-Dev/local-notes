@@ -40,3 +40,15 @@ describe("copyMarkText", () => {
     expect(copyMarkText(markOf("<copy>a<br>b</copy>"))).toBe("a\nb");
   });
 });
+
+describe("copyMarkText exact source (round 10)", () => {
+  it("copies the server-provided source verbatim, Markdown marks included", () => {
+    const source = "- first\n  - nested\n\n1. one\n**bold** [Docs](https://example.com)";
+    const mark = markOf(`<copy data-block="" data-copy-source="${source.replace(/"/g, "&quot;")}"><ul><li>first</li></ul></copy>`);
+    expect(copyMarkText(mark)).toBe(source);
+  });
+
+  it("copies an empty source as an empty string", () => {
+    expect(copyMarkText(markOf('<copy data-copy-source=""></copy>'))).toBe("");
+  });
+});

@@ -13,12 +13,27 @@ import { Input } from "./Input";
  */
 const QUERY_DEBOUNCE_MS = 150;
 
+/*
+ * Round 10: Ctrl+F from inside the bar only re-focuses and re-selects.
+ * Chrome mirrors an input's selected text into window.getSelection(), so a
+ * selection there must never re-seed (shrink) the query, and the bar is
+ * never its own focus-return target. Selector mirrors the root element below.
+ */
+const FIND_BAR_SELECTOR = '[role="search"][aria-label="Find in note"]';
+
+export function isInFindBar(element: Element | null): boolean {
+  return element?.closest(FIND_BAR_SELECTOR) != null;
+}
+
 export interface FindController {
   open: boolean;
   query: string;
   caseSensitive: boolean;
   activeIndex: number;
   total: number;
+  // Bumps on every Ctrl+F (round 10): the bar re-focuses its input and
+  // selects the query even when already open.
+  focusRequest: number;
   // Stable per query/index/case change - editor effects key off identity.
   request: FindRequest | null;
   onQueryChange: (query: string) => void;
@@ -64,6 +79,14 @@ export function FindInNoteBar(props: FindBarProps) {
     selectPending.current = false;
     inputRef.current?.select();
   }, [input]);
+
+  // Every Ctrl+F lands in the input with the query selected for easy
+  // override (round 10). A seeded query adopted above re-selects after its
+  // value swap through selectPending.
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [props.focusRequest]);
 
   function changeInput(value: string) {
     setInput(value);

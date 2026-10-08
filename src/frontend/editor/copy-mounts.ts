@@ -20,7 +20,14 @@ function collectCopyText(node: Node): string {
   return inner;
 }
 
+/*
+ * Round 10: a copy region copies exactly what was typed between its tags -
+ * the render route attaches that source as data-copy-source. The rendered
+ * walk above stays only as the fallback for marks the server could not map.
+ */
 export function copyMarkText(mark: Element): string {
+  const source = mark.getAttribute("data-copy-source");
+  if (source !== null) return source;
   return collectCopyText(mark).replace(/\n$/, "");
 }
 

@@ -455,6 +455,7 @@ Acceptance:
 - User may step to next and previous match and close find without altering draft content.
 - Next/previous moves the active match on every visible surface, split preview pane included.
 - Given a text selection when `Ctrl+F` fires, the selection's first line seeds the query, pre-selected in the find input; no selection opens find unchanged.
+- Every `Ctrl+F` lands focus in the find input with its current query fully selected for override (feedback round 10), whether find was closed, already open, or focus was already inside the input; a selection inside the find input never re-seeds the query.
 - Find never triggers a filesystem read, write, or dashboard search request.
 - Find is available in read, edit, source, and split modes; case-insensitive by default.
 - Find remains available in Focus Mode alongside the note tools `REQ-037` already preserves there.
@@ -474,8 +475,8 @@ Acceptance:
 - `.md` supports a copyable-text mark, applied to a selection via the source-mode toolbar (`REQ-015`) or by typing `<copy>...</copy>` in source mode.
 - Inline form: `<copy>text</copy>` with text before the mark on its line, or a line holding several complete marks.
 - Block form (feedback rounds 2-3): any region whose `<copy>` starts its line - alone, with content on the open line, or opening and closing on the same line - through the first `</copy>` that ends a line. Inner content (headings, tables, lists, blank lines) renders as normal Markdown through the same sanitization pipeline, stays entirely inside the copy region, and shows the standard copy highlight.
-- Marked content renders in read and split preview with a visible copy affordance button immediately after the mark, and the marked region itself is click-to-copy: clicking anywhere in the rendered mark copies it (links inside still navigate per `REQ-014`).
-- Copying preserves line structure: block children separate with line breaks, table cells with tabs; nested Markdown syntax is stripped to plain text.
+- Marked content renders in read and split preview with a visible copy affordance button immediately after the mark, and the marked region itself is click-to-copy: clicking anywhere in the rendered mark copies it. Links inside a mark are region text (feedback round 10): clicking one copies the region - no external-link confirmation, no browser tab, no note navigation; links outside marks keep `REQ-014`.
+- Copying yields the exact source between `<copy>` and `</copy>` (feedback round 10, Notepad-style): every character as typed, including bullets, numbers, indentation, blank lines, and Markdown marks; block form excludes the tag-only open/close lines.
 - Uses the same clipboard mechanism and failure handling as `Copy Text` (`REQ-020`).
 - An empty mark copies an empty string; no error state.
 - Mark serializes as sanitized `<copy>` HTML. Together with `<u>` (`REQ-015`), these are the only two raw HTML tags interpreted in saved Markdown source.
@@ -487,8 +488,9 @@ Acceptance:
 Acceptance:
 
 - Given selected text and toolbar activation, the mark applies as `<copy>...</copy>` in Markdown source.
-- Given an inline or block mark in read or split preview, clicking the mark or its affordance copies plain text with Markdown syntax stripped, line structure preserved, and the same success/failure feedback as `Copy Text`.
-- Given `<copy>## Heading</copy>` alone on a line, preview renders a heading inside a highlighted copy region and copying yields the heading text (feedback round 3).
+- Given an inline or block mark in read or split preview, clicking the mark or its affordance copies the exact source text between the tags with the same success/failure feedback as `Copy Text`.
+- Given a link inside a mark, clicking or middle-clicking it copies the region and never opens a confirmation, browser tab, or note.
+- Given `<copy>## Heading</copy>` alone on a line, preview renders a heading inside a highlighted copy region and copying yields `## Heading` (feedback rounds 3 + 10).
 - Given a region opening with content on the `<copy>` line and closing lines later, every block between the tags (tables included) renders inside the copy region and copies with structure intact (feedback round 3).
 - Given a block region containing active content (scripts, event handlers), sanitization strips it identically to normal rendering.
 - Given `<copy>` text in a `.txt` file, content displays and saves literally with no affordance rendered.
