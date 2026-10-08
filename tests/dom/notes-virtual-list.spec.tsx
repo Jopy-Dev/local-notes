@@ -68,6 +68,14 @@ beforeEach(() => {
   ) {
     return this === scrollParent ? rect(400, 600) : rect(400, 92);
   });
+  // Rows measured without a ResizeObserver entry fall back to offsetHeight,
+  // which jsdom always reports as 0 - zero-height rows never fill the
+  // viewport and @tanstack/virtual-core 3.17.11 loops on them (browsers
+  // report real heights; verified live at 301 notes).
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+    return this === scrollParent ? 600 : 92;
+  });
+  vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(400);
 });
 
 afterEach(async () => {
