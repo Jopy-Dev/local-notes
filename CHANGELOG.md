@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- Unusual addresses such as `//index.html` or hidden files like `/.env` now get the normal "not found" answer instead of an unexpected-error response, and no longer write an error entry to the local log
+
 ## [1.5.1] - 2026-10-08
 
 ### Security
