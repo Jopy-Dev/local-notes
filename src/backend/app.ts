@@ -57,7 +57,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     trustProxy: false,
     genReqId: () => randomUUID(),
     // MasterPrompt.md 7.1: static server never falls through to filesystem paths.
-    ignoreTrailingSlash: false,
+    // fastify 5.12 reads router settings from routerOptions (top-level = FSTDEP022).
+    routerOptions: { ignoreTrailingSlash: false },
   });
 
   // Raw note drafts arrive as text/plain (5.1); fatal UTF-8 decode rejects

@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file. Format foll
 ### Fixed
 
 - Ctrl+F always puts you in the find box with the current search text selected, ready to type over - even when find is already open, you are reading the preview, or you are already in the find box
-
+- Starting Local-Notes no longer prints a framework deprecation warning in the terminal (appeared since 1.5.1)
 - Unusual addresses such as `//index.html` or hidden files like `/.env` now get the normal "not found" answer instead of an unexpected-error response, and no longer write an error entry to the local log
 
 ## [1.5.1] - 2026-10-08
