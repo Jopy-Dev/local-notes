@@ -40,6 +40,7 @@ Deliberately deferred items + suppression records. Entries pair with `.slop.toml
 
 | Area | Behavior deferred | Rationale | Revisit |
 |---|---|---|---|
+| CI perf tripwire (`METRIC-002/003`) | `tests/integration/perf-benchmark.spec.ts` CI ceiling = 4x local budget (400ms p95 / 8s warm startup); local runs keep strict 100ms / 2s and stay the evidence source | 2026-10-08: identical code measured p95 ~57ms / startup ~1000ms locally (with and without coverage) vs p95 224-278ms / startup up to 4247ms on `ubuntu-latest`; 2x ceiling failed on runner speed, not regression | Runner speed shifts again, or any CI value within 20% of the 4x ceiling |
 | Dev-only advisory `GHSA-82fw-gwwq-j7x9` (`@vitest/mocker` `<=4.1.10`, moderate) | `vitest` stays `4.1.9`; patched `4.1.11` not installed | `vitest@4.1.11` optional peer resolves to the vitest 5 line and crashes npm 10.9.7 arborist (`Cannot read properties of null (reading 'edgesOut')`); test-runner path only, never shipped (CI gate audits `--omit=dev`); upgrade isolated per `runtime` §17 | Dedicated vitest upgrade chore, before 2026-12-08 |
 | Rename correlation split across watch batches (`REQ-018` edge) | Unlink and add landing in different 100ms coalesce windows surface as removed+added, not `note.renamed`; a clean open editor then parks as source-missing instead of following | Pairing is per-batch by design; cross-batch correlation needs a held-back removal buffer with timeout. Recovery path (save-as-new / close) loses no data | Wave 8 packaged-build pass, or first user report |
 
