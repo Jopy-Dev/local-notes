@@ -171,6 +171,8 @@ export function WorkspaceShellPage({
               noteKey={archiveNoteKey}
               folders={shell.folders}
               onToast={shell.toast.show}
+              find={shell.find}
+              onOpenFind={shell.openFind}
             />
           ) : (
             <ShellEditor shell={shell} />
