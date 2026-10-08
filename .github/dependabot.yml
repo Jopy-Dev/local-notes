@@ -1,10 +1,14 @@
 # Baseline per arch/security.md 9.9 - npm majors ignored (EOL-isolated upgrades),
 # patch+minor grouped weekly; github-actions all bumps grouped (SHA-pin forces manual review).
 # No docker ecosystem: local npm package, no container deploy (MasterPrompt.md 1.2).
+# target-branch: dev - version-update PRs follow the dev -> main forward flow
+# (arch/docs-git.md 23.2); security updates still target the default branch
+# per GitHub docs (verified 2026-10).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -27,6 +31,7 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
       day: monday

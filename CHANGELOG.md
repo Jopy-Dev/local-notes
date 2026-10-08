@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Format foll
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-10-08
+
+### Fixed
+
+- Find in note now works on archived notes: Ctrl+F opens the find box there too (it previously did nothing and also blocked the browser's own find)
+
 ## [1.5.2] - 2026-10-08
 
 ### Changed
